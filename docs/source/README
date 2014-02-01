@@ -1,0 +1,5 @@
+Run `sphinx-apidoc -o . ../../figaro' in this directory.
+
+This will generate `modules.rst' and `figaro.rst'.
+
+Then include `modules.rst' in your `index.rst' file.
