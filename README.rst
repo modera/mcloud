@@ -7,14 +7,15 @@ provides all the services needed for hosting production apps.
 NB! Figaro is currently in concept stage, so documentation for future components is only thing that exist now.
 
 Features:
-- define your app config through Dockerfile and fig.yml
-- easy deploy through git push
-- pushing several versions of app (dev, staging, prod ... etc)
-- simple nginx based balancer 
-- easy switch balancer endpoint between app versions (ex swap prod and dev)
-- persistent storage for containers
-- easy copying persistence storage between containers (prod -> staging, etc)
-- ftp access for container persistence storage
+
+ - define your app config through Dockerfile and fig.yml
+ - easy deploy through git push
+ - pushing several versions of app (dev, staging, prod ... etc)
+ - simple nginx based balancer
+ - easy switch balancer endpoint between app versions (ex swap prod and dev)
+ - persistent storage for containers
+ - easy copying persistence storage between containers (prod -> staging, etc)
+ - ftp access for container persistence storage
 
 Tutorial
 ----------
