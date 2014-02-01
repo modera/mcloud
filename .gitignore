@@ -23,6 +23,8 @@ sdist
 deb_dist
 develop-eggs
 .installed.cfg
+.env
+.idea
 
 ## Installer logs
 pip-log.txt
