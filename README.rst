@@ -21,41 +21,42 @@ Tutorial
 
 Nb! there is no code that implements things described in tutorial yet.
 
-Configure your project to run with fig.yml.
+Configure your project to run with fig.yml::
 
-$ figaro use ubuntu@myserver.com
-$ figaro init myapp
+    $ figaro use ubuntu@myserver.com
+    $ figaro init myapp
 
-That is equivalent to:
+That is equivalent to::
 
-$ ssh ubuntu@myserver.com
+    $ ssh ubuntu@myserver.com
+
 ubuntu$ git init --bare myapp
 
-now push code:
+now push code::
 
-$ git push ubuntu@myserver.com:myapp staging
+    $ git push ubuntu@myserver.com:myapp staging
 
-rewiev deployed app versions:
+rewiev deployed app versions::
 
-$ figaro apps
+    $ figaro apps
 
-myapp:
-- staging 
+    myapp:
+    - staging
 
-$ figaro balancer
+    $ figaro balancer
 
-no balancer installed on ubuntu@myserver.com
+no balancer installed on ubuntu@myserver.com::
 
-$ figaro balancer install
+    $ figaro balancer install
 
-$ figaro balancer mydomain.com myapp@localhost/staging/web:5000
-$ figaro balancer mydomain.com disable
+    $ figaro balancer mydomain.com myapp@localhost/staging/web:5000
+    $ figaro balancer mydomain.com disable
 
-Working with storage:
+Working with storage::
 
-$ figaro storage copy myapp@localhost/staging/web/mysql myapp@localhost/prod/web/mysql
-$ figaro storage snapshot myapp@localhost/staging/web/mysql s3://some/bucket#v1.2.3
-$ figaro storage restore s3://some/bucket#v1.2.3 myapp@localhost/staging/web/mysql
+    $ figaro storage copy myapp@localhost/staging/web/mysql myapp@localhost/prod/web/mysql
+    $ figaro storage snapshot myapp@localhost/staging/web/mysql s3://some/bucket#v1.2.3
+    $ figaro storage restore s3://some/bucket#v1.2.3 myapp@localhost/staging/web/mysql
 
 
 
