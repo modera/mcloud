@@ -22,42 +22,36 @@ Tutorial
 
 Nb! there is no code that implements things described in tutorial yet.
 
-Configure your project to run with fig.yml::
+Set working ssh account::
 
     $ figaro use ubuntu@myserver.com
-    $ figaro init myapp
 
-That is equivalent to::
+Apps:
 
-    $ ssh ubuntu@myserver.com
+    $ figaro app create myapp
+    $ figaro app list
+    $ figaro app remove
 
-ubuntu$ git init --bare myapp
+Branches::
 
-now push code::
+    $ figaro branch list myapp
+    $ figaro branch remove myapp version
 
-    $ git push ubuntu@myserver.com:myapp staging
+push code::
 
-rewiev deployed app versions::
+    $ git push ubuntu@myserver.com:myapp master:staging
 
-    $ figaro apps
-
-    myapp:
-    - staging
-
-    $ figaro balancer
-
-no balancer installed on ubuntu@myserver.com::
+Install balancer::
 
     $ figaro balancer install
+    $ figaro balancer uninstall
 
-    $ figaro balancer mydomain.com myapp@localhost/staging/web:5000
-    $ figaro balancer mydomain.com disable
+    $ figaro balancer set mydomain.com myapp@localhost/staging/web:5000
+    $ figaro balancer remove mydomain.com
 
 Working with storage::
 
-    $ figaro storage copy myapp@localhost/staging/web/mysql myapp@localhost/prod/web/mysql
-    $ figaro storage snapshot myapp@localhost/staging/web/mysql s3://some/bucket#v1.2.3
-    $ figaro storage restore s3://some/bucket#v1.2.3 myapp@localhost/staging/web/mysql
+    $ figaro storage copy myapp@/staging/web/mysql myapp@/prod/web/mysql
 
 
 

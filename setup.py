@@ -249,7 +249,9 @@ setup_dict = dict(
     ],
     packages=find_packages(exclude=(TESTS_DIRECTORY,)),
     install_requires=[
-       'fig'
+       'fig',
+       'fabric',
+       'cuisine'
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
     tests_require=[
@@ -261,7 +263,8 @@ setup_dict = dict(
     zip_safe=False,  # don't use eggs
     entry_points={
         'console_scripts': [
-            'figaro = figaro.main:entry_point'
+            'figaro = figaro.client_cli:entry_point',
+            'figaro-server = figaro.server_cli:entry_point',
         ],
         # if you have a gui, use this
         # 'gui_scripts': [
