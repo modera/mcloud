@@ -1,5 +1,0 @@
-
-nginx:
-  image: dockerfile/nginx
-  ports:
-   - 80

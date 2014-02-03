@@ -4,11 +4,13 @@
 from __future__ import print_function
 
 import argparse
+import logging
 import sys
 
 from ficloud import metadata
 from ficloud.client import FicloudClient
 from ficloud.server import FicloudServer
+from pywizard.cli import configure_logger
 
 
 def format_epilog():
@@ -34,11 +36,14 @@ URL: <{url}>
 
 
 def main(argv):
+
     arg_parser = argparse.ArgumentParser(
         prog=argv[0],
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=metadata.description,
         epilog=format_epilog())
+
+    arg_parser.add_argument('--log-level', type=str, help='Log level. Useful ones: DEBUG, INFO, ERROR', default='INFO')
 
     arg_parser.add_argument(
         '-V', '--version',
@@ -56,7 +61,13 @@ def main(argv):
     app_create_cmd.add_argument('path', help='destination path')
     app_create_cmd.set_defaults(func=server.balancer_set)
 
+    app_create_cmd = balancer_cmd.add_parser('remove', help='Remove destination for a domain')
+    app_create_cmd.add_argument('domain', help='domain name')
+    app_create_cmd.set_defaults(func=server.balancer_remove)
+
     args = arg_parser.parse_args(args=argv[1:])
+
+    logging.getLogger().level = logging.DEBUG
 
     args.func(**vars(args))
 
