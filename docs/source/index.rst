@@ -1,11 +1,11 @@
 
 ========
-Figaro
+ficloud
 ========
 
-Figaro alows to deploy your fig infrastructure to remote servers. Also it provides all the services needed for hosting production apps.
+ficloud alows to deploy your fig infrastructure to remote servers. Also it provides all the services needed for hosting production apps.
 
-NB! Figaro is currently in concept stage, so documentation for future components is only thing that exist now.
+NB! ficloud is currently in concept stage, so documentation for future components is only thing that exist now.
 
 
 Deploy your fig-docker environment easily
@@ -24,9 +24,9 @@ Get started quickly with a simple example in quickstart.
 
 Easy installation
 -----------------
-You can use pip to install figaro quickly and easily::
+You can use pip to install ficloud quickly and easily::
 
-    $ pip install figaro
+    $ pip install ficloud
 
 Need more help with installing? See installation.
 
@@ -42,10 +42,10 @@ User's Guide
 
 Contribute
 ==========
-Found a bug in or want a feature added to figaro?
-You can fork the official https://github.com/pywizard/figaro or file an issue ticket
+Found a bug in or want a feature added to ficloud?
+You can fork the official https://github.com/pywizard/ficloud or file an issue ticket
 on github. You can also ask questions at the official
-figaro-project@googlegroups.com or directli in google-group https://groups.google.com/forum/#!forum/figaro-project.
+ficloud-project@googlegroups.com or directli in google-group https://groups.google.com/forum/#!forum/ficloud-project.
 
 
 Indices and tables

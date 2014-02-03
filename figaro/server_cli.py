@@ -6,9 +6,9 @@ from __future__ import print_function
 import argparse
 import sys
 
-from figaro import metadata
-from figaro.client import FigaroClient
-from figaro.server import FigaroServer
+from ficloud import metadata
+from ficloud.client import ficloudClient
+from ficloud.server import ficloudServer
 
 
 def format_epilog():
@@ -47,7 +47,7 @@ def main(argv):
 
     subparsers = arg_parser.add_subparsers()
 
-    client = FigaroServer()
+    client = ficloudServer()
 
     use_cmd = subparsers.add_parser('use', help='Sets target hostname')
     use_cmd.add_argument('host', help='Hostname with username ex. user@some.server')

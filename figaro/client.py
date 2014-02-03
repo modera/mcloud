@@ -7,14 +7,14 @@ import cuisine as remote
 class NoHostSelected(Exception):
     pass
 
-class FigaroClient():
+class ficloudClient():
 
-    def __init__(self, config_file='~/.figaro.yml'):
-        self.figaro_yml = expanduser(config_file)
+    def __init__(self, config_file='~/.ficloud.yml'):
+        self.ficloud_yml = expanduser(config_file)
 
         # load config
-        if os.path.exists(self.figaro_yml):
-            with open(self.figaro_yml) as f:
+        if os.path.exists(self.ficloud_yml):
+            with open(self.ficloud_yml) as f:
                 self.config = yaml.load(f)
                 if self.config is None:
                     self.config = {}
@@ -75,5 +75,5 @@ class FigaroClient():
 
 
     def save_config(self):
-        with open(self.figaro_yml, 'w+') as f:
+        with open(self.ficloud_yml, 'w+') as f:
             yaml.dump(self.config, f)

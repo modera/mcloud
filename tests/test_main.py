@@ -6,8 +6,8 @@ from pytest import raises
 import pytest
 parametrize = pytest.mark.parametrize
 
-from figaro import metadata
-from figaro.main import main
+from ficloud import metadata
+from ficloud.main import main
 
 
 class TestMain(object):

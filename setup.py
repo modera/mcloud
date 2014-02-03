@@ -33,16 +33,16 @@ except ImportError:
 sys.path.append('.')
 
 ## Constants
-CODE_DIRECTORY = 'figaro'
+CODE_DIRECTORY = 'ficloud'
 DOCS_DIRECTORY = 'docs'
 TESTS_DIRECTORY = 'tests'
 PYTEST_FLAGS = ['--doctest-modules']
 
 # Import metadata. Normally this would just be:
 #
-#     from figaro import metadata
+#     from ficloud import metadata
 #
-# However, when we do this, we also import `figaro/__init__.py'. If this
+# However, when we do this, we also import `ficloud/__init__.py'. If this
 # imports names from some other modules and these modules have third-party
 # dependencies that need installing (which happens after this file is run), the
 # script will crash. What we do instead is to load the metadata module by path
@@ -263,12 +263,12 @@ setup_dict = dict(
     zip_safe=False,  # don't use eggs
     entry_points={
         'console_scripts': [
-            'figaro = figaro.client_cli:entry_point',
-            'figaro-server = figaro.server_cli:entry_point',
+            'ficloud = ficloud.client_cli:entry_point',
+            'ficloud-server = ficloud.server_cli:entry_point',
         ],
         # if you have a gui, use this
         # 'gui_scripts': [
-        #     'figaro_gui = figaro.gui:entry_point'
+        #     'ficloud_gui = ficloud.gui:entry_point'
         # ]
     }
 )

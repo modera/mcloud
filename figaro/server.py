@@ -4,7 +4,7 @@ from fig.project import Project
 import yaml
 
 
-class FigaroServer():
+class ficloudServer():
 
     def __init__(self):
         self.client = Client()

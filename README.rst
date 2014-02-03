@@ -1,10 +1,10 @@
-figaro
+ficloud
 ======
 
-Figaro alows to deploy your fig infrastructure to remote servers. Also it
+ficloud alows to deploy your fig infrastructure to remote servers. Also it
 provides all the services needed for hosting production apps.
 
-NB! Figaro is currently in concept stage, so documentation for future components is only thing that exist now.
+NB! ficloud is currently in concept stage, so documentation for future components is only thing that exist now.
 
 Features:
 
@@ -24,18 +24,18 @@ Nb! there is no code that implements things described in tutorial yet.
 
 Set working ssh account::
 
-    $ figaro use ubuntu@myserver.com
+    $ ficloud use ubuntu@myserver.com
 
 Apps:
 
-    $ figaro app create myapp
-    $ figaro app list
-    $ figaro app remove
+    $ ficloud app create myapp
+    $ ficloud app list
+    $ ficloud app remove
 
 Branches::
 
-    $ figaro branch list myapp
-    $ figaro branch remove myapp version
+    $ ficloud branch list myapp
+    $ ficloud branch remove myapp version
 
 push code::
 
@@ -43,15 +43,15 @@ push code::
 
 Install balancer::
 
-    $ figaro balancer install
-    $ figaro balancer uninstall
+    $ ficloud balancer install
+    $ ficloud balancer uninstall
 
-    $ figaro balancer set mydomain.com myapp@localhost/staging/web:5000
-    $ figaro balancer remove mydomain.com
+    $ ficloud balancer set mydomain.com myapp@localhost/staging/web:5000
+    $ ficloud balancer remove mydomain.com
 
 Working with storage::
 
-    $ figaro storage copy myapp@/staging/web/mysql myapp@/prod/web/mysql
+    $ ficloud storage copy myapp@/staging/web/mysql myapp@/prod/web/mysql
 
 
 
