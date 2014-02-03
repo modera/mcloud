@@ -7,7 +7,7 @@ import cuisine as remote
 class NoHostSelected(Exception):
     pass
 
-class ficloudClient():
+class FicloudClient():
 
     def __init__(self, config_file='~/.ficloud.yml'):
         self.ficloud_yml = expanduser(config_file)

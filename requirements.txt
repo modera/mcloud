@@ -4,3 +4,4 @@
 fig
 fabric
 cuisine
+jinja2
