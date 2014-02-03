@@ -54,6 +54,20 @@ def main(argv):
 
     server = FicloudServer()
 
+    app_cmd = subparsers.add_parser('app').add_subparsers()
+
+    app_list_cmd = app_cmd.add_parser('list', help='List applications deployed')
+    app_list_cmd.set_defaults(func=server.list_apps)
+
+    app_versions_cmd = app_cmd.add_parser('versions', help='List applications versions deployed')
+    app_versions_cmd.add_argument('name', help='Application name')
+    app_versions_cmd.set_defaults(func=server.list_app_versions)
+
+    app_versions_cmd = app_cmd.add_parser('create', help='Create new application')
+    app_versions_cmd.add_argument('name', help='Application name')
+    app_versions_cmd.set_defaults(func=server.create_app)
+
+
     balancer_cmd = subparsers.add_parser('balancer').add_subparsers()
 
     app_create_cmd = balancer_cmd.add_parser('set', help='Sets new destination for a domain')
