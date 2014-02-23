@@ -10,7 +10,7 @@ Features:
 
  - define your app config through Dockerfile and fig.yml
  - easy deploy through git push
- - pushing several versions of app (dev, staging, prod ... etc)
+ - pushing several versions of app (dev, staging, production ... etc)
  - simple nginx based balancer
  - easy switch balancer endpoint between app versions (ex swap prod and dev)
  - persistent storage for containers
@@ -32,26 +32,17 @@ Apps:
     $ ficloud app list
     $ ficloud app remove
 
-Branches::
-
-    $ ficloud branch list myapp
-    $ ficloud branch remove myapp version
-
 push code::
 
     $ git push ubuntu@myserver.com:myapp master:staging
 
 Install balancer::
 
-    $ ficloud balancer install
-    $ ficloud balancer uninstall
+    $ ficloud-server balancer install
+    $ ficloud-server balancer uninstall
 
-    $ ficloud balancer set mydomain.com myapp@localhost/staging/web:5000
-    $ ficloud balancer remove mydomain.com
-
-Working with storage::
-
-    $ ficloud storage copy myapp@/staging/web/mysql myapp@/prod/web/mysql
+    $ ficloud-server balancer set mydomain.com myapp@localhost/staging/web:5000
+    $ ficloud-server balancer remove mydomain.com
 
 
 

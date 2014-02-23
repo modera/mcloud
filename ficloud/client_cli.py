@@ -57,19 +57,17 @@ def main(argv):
     status_cmd = subparsers.add_parser('status', help='Show current status. For now it\'s target hostname')
     status_cmd.set_defaults(func=client.status)
 
-    app_cmd = subparsers.add_parser('app').add_subparsers()
-
     # ficloud app create myapp
-    app_create_cmd = app_cmd.add_parser('create', help='Creates new application')
+    app_create_cmd = subparsers.add_parser('app-create', help='Creates new application')
     app_create_cmd.add_argument('name', help='Name of application')
     app_create_cmd.set_defaults(func=client.app_create)
 
     # ficloud app list
-    app_create_cmd = app_cmd.add_parser('list', help='Lists applications')
+    app_create_cmd = subparsers.add_parser('app-list', help='Lists applications')
     app_create_cmd.set_defaults(func=client.app_list)
 
     # ficloud app remove myapp
-    app_create_cmd = app_cmd.add_parser('remove', help='Removes new application')
+    app_create_cmd = subparsers.add_parser('app-remove', help='Removes new application')
     app_create_cmd.add_argument('name', help='Name of application')
     app_create_cmd.set_defaults(func=client.app_remove)
 

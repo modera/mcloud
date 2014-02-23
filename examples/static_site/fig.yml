@@ -1,0 +1,14 @@
+
+web:
+  image: dockerfile/nginx
+  volumes:
+   - .ficloud:/etc/nginx/sites-enabled
+   - public:/var/www
+  ports:
+   - 8000:80
+
+
+
+
+
+

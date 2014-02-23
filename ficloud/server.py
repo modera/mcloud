@@ -1,22 +1,10 @@
 import os
 import sys
-from pywizard.compat.os_debian.package_apt import AptPackageProvider
-from pywizard.compat.os_linux.sudo import require_sudo
-from pywizard.core.resource_aggregate import aggregate_config
-from pywizard.core.templating import jinja_templates, tpl
-from pywizard.resources.git import git_repo, git_clone
-from pywizard.resources.package import register_package_provider
-import re
 
 from fig.cli.command import Command
 from fig.packages.docker import Client
 from fig.project import Project
 import yaml
-
-from pywizard.api import python_package, package, directory, file_
-from pywizard.core.decorators import pywizard_apply, rollback, resource_set
-from pywizard.resources.service import service
-from pywizard.utils.process import run
 
 
 class FicloudServer():
@@ -42,8 +30,12 @@ class FicloudServer():
         Creates new application. Basically, creates new git repo.
 
         """
-        with pywizard_apply():
-            git_repo(self._get_app_git_dir(name))
+        repo_dir = self._get_app_git_dir(name)
+
+        if not os.path.exists(repo_dir):
+            os.system('git init --bare %s' % repo_dir)
+        else:
+            print('Application already created')
 
     def deploy_app_version(self, name, version, domain):
         """
@@ -52,11 +44,9 @@ class FicloudServer():
         target_dir = self._get_app_deployment_dir(name, version)
         repo = self._get_app_git_dir(name)
 
-        with pywizard_apply():
-            directory(os.path.dirname(target_dir))
-            git_clone(repo, target_dir)
+        git_clone(repo, target_dir)
 
-            run('cd %s && fig up -d' % target_dir)
+        run('cd %s && fig up -d' % target_dir)
 
         self.balancer_set(domain, target_dir)
 
@@ -65,7 +55,7 @@ class FicloudServer():
         if not os.path.exists(self._get_git_dir()):
             print 'No apps yet'
         else:
-            print('\n'.join(filter(os.path.isdir, [x for x in os.listdir(self._get_git_dir()) if not x[0] == '.'])))
+            print([x for x in os.listdir(self._get_git_dir()) if not x[0] == '.' and os.path.isdir(self._get_git_dir()+ '/' + x)])
 
     def list_app_versions(self, name):
         app_dir = '%s/%s' % (self._get_deployment_dir(), name)
@@ -110,6 +100,7 @@ class FicloudServer():
         cfg.on_remove = (nginx_service.reload,)
 
     def balancer_set(self, domain, path, **kwargs):
+
 
         p = re.compile(r'^[\w\-\._]+$')
         result = p.match(domain)
