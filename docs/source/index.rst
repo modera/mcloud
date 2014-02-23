@@ -5,7 +5,7 @@ ficloud
 
 ficloud alows to deploy your fig infrastructure to remote servers. Also it provides all the services needed for hosting production apps.
 
-NB! ficloud is currently in concept stage, so documentation for future components is only thing that exist now.
+NB! ficloud is currently in development stage.
 
 
 Deploy your fig-docker environment easily

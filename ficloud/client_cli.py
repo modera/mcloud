@@ -4,11 +4,20 @@
 from __future__ import print_function
 
 import argparse
+import logging
+from pydoc import getdoc
 import sys
 
 from ficloud import metadata
 from ficloud.client import FicloudClient
+from ficloud.fig_ext import FigCommand
+from fig.cli.docopt_command import NoSuchCommand
+from fig.cli.errors import UserError
+from fig.cli.main import TopLevelCommand, parse_doc_section
+from fig.packages.docker import APIError
+from fig.project import NoSuchService, DependencyError
 
+log = logging.getLogger(__name__)
 
 def format_epilog():
     """Program entry point.
@@ -32,7 +41,39 @@ URL: <{url}>
     return epilog
 
 
+def fig_main(env, fig_args, **kwargs):
+    # Disable requests logging
+
+    try:
+        command = FigCommand(env)
+        command.dispatch(fig_args, None)
+    except KeyboardInterrupt:
+        log.error("\nAborting.")
+        exit(1)
+    except (UserError, NoSuchService, DependencyError) as e:
+        log.error(e.msg)
+        exit(1)
+    except NoSuchCommand as e:
+        log.error("No such command: %s", e.command)
+        log.error("")
+        log.error("\n".join(parse_doc_section("commands:", getdoc(e.supercommand))))
+        exit(1)
+    except APIError as e:
+        log.error(e.explanation)
+        exit(1)
+
+
 def main(argv):
+
+    console_handler = logging.StreamHandler(stream=sys.stderr)
+    console_handler.setFormatter(logging.Formatter())
+    console_handler.setLevel(logging.INFO)
+    root_logger = logging.getLogger()
+    root_logger.addHandler(console_handler)
+    root_logger.setLevel(logging.DEBUG)
+    logging.getLogger("requests").propagate = False
+
+
     arg_parser = argparse.ArgumentParser(
         prog=argv[0],
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -47,6 +88,12 @@ def main(argv):
     subparsers = arg_parser.add_subparsers()
 
     client = FicloudClient()
+
+    # ficloud use ubuntu@myserver.com
+    fig_cmd = subparsers.add_parser('fig', help='Executes fig commands')
+    fig_cmd.add_argument('--env', help='Environment name', default='dev')
+    fig_cmd.add_argument('fig_args', nargs='*')
+    fig_cmd.set_defaults(func=fig_main)
 
     # ficloud use ubuntu@myserver.com
     use_cmd = subparsers.add_parser('use', help='Sets target hostname')
