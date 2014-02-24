@@ -252,8 +252,8 @@ setup_dict = dict(
        'fig',
        'fabric',
        'cuisine',
-       'pywizard',
-       'psutil',
+       'jinja2',
+       'prettytable'
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
     tests_require=[

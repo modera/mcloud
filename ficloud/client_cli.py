@@ -41,12 +41,12 @@ URL: <{url}>
     return epilog
 
 
-def fig_main(env, fig_args, **kwargs):
+def fig_main(env, fig_cmd, name, **kwargs):
     # Disable requests logging
 
     try:
-        command = FigCommand(env)
-        command.dispatch(fig_args, None)
+        command = FigCommand(env, name)
+        command.dispatch(fig_cmd.split(' '), None)
     except KeyboardInterrupt:
         log.error("\nAborting.")
         exit(1)
@@ -73,7 +73,6 @@ def main(argv):
     root_logger.setLevel(logging.DEBUG)
     logging.getLogger("requests").propagate = False
 
-
     arg_parser = argparse.ArgumentParser(
         prog=argv[0],
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -92,7 +91,8 @@ def main(argv):
     # ficloud use ubuntu@myserver.com
     fig_cmd = subparsers.add_parser('fig', help='Executes fig commands')
     fig_cmd.add_argument('--env', help='Environment name', default='dev')
-    fig_cmd.add_argument('fig_args', nargs='*')
+    fig_cmd.add_argument('--name', help='App name')
+    fig_cmd.add_argument('fig_cmd', help='Fig command to execeute')
     fig_cmd.set_defaults(func=fig_main)
 
     # ficloud use ubuntu@myserver.com

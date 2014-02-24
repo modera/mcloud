@@ -30,11 +30,12 @@ def transform_config(config, env=None):
 
 class FigCommand(TopLevelCommand):
 
-    def __init__(self, env_name):
+    def __init__(self, env_name, project_name=None):
         # copy help from parent class
         self.__doc__ = TopLevelCommand.__doc__
 
         self.env_name = env_name
+        self.custom_project_name = project_name
 
         super(FigCommand, self).__init__()
 
@@ -46,9 +47,7 @@ class FigCommand(TopLevelCommand):
 
             config = transform_config(config, env=self.env_name)
 
-            print repr(config)
-
-            return Project.from_config(self.project_name, config, self.client)
+            return Project.from_config(self.custom_project_name or self.project_name, config, self.client)
 
         except IOError as e:
             if e.errno == errno.ENOENT:

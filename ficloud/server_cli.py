@@ -32,17 +32,23 @@ def main(argv):
     app_list_cmd = subparsers.add_parser('app-list', help='List applications deployed')
     app_list_cmd.set_defaults(func=server.list_apps)
 
-    app_versions_cmd = subparsers.add_parser('app-versions', help='List applications versions deployed')
+    app_versions_cmd = subparsers.add_parser('app-command', help='List applications versions deployed')
     app_versions_cmd.add_argument('name', help='Application name')
-    app_versions_cmd.set_defaults(func=server.list_app_versions)
+    app_versions_cmd.add_argument('version', help='Version')
+    app_versions_cmd.add_argument('command', help='command to run')
+    app_versions_cmd.set_defaults(func=server.ficloud_app_command)
 
     app_versions_cmd = subparsers.add_parser('app-create', help='Create new application')
     app_versions_cmd.add_argument('name', help='Application name')
     app_versions_cmd.set_defaults(func=server.create_app)
 
+    app_versions_cmd = subparsers.add_parser('app-remove', help='Remove an application')
+    app_versions_cmd.add_argument('name', help='Application name')
+    app_versions_cmd.set_defaults(func=server.remove_app)
+
     app_versions_cmd = subparsers.add_parser('app-deploy', help='Deploy an application')
     app_versions_cmd.add_argument('name', help='Application name')
-    app_versions_cmd.add_argument('branch', help='Branch name')
+    app_versions_cmd.add_argument('version', help='Version name')
     app_versions_cmd.set_defaults(func=server.deploy_app)
 
 
@@ -55,6 +61,17 @@ def main(argv):
     app_create_cmd = subparsers.add_parser('balancer-remove', help='Remove destination for a domain')
     app_create_cmd.add_argument('domain', help='domain name')
     app_create_cmd.set_defaults(func=server.balancer_remove)
+
+    app_create_cmd = subparsers.add_parser('balancer-list', help='List all balancers')
+    app_create_cmd.set_defaults(func=server.balancer_list)
+
+    app_create_cmd = subparsers.add_parser('balancer-dump', help='Dump haproxy config')
+    app_create_cmd.add_argument('source', help='source path')
+    app_create_cmd.add_argument('path', help='config path', default='/etc/haproxy/haproxy.cfg', nargs='?')
+    app_create_cmd.set_defaults(func=server.balancer_dump)
+
+    app_create_cmd = subparsers.add_parser('git-post-receive', help='Used by git')
+    app_create_cmd.set_defaults(func=server.git_post_receive)
 
     if len(argv) > 1:
         args = arg_parser.parse_args(args=argv[1:])
