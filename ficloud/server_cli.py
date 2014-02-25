@@ -70,12 +70,19 @@ def main(argv):
     app_create_cmd.add_argument('path', help='config path', default='/etc/haproxy/haproxy.cfg', nargs='?')
     app_create_cmd.set_defaults(func=server.balancer_dump)
 
+    app_create_cmd = subparsers.add_parser('inotify-dump', help='Dump inotify config')
+    app_create_cmd.add_argument('source', help='source path', default='/home/ficloud/apps-conf', nargs='?')
+    app_create_cmd.add_argument('haproxytpl', help='haproxy temp[late path', default='/etc/haproxy/haproxy.cfg.tpl', nargs='?')
+    app_create_cmd.set_defaults(func=server.inotify_dump)
+
     app_create_cmd = subparsers.add_parser('git-post-receive', help='Used by git')
     app_create_cmd.set_defaults(func=server.git_post_receive)
 
     if len(argv) > 1:
         args = arg_parser.parse_args(args=argv[1:])
         logging.getLogger().level = logging.DEBUG
+
+        args.argv0 = argv[0]
 
         args.func(**vars(args))
         return 0

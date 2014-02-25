@@ -38,7 +38,7 @@ class FicloudServer():
             os.mkdir(conf_dir)
         return '%s/%s.conf' % (conf_dir, domain_name)
 
-    def create_app(self, name, **kwargs):
+    def create_app(self, name, argv0, **kwargs):
         """
         Creates new application. Basically, creates new git repo.
 
@@ -49,7 +49,7 @@ class FicloudServer():
             os.system('git init --bare %s' % repo_dir)
             with open('%s/hooks/post-receive' % repo_dir, 'w') as f:
                 f.write('#!/bin/bash\n'
-                        '/home/alex/dev/ficloud/.env/bin/ficloud-server git-post-receive')
+                        '%s git-post-receive' % argv0)
             os.system('chmod +x %s/hooks/post-receive' % repo_dir)
         else:
             print('Application already created')
@@ -65,6 +65,7 @@ class FicloudServer():
             print('Application not exist')
         else:
             os.system('rm -rf %s' % repo_dir)
+
 
     def deploy_app(self, name, version, **kwargs):
         """
@@ -202,6 +203,19 @@ class FicloudServer():
                         (conf['domain'], conf['target'], ', '.join(['%s:%s' % tuple(x) for x in conf['backends']])))
 
         print(table)
+
+    def inotify_dump(self, source, haproxytpl, argv0, **kwargs):
+
+        print('%(conf-dir)s IN_MODIFY,IN_CREATE,IN_DELETE,IN_NO_LOOP %(ficloud-server)s balancer-dump %(conf-dir)s' % {
+            'ficloud-server': argv0,
+            'conf-dir': source
+        })
+        print('%(haproxytpl)s IN_MODIFY,IN_CREATE,IN_DELETE,IN_NO_LOOP %(ficloud-server)s balancer-dump %(conf-dir)s' % {
+            'haproxytpl': haproxytpl,
+            'ficloud-server': argv0,
+            'conf-dir': source
+        })
+
 
     def balancer_dump(self, source, path, **kwargs):
 

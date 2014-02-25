@@ -1,8 +1,13 @@
+from fig.packages.docker import Client
+from prettytable import PrettyTable
 from fabric.api import run, env
+from fig.project import Project
 import os
 import yaml
 from os.path import expanduser
 import cuisine as remote
+import re
+
 
 class NoHostSelected(Exception):
     pass
@@ -23,6 +28,15 @@ class FicloudClient():
 
         if 'host' in self.config:
             env.host_string = self.config['host']
+
+        self.client = Client()
+
+    def _get_fig_project(self):
+        config = yaml.load(open('fig.yml'))
+        project_name = os.path.basename(os.getcwd())
+        project_name = re.sub(r'[^a-zA-Z0-9]', '', project_name)
+        project = Project.from_config(project_name, config, self.client)
+        return project
 
     @property
     def host(self):
@@ -48,30 +62,27 @@ class FicloudClient():
             print 'Host not selected'
         print('*' * 40)
 
+    def list_volumes(self, **kwargs):
 
-    def app_create(self, name, **kwargs):
+        table = PrettyTable(["Service", "Container", "Volume"])
 
-        if not remote.dir_exists('apps'):
-            run('mkdir apps')
+        last_service = None
+        for service in self._get_fig_project().get_services():
 
-        if not remote.dir_exists('apps/%s' % name):
-            run('git init --bare apps/%s' % name)
-        else:
-            print('Remote repo already exists')
+            for c in service.containers(stopped=True):
+                table.add_row((
+                    service.name if last_service != service.name else '',
+                    c.name,
+                    str(c.inspect()['Volumes'])
+                ))
 
+            last_service = service.name
 
-    def app_remove(self, name, **kwargs):
-
-        if remote.dir_exists('apps/%s' % name):
-            run('rm -rf apps/%s' % name)
-        else:
-            print('Remote repo does not exist')
+        print(table)
 
 
-    def app_list(self, **kwargs):
-        print(env.hosts)
-        if remote.dir_exists('apps'):
-            run('ls -l apps')
+    def remote(self, command, **kwargs):
+        run('ficloud-server %s' % ' '.join(command))
 
 
     def save_config(self):

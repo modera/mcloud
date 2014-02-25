@@ -104,25 +104,27 @@ def main(argv):
     status_cmd = subparsers.add_parser('status', help='Show current status. For now it\'s target hostname')
     status_cmd.set_defaults(func=client.status)
 
+    # ficloud status
+    status_cmd = subparsers.add_parser('volumes', help='Show volumes of current project')
+    status_cmd.set_defaults(func=client.list_volumes)
+
     # ficloud app create myapp
-    app_create_cmd = subparsers.add_parser('app-create', help='Creates new application')
-    app_create_cmd.add_argument('name', help='Name of application')
-    app_create_cmd.set_defaults(func=client.app_create)
+    app_create_cmd = subparsers.add_parser('remote', help='Executes remote command')
+    app_create_cmd.add_argument('command', help='Name of application', nargs='*')
+    app_create_cmd.set_defaults(func=client.remote)
 
-    # ficloud app list
-    app_create_cmd = subparsers.add_parser('app-list', help='Lists applications')
-    app_create_cmd.set_defaults(func=client.app_list)
+    if len(argv) > 1:
+        args = arg_parser.parse_args(args=argv[1:])
+        logging.getLogger().level = logging.DEBUG
 
-    # ficloud app remove myapp
-    app_create_cmd = subparsers.add_parser('app-remove', help='Removes new application')
-    app_create_cmd.add_argument('name', help='Name of application')
-    app_create_cmd.set_defaults(func=client.app_remove)
+        args.argv0 = argv[0]
 
-    args = arg_parser.parse_args(args=argv[1:])
+        args.func(**vars(args))
+        return 0
 
-    args.func(**vars(args))
-
-    return 0
+    else:
+        arg_parser.print_help()
+        return 1
 
 
 def entry_point():
