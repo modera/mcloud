@@ -10,6 +10,7 @@ from prettytable import PrettyTable
 
 from jinja2 import Environment as JinjaEnv, StrictUndefined, PackageLoader, FileSystemLoader
 import yaml
+from ficloud.util import format_service_status
 
 
 class FicloudServer():
@@ -80,10 +81,10 @@ class FicloudServer():
 
         os.system('git clone -b %s %s %s' % (version, repo_dir, target_dir))
 
-        self.ficloud_app_command(name, version, 'up -d')
+        self.fig_app_command(name, version, 'up -d')
 
 
-    def ficloud_app_command(self, name, version, command, **kwargs):
+    def fig_app_command(self, name, version, command, **kwargs):
         """
         Creates new application. Basically, creates new git repo.
 
@@ -95,6 +96,17 @@ class FicloudServer():
         os.chdir(target_dir)
         os.system('ficloud fig --name=%s --env=%s \'%s\'' % (app_name, version, command))
 
+
+    def ficloud_app_command(self, name, version, func, **kwargs):
+        """
+        Creates new application. Basically, creates new git repo.
+
+        """
+        target_dir = self._get_app_deployment_dir(name, version)
+
+        os.chdir(target_dir)
+
+        func(**kwargs)
 
     def list_apps(self, **kwargs):
 
@@ -112,17 +124,8 @@ class FicloudServer():
 
                         status = {}
                         for service in project.get_services():
-                            if len(service.containers()):
-                                s = []
-                                for ct in service.containers(stopped=True):
-                                    if ct.is_running:
-                                        s.append('UP[%s]' % (','.join(ct.inspect()['NetworkSettings']['Ports'].keys())))
-                                    else:
-                                        s.append('DOWN')
+                            status[service.name] = format_service_status(service)
 
-                                status[service.name] = ','.join(s)
-                            else:
-                                status[service.name] = 'DOWN'
                         app_status = ''
                         for service, st in status.items():
                             app_status += '%s=%s ' % (service, st)

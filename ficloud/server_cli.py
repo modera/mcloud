@@ -9,6 +9,7 @@ import sys
 
 from ficloud import metadata
 from ficloud.client import FicloudClient
+from ficloud.client_cli import populate_client_parser
 from ficloud.server import FicloudServer
 
 def main(argv):
@@ -36,7 +37,14 @@ def main(argv):
     app_versions_cmd.add_argument('name', help='Application name')
     app_versions_cmd.add_argument('version', help='Version')
     app_versions_cmd.add_argument('command', help='command to run')
-    app_versions_cmd.set_defaults(func=server.ficloud_app_command)
+    app_versions_cmd.set_defaults(func=server.fig_app_command)
+
+    app_versions_cmd = subparsers.add_parser('app', help='List applications versions deployed')
+    app_versions_cmd.add_argument('name', help='Application name')
+    app_versions_cmd.add_argument('version', help='Version')
+    app_versions_cmd.set_defaults(wrapper=server.ficloud_app_command)
+    app_versions_cmd_subparser = app_versions_cmd.add_subparsers()
+    populate_client_parser(app_versions_cmd_subparser)
 
     app_versions_cmd = subparsers.add_parser('app-create', help='Create new application')
     app_versions_cmd.add_argument('name', help='Application name')
@@ -78,13 +86,20 @@ def main(argv):
     app_create_cmd = subparsers.add_parser('git-post-receive', help='Used by git')
     app_create_cmd.set_defaults(func=server.git_post_receive)
 
+
+    def exec_cmd(func, **args):
+        func(**args)
+
+    arg_parser.set_defaults(wrapper=exec_cmd)
+
     if len(argv) > 1:
         args = arg_parser.parse_args(args=argv[1:])
         logging.getLogger().level = logging.DEBUG
 
         args.argv0 = argv[0]
 
-        args.func(**vars(args))
+        args.wrapper(**vars(args))
+
         return 0
 
     else:

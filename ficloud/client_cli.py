@@ -41,11 +41,11 @@ URL: <{url}>
     return epilog
 
 
-def fig_main(env, fig_cmd, name, **kwargs):
+def fig_main(env, fig_cmd, app_name, **kwargs):
     # Disable requests logging
 
     try:
-        command = FigCommand(env, name)
+        command = FigCommand(env, app_name)
         command.dispatch(fig_cmd.split(' '), None)
     except KeyboardInterrupt:
         log.error("\nAborting.")
@@ -61,6 +61,54 @@ def fig_main(env, fig_cmd, name, **kwargs):
     except APIError as e:
         log.error(e.explanation)
         exit(1)
+
+
+def populate_client_parser(subparsers):
+    client = FicloudClient()
+
+    # # # ficloud use ubuntu@myserver.com
+    # fig_cmd = subparsers.add_parser('fig', help='Executes fig commands')
+    # fig_cmd.add_argument('--env', help='Environment name', default='dev')
+    # fig_cmd.add_argument('--app-name', help='App name')
+    # fig_cmd.add_argument('fig_cmd', help='Fig command to execeute')
+    # fig_cmd.set_defaults(func=fig_main)
+
+    cmd = subparsers.add_parser('start', help='Run services as daemons')
+    cmd.add_argument('services', help='Service names', nargs='*')
+    cmd.add_argument('--logs', action='store_true', default=False, help='Attach to container logs')
+    cmd.add_argument('--env', default='dev')
+    cmd.set_defaults(func=client.start)
+
+    cmd = subparsers.add_parser('stop', help='Stop services')
+    cmd.add_argument('services', help='Service names', nargs='*')
+    cmd.add_argument('--env', default='dev')
+    cmd.set_defaults(func=client.stop)
+
+    cmd = subparsers.add_parser('destroy', help='Destory services and containers')
+    cmd.add_argument('services', help='Service names', nargs='*')
+    cmd.add_argument('--env', default='dev')
+    cmd.set_defaults(func=client.destroy)
+
+    cmd = subparsers.add_parser('rebuild', help='Destory services and containers')
+    cmd.add_argument('services', help='Service names', nargs='*')
+    cmd.add_argument('--env', default='dev')
+    cmd.set_defaults(func=client.rebuild)
+
+    cmd = subparsers.add_parser('logs', help='Fetch logs from containers')
+    cmd.add_argument('services', help='Service names', nargs='*')
+    cmd.add_argument('--env', default='dev')
+    cmd.set_defaults(func=client.logs)
+
+    cmd = subparsers.add_parser('volumes', help='Show volumes of current project')
+    cmd.add_argument('services', help='Service names', nargs='*')
+    cmd.add_argument('--env', default='dev')
+    cmd.set_defaults(func=client.list_volumes)
+
+    cmd = subparsers.add_parser('status', help='Show current status of services')
+    cmd.add_argument('--env', default='dev')
+    cmd.set_defaults(func=client.status)
+
+    return client
 
 
 def main(argv):
@@ -86,32 +134,18 @@ def main(argv):
 
     subparsers = arg_parser.add_subparsers()
 
-    client = FicloudClient()
-
-    # ficloud use ubuntu@myserver.com
-    fig_cmd = subparsers.add_parser('fig', help='Executes fig commands')
-    fig_cmd.add_argument('--env', help='Environment name', default='dev')
-    fig_cmd.add_argument('--name', help='App name')
-    fig_cmd.add_argument('fig_cmd', help='Fig command to execeute')
-    fig_cmd.set_defaults(func=fig_main)
+    client = populate_client_parser(subparsers)
 
     # ficloud use ubuntu@myserver.com
     use_cmd = subparsers.add_parser('use', help='Sets target hostname')
     use_cmd.add_argument('host', help='Hostname with username ex. user@some.server')
     use_cmd.set_defaults(func=client.use_host)
 
-    # ficloud status
-    status_cmd = subparsers.add_parser('status', help='Show current status. For now it\'s target hostname')
-    status_cmd.set_defaults(func=client.status)
-
-    # ficloud status
-    status_cmd = subparsers.add_parser('volumes', help='Show volumes of current project')
-    status_cmd.set_defaults(func=client.list_volumes)
-
     # ficloud app create myapp
     app_create_cmd = subparsers.add_parser('remote', help='Executes remote command')
     app_create_cmd.add_argument('command', help='Name of application', nargs='*')
     app_create_cmd.set_defaults(func=client.remote)
+
 
     if len(argv) > 1:
         args = arg_parser.parse_args(args=argv[1:])
