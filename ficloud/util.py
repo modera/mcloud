@@ -4,7 +4,7 @@ def format_service_status(service):
         s = []
         for ct in service.containers(stopped=True):
             if ct.is_running:
-                s.append('UP[%s]' % (','.join(ct.inspect()['NetworkSettings']['Ports'].keys())))
+                s.append('UP[%s]' % ct.human_readable_ports)
             else:
                 s.append('DOWN')
 

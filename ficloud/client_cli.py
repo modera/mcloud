@@ -9,13 +9,15 @@ from pydoc import getdoc
 import sys
 
 from ficloud import metadata
-from ficloud.client import FicloudClient
+from ficloud.deployment import FicloudDeployment
+
 from ficloud.fig_ext import FigCommand
 from fig.cli.docopt_command import NoSuchCommand
 from fig.cli.errors import UserError
 from fig.cli.main import TopLevelCommand, parse_doc_section
 from fig.packages.docker import APIError
 from fig.project import NoSuchService, DependencyError
+import os
 
 log = logging.getLogger(__name__)
 
@@ -64,51 +66,42 @@ def fig_main(env, fig_cmd, app_name, **kwargs):
 
 
 def populate_client_parser(subparsers):
-    client = FicloudClient()
+
 
     # # # ficloud use ubuntu@myserver.com
     # fig_cmd = subparsers.add_parser('fig', help='Executes fig commands')
     # fig_cmd.add_argument('--env', help='Environment name', default='dev')
     # fig_cmd.add_argument('--app-name', help='App name')
     # fig_cmd.add_argument('fig_cmd', help='Fig command to execeute')
-    # fig_cmd.set_defaults(func=fig_main)
+    # fig_cmd.set_defaults(func=func=fig_main)
 
     cmd = subparsers.add_parser('start', help='Run services as daemons')
     cmd.add_argument('services', help='Service names', nargs='*')
-    cmd.add_argument('--logs', action='store_true', default=False, help='Attach to container logs')
-    cmd.add_argument('--env', default='dev')
-    cmd.set_defaults(func=client.start)
+    cmd.add_argument('--no-logs', dest='logs', action='store_false', default=True, help='No logs')
+    cmd.set_defaults(func='start')
 
     cmd = subparsers.add_parser('stop', help='Stop services')
     cmd.add_argument('services', help='Service names', nargs='*')
-    cmd.add_argument('--env', default='dev')
-    cmd.set_defaults(func=client.stop)
+    cmd.set_defaults(func='stop')
 
     cmd = subparsers.add_parser('destroy', help='Destory services and containers')
     cmd.add_argument('services', help='Service names', nargs='*')
-    cmd.add_argument('--env', default='dev')
-    cmd.set_defaults(func=client.destroy)
+    cmd.set_defaults(func='destroy')
 
     cmd = subparsers.add_parser('rebuild', help='Destory services and containers')
     cmd.add_argument('services', help='Service names', nargs='*')
-    cmd.add_argument('--env', default='dev')
-    cmd.set_defaults(func=client.rebuild)
+    cmd.set_defaults(func='rebuild')
 
     cmd = subparsers.add_parser('logs', help='Fetch logs from containers')
     cmd.add_argument('services', help='Service names', nargs='*')
-    cmd.add_argument('--env', default='dev')
-    cmd.set_defaults(func=client.logs)
+    cmd.set_defaults(func='logs')
 
     cmd = subparsers.add_parser('volumes', help='Show volumes of current project')
     cmd.add_argument('services', help='Service names', nargs='*')
-    cmd.add_argument('--env', default='dev')
-    cmd.set_defaults(func=client.list_volumes)
+    cmd.set_defaults(func='list_volumes')
 
     cmd = subparsers.add_parser('status', help='Show current status of services')
-    cmd.add_argument('--env', default='dev')
-    cmd.set_defaults(func=client.status)
-
-    return client
+    cmd.set_defaults(func='status')
 
 
 def main(argv):
@@ -127,6 +120,8 @@ def main(argv):
         description=metadata.description,
         epilog=format_epilog())
 
+    arg_parser.add_argument('-e', '--env', help='Environment to use', default='dev')
+
     arg_parser.add_argument(
         '-V', '--version',
         action='version',
@@ -134,17 +129,19 @@ def main(argv):
 
     subparsers = arg_parser.add_subparsers()
 
-    client = populate_client_parser(subparsers)
+
+
+    populate_client_parser(subparsers)
 
     # ficloud use ubuntu@myserver.com
     use_cmd = subparsers.add_parser('use', help='Sets target hostname')
     use_cmd.add_argument('host', help='Hostname with username ex. user@some.server')
-    use_cmd.set_defaults(func=client.use_host)
+    use_cmd.set_defaults(func='use_host')
 
     # ficloud app create myapp
     app_create_cmd = subparsers.add_parser('remote', help='Executes remote command')
     app_create_cmd.add_argument('command', help='Name of application', nargs='*')
-    app_create_cmd.set_defaults(func=client.remote)
+    app_create_cmd.set_defaults(func='remote')
 
 
     if len(argv) > 1:
@@ -153,7 +150,10 @@ def main(argv):
 
         args.argv0 = argv[0]
 
-        args.func(**vars(args))
+        client = FicloudDeployment()
+        client.init(os.getcwd(), args.env)
+        getattr(client, args.func)(**vars(args))
+
         return 0
 
     else:

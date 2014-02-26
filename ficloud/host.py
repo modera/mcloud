@@ -10,10 +10,12 @@ from prettytable import PrettyTable
 
 from jinja2 import Environment as JinjaEnv, StrictUndefined, PackageLoader, FileSystemLoader
 import yaml
+from ficloud.deployment import FicloudDeployment
 from ficloud.util import format_service_status
 
 
-class FicloudServer():
+class FicloudHost():
+
     def __init__(self):
         self.client = Client()
         self.balancer_root = ''
@@ -27,7 +29,7 @@ class FicloudServer():
     def _get_deployment_dir(self):
         return os.path.expanduser('~/deploy')
 
-    def _get_app_deployment_dir(self, name, version):
+    def get_app_deployment_dir(self, name, version):
         return '%s/%s/%s' % (self._get_deployment_dir(), name, version)
 
     def _get_apps_conf_dir(self):
@@ -62,9 +64,13 @@ class FicloudServer():
         """
         repo_dir = self._get_app_git_dir(name)
 
-        if not os.path.exists(repo_dir):
-            print('Application not exist')
-        else:
+        app_dir = self._get_deployment_dir() + '/' + name
+        if os.path.exists(app_dir):
+            for version in os.listdir(app_dir):
+                self.undeploy_app(name, version)
+            os.system('rm -rf %s' % app_dir)
+
+        if os.path.exists(repo_dir):
             os.system('rm -rf %s' % repo_dir)
 
 
@@ -74,39 +80,34 @@ class FicloudServer():
 
         """
         repo_dir = self._get_app_git_dir(name)
-        target_dir = self._get_app_deployment_dir(name, version)
+        target_dir = self.get_app_deployment_dir(name, version)
 
         if os.path.exists(target_dir):
             os.system('rm -rf %s' % target_dir)
 
         os.system('git clone -b %s %s %s' % (version, repo_dir, target_dir))
 
-        self.fig_app_command(name, version, 'up -d')
+        deployment = self.get_deployment(name, version)
+
+        deployment.start()
 
 
-    def fig_app_command(self, name, version, command, **kwargs):
+    def undeploy_app(self, name, version, **kwargs):
         """
         Creates new application. Basically, creates new git repo.
 
         """
-        target_dir = self._get_app_deployment_dir(name, version)
+        target_dir = self.get_app_deployment_dir(name, version)
 
-        app_name = '%s0%s' % (name, version)
+        if os.path.exists(target_dir):
 
-        os.chdir(target_dir)
-        os.system('ficloud fig --name=%s --env=%s \'%s\'' % (app_name, version, command))
+            deployment = self.get_deployment(name, version)
+            deployment.destroy()
+
+            os.system('rm -rf %s' % target_dir)
 
 
-    def ficloud_app_command(self, name, version, func, **kwargs):
-        """
-        Creates new application. Basically, creates new git repo.
 
-        """
-        target_dir = self._get_app_deployment_dir(name, version)
-
-        os.chdir(target_dir)
-
-        func(**kwargs)
 
     def list_apps(self, **kwargs):
 
@@ -119,26 +120,31 @@ class FicloudServer():
                 app_dir = self._get_deployment_dir() + '/' + app
 
                 if os.path.exists(app_dir):
-                    for version in os.listdir(app_dir):
-                        project = self._get_fig_project(app, version)
+                    versions = os.listdir(app_dir)
 
-                        status = {}
-                        for service in project.get_services():
-                            status[service.name] = format_service_status(service)
+                    if len(versions):
+                        for version in versions:
+                            project = self._get_fig_project(app, version)
 
-                        app_status = ''
-                        for service, st in status.items():
-                            app_status += '%s=%s ' % (service, st)
+                            status = {}
+                            for service in project.get_services():
+                                status[service.name] = format_service_status(service)
 
-                        table.add_row(('' if last_app == app else app, version, app_status))
-                        last_app = app
+                            app_status = ''
+                            for service, st in status.items():
+                                app_status += '%s=%s ' % (service, st)
+
+                            table.add_row(('' if last_app == app else app, version, app_status))
+                            last_app = app
+                    else:
+                        table.add_row((app, '-', 'NOT DEPLOYED'))
                 else:
                     table.add_row((app, '-', 'NOT DEPLOYED'))
 
         print(table)
 
     def _get_fig_project(self, app_name, app_version):
-        config = yaml.load(open('%s/fig.yml' % self._get_app_deployment_dir(app_name, app_version)))
+        config = yaml.load(open('%s/fig.yml' % self.get_app_deployment_dir(app_name, app_version)))
         project_name = '%s0%s' % (app_name, app_version)
         project = Project.from_config(project_name, config, self.client)
         return project
@@ -272,6 +278,13 @@ class FicloudServer():
             self.deploy_app(app_name, branch)
         else:
             print('\n\nNB! No branch to deploy!\n\n')
+
+    def get_deployment(self, name, version):
+        deployment = FicloudDeployment()
+        target_dir = self.get_app_deployment_dir(name, version)
+        deployment.init(target_dir, 'prod', '%s0%s' % (name, version))
+
+        return deployment
 
 
 
