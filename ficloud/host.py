@@ -124,7 +124,7 @@ class FicloudHost():
 
                     if len(versions):
                         for version in versions:
-                            project = self._get_fig_project(app, version)
+                            project = self.get_deployment(app, version).project
 
                             status = {}
                             for service in project.get_services():
@@ -143,15 +143,9 @@ class FicloudHost():
 
         print(table)
 
-    def _get_fig_project(self, app_name, app_version):
-        config = yaml.load(open('%s/fig.yml' % self.get_app_deployment_dir(app_name, app_version)))
-        project_name = '%s0%s' % (app_name, app_version)
-        project = Project.from_config(project_name, config, self.client)
-        return project
-
     def get_balancer_destinations(self, app_name, app_version, service, port):
 
-        project = self._get_fig_project(app_name, app_version)
+        project = self.get_deployment(app_name, app_version).project
 
         service_ports = []
         for c in project.get_service(service).containers():

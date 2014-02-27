@@ -1,7 +1,10 @@
 from fig.cli.log_printer import LogPrinter
 from fig.packages.docker import Client
+import getpass
+import json
 from prettytable import PrettyTable
 from fabric.api import run, env
+import fabric
 from fig.project import Project
 import os
 import yaml
@@ -12,8 +15,13 @@ from ficloud.fig_ext import transform_config
 from ficloud.util import format_service_status
 
 
-class FicloudDeployment():
+def project_name_by_dir():
+    project_name = os.path.basename(os.getcwd())
+    project_name = re.sub(r'[^a-zA-Z0-9]', '', project_name)
+    return project_name
 
+
+class FicloudDeployment():
     def __init__(self, config_file='~/.ficloud.yml'):
         self.ficloud_yml = expanduser(config_file)
 
@@ -29,6 +37,9 @@ class FicloudDeployment():
         if 'host' in self.config:
             env.host_string = self.config['host']
 
+        env.output_prefix = False
+        fabric.state.output.running = False
+
         self.client = Client()
 
         self.project_dir = None
@@ -41,8 +52,7 @@ class FicloudDeployment():
         self.env_name = env_name
 
         if not project_name:
-            project_name = os.path.basename(os.getcwd())
-            project_name = re.sub(r'[^a-zA-Z0-9]', '', project_name)
+            project_name = project_name_by_dir()
 
         self.project_name = project_name
 
@@ -59,9 +69,9 @@ class FicloudDeployment():
             raise ValueError('project_name is not specified!')
 
         os.chdir(self.project_dir)
-        config = yaml.load(open('fig.yml'))
+        config = yaml.load(open('ficloud.yml'))
 
-        config = transform_config(config, env=self.env_name)
+        config = transform_config(config['services'], env=self.env_name)
         project = Project.from_config(self.project_name, config, self.client)
         return project
 
@@ -85,6 +95,48 @@ class FicloudDeployment():
         env.host_string = host
 
         self.save_config()
+
+    def pull_volumes(self, volumes, **kwargs):
+        return self.push_volumes(volumes, reverse=True, **kwargs)
+
+    def push_volumes(self, volumes, reverse=False, **kwargs):
+        for volume in volumes:
+
+            p = re.compile(r'^([\w\-]+):([\w\d/_-]+)@([\w\-]+)#([\w\-]+)$')
+            result = p.match(volume)
+
+            if not result:
+                print('\nVolume should be of format service:/volume/path@app#version')
+                return
+
+            (service, volume_name, app, version) = result.groups()
+
+            data = run('ficloud-server app %s %s volumes --json' % (app, version))
+            data = json.loads(data)
+
+            volume_key = '%s@%s' % (service, volume_name)
+
+            if not volume_key in data:
+                ValueError('Remote volume %s not found on remote server' % volume_name)
+
+            local_data = self.get_volumes()
+            if not volume_key in local_data:
+                ValueError('Remote volume %s not found on local machine' % volume_name)
+
+            # reverse = pull operation
+            if reverse:
+                (data, local_data) = (local_data, data)
+
+            cmd = 'sudo rsync -e "ssh -i /home/%(user)s/.ssh/id_rsa" --delete -vv -r -p --numeric-ids -e ssh' \
+                  ' --rsync-path="sudo rsync" %(local_path)s/ %(host_string)s:%(remote_path)s' % {
+                      'user': getpass.getuser(),
+                      'host_string': env.host_string,
+                      'local_path': local_data[volume_key],
+                      'remote_path': data[volume_key]
+                  }
+
+            os.system(cmd)
+
 
     def status(self, **kwargs):
 
@@ -120,7 +172,6 @@ class FicloudDeployment():
                 print("Interrupted by Ctrl + C. Containers are still running. Use `ficloud stop` to stop them.")
 
 
-
     def stop(self, services=None, **kwargs):
         project = self.project
         project.stop(services)
@@ -140,22 +191,23 @@ class FicloudDeployment():
         containers = project.containers(service_names=services, stopped=True)
         LogPrinter(containers, attach_params={'logs': True}).run()
 
-    def get_volumes(self, project):
+    def get_volumes(self):
         volumes = {}
-        for service in project.get_services():
+        for service in self.project.get_services():
 
             for c in service.containers(stopped=True):
                 for volume, dir in c.inspect()['Volumes'].items():
-                    volumes['%s@%s' % (c.name, volume)] = dir
+                    volumes['%s@%s' % (service.name, volume)] = dir
         return volumes
 
     def list_volumes(self, **kwargs):
 
+        if kwargs['json']:
+            print(json.dumps(self.get_volumes()))
+            return
+
         table = PrettyTable(["Volume", "Mount directory"])
-
-        project = self.project
-
-        for volume, dir in self.get_volumes(project).items():
+        for volume, dir in self.get_volumes(self.project).items():
             table.add_row((
                 volume,
                 dir

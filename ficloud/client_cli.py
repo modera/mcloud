@@ -4,12 +4,16 @@
 from __future__ import print_function
 
 import argparse
+from cmd import Cmd
 import logging
+import pipes
 from pydoc import getdoc
 import sys
+from fabric.state import env
+from fabric.contrib.console import confirm
 
 from ficloud import metadata
-from ficloud.deployment import FicloudDeployment
+from ficloud.deployment import FicloudDeployment, project_name_by_dir
 
 from ficloud.fig_ext import FigCommand
 from fig.cli.docopt_command import NoSuchCommand
@@ -18,6 +22,7 @@ from fig.cli.main import TopLevelCommand, parse_doc_section
 from fig.packages.docker import APIError
 from fig.project import NoSuchService, DependencyError
 import os
+import re
 
 log = logging.getLogger(__name__)
 
@@ -96,9 +101,27 @@ def populate_client_parser(subparsers):
     cmd.add_argument('services', help='Service names', nargs='*')
     cmd.set_defaults(func='logs')
 
+
+    # 'PS1=(.env)\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\u@\h:\w\$'
+
+    def exec_bash(**kwargs):
+        shell = os.environ.get('SHELL')
+        print('*' * 75)
+        print('Executing %s ... Hit Ctrl+d when you are done, to return ficloud.' % shell)
+        print('*' * 75 + '\n')
+        os.system(shell)
+
+    cmd = subparsers.add_parser('sh', help='Fetch logs from containers')
+    cmd.set_defaults(func=exec_bash)
+
     cmd = subparsers.add_parser('volumes', help='Show volumes of current project')
     cmd.add_argument('services', help='Service names', nargs='*')
+    cmd.add_argument('--json', action='store_true', default=False)
     cmd.set_defaults(func='list_volumes')
+
+    cmd = subparsers.add_parser('volume-push', help='Push volume to remote server')
+    cmd.add_argument('volumes', help='Volume specs', nargs='*')
+    cmd.set_defaults(func='push_volumes')
 
     cmd = subparsers.add_parser('status', help='Show current status of services')
     cmd.set_defaults(func='status')
@@ -108,14 +131,17 @@ def main(argv):
 
     console_handler = logging.StreamHandler(stream=sys.stderr)
     console_handler.setFormatter(logging.Formatter())
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.WARN)
+
     root_logger = logging.getLogger()
     root_logger.addHandler(console_handler)
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.WARN)
+
     logging.getLogger("requests").propagate = False
 
     arg_parser = argparse.ArgumentParser(
         prog=argv[0],
+
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=metadata.description,
         epilog=format_epilog())
@@ -139,26 +165,83 @@ def main(argv):
     use_cmd.set_defaults(func='use_host')
 
     # ficloud app create myapp
-    app_create_cmd = subparsers.add_parser('remote', help='Executes remote command')
+    app_create_cmd = subparsers.add_parser('@', help='Executes remote command')
     app_create_cmd.add_argument('command', help='Name of application', nargs='*')
     app_create_cmd.set_defaults(func='remote')
 
+    class foo(Cmd):
+
+        intro = '''
+   __ _      _                 _
+  / _(_) ___| | ___  _   _  __| |
+ | |_| |/ __| |/ _ \| | | |/ _` |
+ |  _| | (__| | (_) | |_| | (_| |
+ |_| |_|\___|_|\___/ \__,_|\__,_|
+
+ Cloud that loves your data.
+
+'''
+
+        def update_prompt(self):
+            if os.path.exists('ficloud.yml'):
+                project = project_name_by_dir()
+            else:
+                project = '~'
+
+            self.prompt = '(%s:%s) ' % (project, env.host_string or '~')
+
+
+        def __init__(self, completekey='tab', stdin=None, stdout=None):
+
+            self.client = FicloudDeployment()
+            self.client.init(os.getcwd(), 'dev')
+
+            self.update_prompt()
+            Cmd.__init__(self, completekey, stdin, stdout)
+
+        def completedefault(self, *ignored):
+            return Cmd.completedefault(self, *ignored)
+
+
+        def exec_argparse(self, args):
+            args = arg_parser.parse_args(args=args)
+            args.argv0 = argv[0]
+            if isinstance(args.func, str):
+                getattr(self.client, args.func)(**vars(args))
+            else:
+                args.func(**vars(args))
+
+        def onecmd(self, line):
+            try:
+                if line.strip() != '':
+                    args = re.split('\s+', line.strip())
+                    if args[0] == 'EOF':
+                        if confirm('\nCtrl+d. Exit?', True):
+                            return True
+                    else:
+                        self.exec_argparse(args)
+                else:
+                    arg_parser.print_help()
+            except KeyboardInterrupt as e:
+                print('Ctrl+c. Exiting...')
+                return False
+            except SystemExit as e:
+                pass
+            except Exception as e:
+                print('Error: %s' % str(e))
+
+            self.update_prompt()
 
     if len(argv) > 1:
-        args = arg_parser.parse_args(args=argv[1:])
-        logging.getLogger().level = logging.DEBUG
-
-        args.argv0 = argv[0]
-
-        client = FicloudDeployment()
-        client.init(os.getcwd(), args.env)
-        getattr(client, args.func)(**vars(args))
-
-        return 0
-
+        foo().exec_argparse(argv[1:])
     else:
-        arg_parser.print_help()
-        return 1
+        if not os.path.exists('ficloud.yml'):
+            if not confirm('Directory do not contain ficloud.yml, ficloud may be not so useful, continue to ficloud?', False):
+                raise SystemExit(0)
+        foo().cmdloop()
+
+
+
 
 
 def entry_point():
