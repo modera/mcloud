@@ -43,7 +43,7 @@ class FicloudHost():
 
     def create_app(self, name, argv0, **kwargs):
         """
-        Creates new application. Basically, creates new git repo.
+        
 
         """
         repo_dir = self._get_app_git_dir(name)
@@ -59,7 +59,7 @@ class FicloudHost():
 
     def remove_app(self, name, **kwargs):
         """
-        Creates new application. Basically, creates new git repo.
+        
 
         """
         repo_dir = self._get_app_git_dir(name)
@@ -76,7 +76,7 @@ class FicloudHost():
 
     def deploy_app(self, name, version, **kwargs):
         """
-        Creates new application. Basically, creates new git repo.
+        
 
         """
         repo_dir = self._get_app_git_dir(name)
@@ -94,7 +94,7 @@ class FicloudHost():
 
     def undeploy_app(self, name, version, **kwargs):
         """
-        Creates new application. Basically, creates new git repo.
+        
 
         """
         target_dir = self.get_app_deployment_dir(name, version)
