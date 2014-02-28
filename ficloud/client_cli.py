@@ -23,6 +23,7 @@ from fig.packages.docker import APIError
 from fig.project import NoSuchService, DependencyError
 import os
 import re
+import shlex
 
 log = logging.getLogger(__name__)
 
@@ -83,7 +84,13 @@ def populate_client_parser(subparsers):
     cmd = subparsers.add_parser('start', help='Run services as daemons')
     cmd.add_argument('services', help='Service names', nargs='*')
     cmd.add_argument('--no-logs', dest='logs', action='store_false', default=True, help='No logs')
+    cmd.add_argument('--rebuild', action='store_true', default=False, help='Rebuild container')
     cmd.set_defaults(func='start')
+
+    cmd = subparsers.add_parser('run', help='Run command on a service')
+    cmd.add_argument('service', help='Service name')
+    cmd.add_argument('command', help='Command to run')
+    cmd.set_defaults(func='run')
 
     cmd = subparsers.add_parser('stop', help='Stop services')
     cmd.add_argument('services', help='Service names', nargs='*')
@@ -131,11 +138,11 @@ def main(argv):
 
     console_handler = logging.StreamHandler(stream=sys.stderr)
     console_handler.setFormatter(logging.Formatter())
-    console_handler.setLevel(logging.WARN)
+    console_handler.setLevel(logging.INFO)
 
     root_logger = logging.getLogger()
     root_logger.addHandler(console_handler)
-    root_logger.setLevel(logging.WARN)
+    root_logger.setLevel(logging.DEBUG)
 
     logging.getLogger("requests").propagate = False
 
@@ -213,18 +220,22 @@ def main(argv):
 
         def onecmd(self, line):
             try:
+                # reset project config
+                self.client._project = None
+
                 if line.strip() != '':
-                    args = re.split('\s+', line.strip())
+                    args = shlex.split(line.strip())
                     if args[0] == 'EOF':
                         if confirm('\nCtrl+d. Exit?', True):
                             return True
+                    if args[0] in ('docker', 'ls', 'll', 'l', 'git'):
+                        os.system(' '.join(args))
                     else:
                         self.exec_argparse(args)
                 else:
                     arg_parser.print_help()
             except KeyboardInterrupt as e:
-                print('Ctrl+c. Exiting...')
-                return False
+                print('Ctrl+c. Task interrupted.')
             except SystemExit as e:
                 pass
             except Exception as e:

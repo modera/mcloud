@@ -1,4 +1,5 @@
 from fig.cli.log_printer import LogPrinter
+from fig.cli.socketclient import SocketClient
 from fig.packages.docker import Client
 import getpass
 import json
@@ -6,6 +7,7 @@ from prettytable import PrettyTable
 from fabric.api import run, env
 import fabric
 from fig.project import Project
+from fabric.contrib.console import confirm
 import os
 import yaml
 from os.path import expanduser
@@ -147,9 +149,39 @@ class FicloudDeployment():
 
         print(table)
 
-    def start(self, services=None, logs=True, **kwargs):
+    def run(self, service, command, **kwargs):
+
+        service = self.project.get_service(service)
+
+        container = service.create_container(one_off=True, **{
+            'command': command,
+            'tty': True,
+            'stdin_open': True,
+        })
+
+        with self._attach_to_container(container.id, raw=True) as c:
+            service.start_container(container, ports=None)
+            c.run()
+
+    def _attach_to_container(self, container_id, raw=False):
+        socket_in = self.client.attach_socket(container_id, params={'stdin': 1, 'stream': 1})
+        socket_out = self.client.attach_socket(container_id, params={'stdout': 1, 'logs': 1, 'stream': 1})
+        socket_err = self.client.attach_socket(container_id, params={'stderr': 1, 'logs': 1, 'stream': 1})
+
+        return SocketClient(
+            socket_in=socket_in,
+            socket_out=socket_out,
+            socket_err=socket_err,
+            raw=raw,
+        )
+
+    def start(self, services=None, logs=True, rebuild=False, **kwargs):
 
         project = self.project
+
+        if rebuild:
+            project.stop(services)
+            project.build(services)
 
         all_containers = []
         for service in project.get_services(services):
