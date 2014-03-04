@@ -71,7 +71,8 @@ class FicloudDeployment():
             raise ValueError('project_name is not specified!')
 
         os.chdir(self.project_dir)
-        config = yaml.load(open('ficloud.yml'))
+        with open('ficloud.yml') as f:
+            config = yaml.load(f)
 
         config = transform_config(config['services'], env=self.env_name)
         project = Project.from_config(self.project_name, config, self.client)
@@ -181,6 +182,7 @@ class FicloudDeployment():
 
         if rebuild:
             project.stop(services)
+            project.remove_stopped(services)
             project.build(services)
 
         all_containers = []
@@ -215,7 +217,7 @@ class FicloudDeployment():
         project.remove_stopped(services)
 
     def rebuild(self, services=None, **kwargs):
-        pass
+        self.start(services, rebuild=True)
 
     def logs(self, services=None, **kwargs):
         project = self.project

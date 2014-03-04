@@ -1,21 +1,19 @@
 ficloud
 ======
 
-ficloud alows to deploy your fig infrastructure to remote servers. Also it
+ficloud alows to deploy your fig infrastructure to remote servers . Also it
 provides all the services needed for hosting production apps.
-
-NB! ficloud is currently in concept stage, so documentation for future components is only thing that exist now.
 
 Features:
 
  - define your app config through Dockerfile and fig.yml
  - easy deploy through git push
  - pushing several versions of app (dev, staging, production ... etc)
- - simple nginx based balancer
+ - haproxy based balancer tcp
  - easy switch balancer endpoint between app versions (ex swap prod and dev)
  - persistent storage for containers
  - easy copying persistence storage between containers (prod -> staging, etc)
- - ftp access for container persistence storage
+ - push and pull persistent volumes from your production server
 
 Installation
 -------------
@@ -24,12 +22,12 @@ Install docker: http://docs.docker.io/en/latest/installation/
 
 Make sure you can run docker containers::
 
-    $ sudo docker run -i -t ubuntu echo -e "\033[0;32mDocker is installed - OK\033[0m";
+    $ sudo docker run -i -t ubuntu echo -e "OK";
 
 Install packages::
 
     $ sudo apt-get install python-pip
-    $ sudo pip install ficloud-server
+    $ sudo pip install ficloud
 
 Test that ficloud is working::
 
