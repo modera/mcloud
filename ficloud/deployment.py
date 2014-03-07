@@ -225,7 +225,7 @@ class FicloudDeployment():
         containers = project.containers(service_names=services, stopped=True)
         LogPrinter(containers, attach_params={'logs': True}).run()
 
-    def get_volumes(self):
+    def get_volumes(self, **kwargs):
         volumes = {}
         for service in self.project.get_services():
 
@@ -241,7 +241,7 @@ class FicloudDeployment():
             return
 
         table = PrettyTable(["Volume", "Mount directory"])
-        for volume, dir in self.get_volumes(self.project).items():
+        for volume, dir in self.get_volumes().items():
             table.add_row((
                 volume,
                 dir
