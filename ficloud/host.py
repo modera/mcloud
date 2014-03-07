@@ -89,7 +89,7 @@ class FicloudHost():
 
         deployment = self.get_deployment(name, version)
 
-        deployment.start()
+        deployment.status()
 
 
     def undeploy_app(self, name, version, **kwargs):
@@ -151,6 +151,7 @@ class FicloudHost():
         for c in project.get_service(service).containers():
             if c.is_running:
                 ports = c.inspect()['NetworkSettings']['Ports']
+
                 if not '%s/tcp' % port in ports:
                     raise RuntimeError('Container has no port %s exposed')
 
@@ -270,7 +271,9 @@ class FicloudHost():
         if m:
             branch = m.group(1)
             app_name = os.path.basename(os.getcwd())
-            print('\n\nApp %s version %s is ready for deployment.\n\n' % (app_name, branch))
+            print('\n\nDeploying app %s version %s ..\n\n' % (app_name, branch))
+
+            self.deploy_app(app_name, branch)
         else:
             print('\n\nNB! No branch to deploy!\n\n')
 
