@@ -124,18 +124,21 @@ class FicloudHost():
 
                     if len(versions):
                         for version in versions:
-                            project = self.get_deployment(app, version).project
+                            try:
+                                project = self.get_deployment(app, version).project
 
-                            status = {}
-                            for service in project.get_services():
-                                status[service.name] = format_service_status(service)
+                                status = {}
+                                for service in project.get_services():
+                                    status[service.name] = format_service_status(service)
 
-                            app_status = ''
-                            for service, st in status.items():
-                                app_status += '%s=%s ' % (service, st)
+                                app_status = ''
+                                for service, st in status.items():
+                                    app_status += '%s=%s ' % (service, st)
 
-                            table.add_row(('' if last_app == app else app, version, app_status))
-                            last_app = app
+                                table.add_row(('' if last_app == app else app, version, app_status))
+                                last_app = app
+                            except IOError:
+                                print('Application %s : %s has no config.yml. Wrong branch deployed?' % (app, version))
                     else:
                         table.add_row((app, '-', 'NOT DEPLOYED'))
                 else:
