@@ -1,30 +1,22 @@
 
-========
-mfcloud
-========
+==============
+Modera Cloud
+==============
 
-mfcloud alows to deploy your fig infrastructure to remote servers. Also it provides all the services needed for hosting production apps.
+Modera Cloud is set of tools that use Docker containers to deploy web-applications to production.
 
-NB! mfcloud is currently in development stage.
-
-
-Deploy your fig-docker environment easily
+Features
 ------------------------------------------
 
- * define your app config through Dockerfile and fig.yml
- * easy deploy through git push
- * pushing several versions of app (dev, staging, prod ... etc)
- * simple nginx based balancer
- * easy switch balancer endpoint between app versions (ex swap prod and dev)
- * persistent storage for containers
- * easy copying persistence storage between containers (prod -> staging, etc)
- * ftp access for container persistence storage
+ * Configure and test your environment locally (php, mysql, elasticsearch, nodejs, java... anything*)
+ * Push to cloud in couple commands
+ * Live server updates with no downtime
+ * Easy data migration between application versions and dev/staging/live environments
+ * Fast rollbacks, easy backups
 
-Get started quickly with a simple example in quickstart.
 
-Easy installation
+Demo
 -----------------
-
 
 .. raw:: html
 
