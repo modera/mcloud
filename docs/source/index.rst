@@ -28,12 +28,12 @@ User's Guide
 Demo
 -----------------
 
-Start netiapteek application localy
+Start application localy
 
 .. raw:: html
 
     <div style="margin-left: -53px; margin-right: -80px;">
-        <script type="text/javascript" src="https://asciinema.org/a/8467" id="asciicast-14" async></script>
+        <script type="text/javascript" src="https://asciinema.org/a/8467.js" id="asciicast-8467" async></script>
     </div>
 
 
