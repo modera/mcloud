@@ -1,5 +1,5 @@
 # Runtime requirements
---requirement requirements.txt
+pytest-pythonpath
 pytest
 pytest-cov
 mock
