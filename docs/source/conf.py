@@ -22,7 +22,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
 # Import project metadata
-from ficloud import metadata
+from mfcloud import metadata
 
 # -- General configuration ----------------------------------------------------
 
@@ -35,8 +35,11 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
               'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.viewcode']
 
 sys.path.append(os.path.abspath('_themes'))
-html_theme_path = ['_themes']
-html_theme = 'flask'
+#html_theme_path = ['_themes']
+#html_theme = 'flask'
+
+html_theme = 'sphinx_rtd_theme'
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # show todos
 todo_include_todos = True
@@ -101,6 +104,7 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
+import sphinx_rtd_theme
 
 # -- Options for HTML output --------------------------------------------------
 

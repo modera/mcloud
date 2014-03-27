@@ -1,11 +1,11 @@
 
 ========
-ficloud
+mfcloud
 ========
 
-ficloud alows to deploy your fig infrastructure to remote servers. Also it provides all the services needed for hosting production apps.
+mfcloud alows to deploy your fig infrastructure to remote servers. Also it provides all the services needed for hosting production apps.
 
-NB! ficloud is currently in development stage.
+NB! mfcloud is currently in development stage.
 
 
 Deploy your fig-docker environment easily
@@ -24,9 +24,9 @@ Get started quickly with a simple example in quickstart.
 
 Easy installation
 -----------------
-You can use pip to install ficloud quickly and easily::
+You can use pip to install mfcloud quickly and easily::
 
-    $ pip install ficloud
+    $ pip install mfcloud
 
 Need more help with installing? See installation.
 
@@ -42,10 +42,10 @@ User's Guide
 
 Contribute
 ==========
-Found a bug in or want a feature added to ficloud?
-You can fork the official https://github.com/pywizard/ficloud or file an issue ticket
+Found a bug in or want a feature added to mfcloud?
+You can fork the official https://github.com/pywizard/mfcloud or file an issue ticket
 on github. You can also ask questions at the official
-ficloud-project@googlegroups.com or directli in google-group https://groups.google.com/forum/#!forum/ficloud-project.
+mfcloud-project@googlegroups.com or directli in google-group https://groups.google.com/forum/#!forum/mfcloud-project.
 
 
 Indices and tables

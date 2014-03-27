@@ -7,10 +7,10 @@ import argparse
 import logging
 import sys
 
-from ficloud import metadata
-from ficloud.client_cli import populate_client_parser
-from ficloud.deployment import FicloudDeployment
-from ficloud.host import FicloudHost
+from mfcloud import metadata
+from mfcloud.client_cli import populate_client_parser
+from mfcloud.deployment import MfcloudDeployment
+from mfcloud.host import MfcloudHost
 import os
 
 
@@ -30,14 +30,14 @@ def main(argv):
 
     subparsers = arg_parser.add_subparsers()
 
-    host = FicloudHost()
+    host = MfcloudHost()
 
     app_list_cmd = subparsers.add_parser('app-list', help='List applications deployed')
     app_list_cmd.set_defaults(func=host.list_apps)
 
 
 
-    def ficloud_app_wrpapper(name, version, func, **kwargs):
+    def mfcloud_app_wrpapper(name, version, func, **kwargs):
         """
         Creates new application. Basically, creates new git repo.
 
@@ -50,7 +50,7 @@ def main(argv):
     app_cmd = subparsers.add_parser('app', help='List applications versions deployed')
     app_cmd.add_argument('name', help='Application name')
     app_cmd.add_argument('version', help='Version')
-    app_cmd.set_defaults(wrapper=ficloud_app_wrpapper)
+    app_cmd.set_defaults(wrapper=mfcloud_app_wrpapper)
     app_cmd_subparser = app_cmd.add_subparsers()
     populate_client_parser(app_cmd_subparser)
 
@@ -90,7 +90,7 @@ def main(argv):
     app_create_cmd.set_defaults(func=host.balancer_dump)
 
     app_create_cmd = subparsers.add_parser('inotify-dump', help='Dump inotify config')
-    app_create_cmd.add_argument('source', help='source path', default='/home/ficloud/apps-conf', nargs='?')
+    app_create_cmd.add_argument('source', help='source path', default='/home/mfcloud/apps-conf', nargs='?')
     app_create_cmd.add_argument('haproxytpl', help='haproxy temp[late path', default='/etc/haproxy/haproxy.cfg.tpl', nargs='?')
     app_create_cmd.set_defaults(func=host.inotify_dump)
 

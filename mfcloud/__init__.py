@@ -1,6 +1,6 @@
 """Production cloud deployments of fig infrastructure with docker"""
 
-from ficloud import metadata
+from mfcloud import metadata
 
 
 __version__ = metadata.version

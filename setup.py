@@ -7,15 +7,15 @@ import imp
 from setuptools import setup, find_packages
 
 
-CODE_DIRECTORY = 'ficloud'
+CODE_DIRECTORY = 'mfcloud'
 DOCS_DIRECTORY = 'docs'
 TESTS_DIRECTORY = 'tests'
 
 # Import metadata. Normally this would just be:
 #
-#     from ficloud import metadata
+#     from mfcloud import metadata
 #
-# However, when we do this, we also import `ficloud/__init__.py'. If this
+# However, when we do this, we also import `mfcloud/__init__.py'. If this
 # imports names from some other modules and these modules have third-party
 # dependencies that need installing (which happens after this file is run), the
 # script will crash. What we do instead is to load the metadata module by path
@@ -82,12 +82,12 @@ setup(
     zip_safe=False,  # don't use eggs
     entry_points={
         'console_scripts': [
-            'ficloud = ficloud.client_cli:entry_point',
-            'ficloud-server = ficloud.server_cli:entry_point',
+            'mfcloud = mfcloud.client_cli:entry_point',
+            'mfcloud-server = mfcloud.server_cli:entry_point',
         ],
         # if you have a gui, use this
         # 'gui_scripts': [
-        #     'ficloud_gui = ficloud.gui:entry_point'
+        #     'mfcloud_gui = mfcloud.gui:entry_point'
         # ]
     }
 )

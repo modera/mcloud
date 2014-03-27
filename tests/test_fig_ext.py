@@ -1,4 +1,4 @@
-from ficloud.fig_ext import transform_config
+from mfcloud.fig_ext import transform_config
 
 
 def test_transform_config():

@@ -6,8 +6,8 @@ from pytest import raises
 import pytest
 parametrize = pytest.mark.parametrize
 
-from ficloud import metadata
-from ficloud.client_cli import main
+from mfcloud import metadata
+from mfcloud.client_cli import main
 
 
 @parametrize('helparg', ['-h', '--help'])

@@ -12,10 +12,10 @@ import sys
 from fabric.state import env
 from fabric.contrib.console import confirm
 
-from ficloud import metadata
-from ficloud.deployment import FicloudDeployment, project_name_by_dir
+from mfcloud import metadata
+from mfcloud.deployment import MfcloudDeployment, project_name_by_dir
 
-from ficloud.fig_ext import FigCommand
+from mfcloud.fig_ext import FigCommand
 from fig.cli.docopt_command import NoSuchCommand
 from fig.cli.errors import UserError
 from fig.cli.main import TopLevelCommand, parse_doc_section
@@ -74,7 +74,7 @@ def fig_main(env, fig_cmd, app_name, **kwargs):
 def populate_client_parser(subparsers):
 
 
-    # # # ficloud use ubuntu@myserver.com
+    # # # mfcloud use ubuntu@myserver.com
     # fig_cmd = subparsers.add_parser('fig', help='Executes fig commands')
     # fig_cmd.add_argument('--env', help='Environment name', default='dev')
     # fig_cmd.add_argument('--app-name', help='App name')
@@ -90,6 +90,7 @@ def populate_client_parser(subparsers):
     cmd = subparsers.add_parser('run', help='Run command on a service')
     cmd.add_argument('service', help='Service name')
     cmd.add_argument('command', help='Command to run')
+    cmd.add_argument('--no-tty', dest='disable_tty', action='store_true', default=False, help='No tty')
     cmd.set_defaults(func='run')
 
     cmd = subparsers.add_parser('stop', help='Stop services')
@@ -114,7 +115,7 @@ def populate_client_parser(subparsers):
     def exec_bash(**kwargs):
         shell = os.environ.get('SHELL')
         print('*' * 75)
-        print('Executing %s ... Hit Ctrl+d when you are done, to return ficloud.' % shell)
+        print('Executing %s ... Hit Ctrl+d when you are done, to return mfcloud.' % shell)
         print('*' * 75 + '\n')
         os.system(shell)
 
@@ -129,6 +130,10 @@ def populate_client_parser(subparsers):
     cmd = subparsers.add_parser('volume-push', help='Push volume to remote server')
     cmd.add_argument('volumes', help='Volume specs', nargs='*')
     cmd.set_defaults(func='push_volumes')
+
+    cmd = subparsers.add_parser('volume-pull', help='Push volume to remote server')
+    cmd.add_argument('volumes', help='Volume specs', nargs='*')
+    cmd.set_defaults(func='pull_volumes')
 
     cmd = subparsers.add_parser('status', help='Show current status of services')
     cmd.set_defaults(func='status')
@@ -166,12 +171,12 @@ def main(argv):
 
     populate_client_parser(subparsers)
 
-    # ficloud use ubuntu@myserver.com
+    # mfcloud use ubuntu@myserver.com
     use_cmd = subparsers.add_parser('use', help='Sets target hostname')
     use_cmd.add_argument('host', help='Hostname with username ex. user@some.server')
     use_cmd.set_defaults(func='use_host')
 
-    # ficloud app create myapp
+    # mfcloud app create myapp
     app_create_cmd = subparsers.add_parser('@', help='Executes remote command')
     app_create_cmd.add_argument('command', help='Name of application', nargs='*')
     app_create_cmd.set_defaults(func='remote')
@@ -190,7 +195,7 @@ def main(argv):
 '''
 
         def update_prompt(self):
-            if os.path.exists('ficloud.yml'):
+            if os.path.exists('mfcloud.yml'):
                 project = project_name_by_dir()
             else:
                 project = '~'
@@ -200,7 +205,7 @@ def main(argv):
 
         def __init__(self, completekey='tab', stdin=None, stdout=None):
 
-            self.client = FicloudDeployment()
+            self.client = MfcloudDeployment()
             self.client.init(os.getcwd(), 'dev')
 
             self.update_prompt()
@@ -246,8 +251,8 @@ def main(argv):
     if len(argv) > 1:
         foo().exec_argparse(argv[1:])
     else:
-        if not os.path.exists('ficloud.yml'):
-            if not confirm('Directory do not contain ficloud.yml, ficloud may be not so useful, continue to ficloud?', False):
+        if not os.path.exists('mfcloud.yml'):
+            if not confirm('Directory do not contain mfcloud.yml, mfcloud may be not so useful, continue to mfcloud?', False):
                 raise SystemExit(0)
         foo().cmdloop()
 

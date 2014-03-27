@@ -13,8 +13,8 @@ import yaml
 from os.path import expanduser
 import cuisine as remote
 import re
-from ficloud.fig_ext import transform_config
-from ficloud.util import format_service_status
+from mfcloud.fig_ext import transform_config
+from mfcloud.util import format_service_status
 
 
 def project_name_by_dir():
@@ -23,13 +23,13 @@ def project_name_by_dir():
     return project_name
 
 
-class FicloudDeployment():
-    def __init__(self, config_file='~/.ficloud.yml'):
-        self.ficloud_yml = expanduser(config_file)
+class MfcloudDeployment():
+    def __init__(self, config_file='~/.mfcloud.yml'):
+        self.mfcloud_yml = expanduser(config_file)
 
         # load config
-        if os.path.exists(self.ficloud_yml):
-            with open(self.ficloud_yml) as f:
+        if os.path.exists(self.mfcloud_yml):
+            with open(self.mfcloud_yml) as f:
                 self.config = yaml.load(f)
                 if self.config is None:
                     self.config = {}
@@ -71,7 +71,7 @@ class FicloudDeployment():
             raise ValueError('project_name is not specified!')
 
         os.chdir(self.project_dir)
-        with open('ficloud.yml') as f:
+        with open('mfcloud.yml') as f:
             config = yaml.load(f)
 
         config = transform_config(config['services'], env=self.env_name)
@@ -114,7 +114,7 @@ class FicloudDeployment():
 
             (service, volume_name, app, version) = result.groups()
 
-            data = run('ficloud-server app %s %s volumes --json' % (app, version))
+            data = run('mfcloud-server app %s %s volumes --json' % (app, version))
             data = json.loads(data)
 
             volume_key = '%s@%s' % (service, volume_name)
@@ -150,17 +150,17 @@ class FicloudDeployment():
 
         print(table)
 
-    def run(self, service, command, **kwargs):
+    def run(self, service, command, disable_tty=False, **kwargs):
 
         service = self.project.get_service(service)
 
         container = service.create_container(one_off=True, **{
             'command': command,
-            'tty': True,
+            'tty': not disable_tty,
             'stdin_open': True,
         })
 
-        with self._attach_to_container(container.id, raw=True) as c:
+        with self._attach_to_container(container.id, raw=not disable_tty) as c:
             service.start_container(container, ports=None)
             c.run()
 
@@ -203,7 +203,7 @@ class FicloudDeployment():
                 print("Following logs from containers.")
                 log_printer.run()
             except KeyboardInterrupt:
-                print("Interrupted by Ctrl + C. Containers are still running. Use `ficloud stop` to stop them.")
+                print("Interrupted by Ctrl + C. Containers are still running. Use `mfcloud stop` to stop them.")
 
 
     def stop(self, services=None, **kwargs):
@@ -217,7 +217,7 @@ class FicloudDeployment():
         project.remove_stopped(services)
 
     def rebuild(self, services=None, **kwargs):
-        self.start(services, rebuild=True)
+        self.start(services, rebuild=True, logs=False)
 
     def logs(self, services=None, **kwargs):
         project = self.project
@@ -251,9 +251,9 @@ class FicloudDeployment():
 
 
     def remote(self, command, **kwargs):
-        run('ficloud-server %s' % ' '.join(command))
+        run('mfcloud-server %s' % ' '.join(command))
 
 
     def save_config(self):
-        with open(self.ficloud_yml, 'w+') as f:
+        with open(self.mfcloud_yml, 'w+') as f:
             yaml.dump(self.config, f)

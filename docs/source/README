@@ -1,5 +1,5 @@
-Run `sphinx-apidoc -o . ../../ficloud' in this directory.
+Run `sphinx-apidoc -o . ../../mfcloud' in this directory.
 
-This will generate `modules.rst' and `ficloud.rst'.
+This will generate `modules.rst' and `mfcloud.rst'.
 
 Then include `modules.rst' in your `index.rst' file.

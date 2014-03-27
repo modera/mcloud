@@ -10,11 +10,11 @@ from prettytable import PrettyTable
 
 from jinja2 import Environment as JinjaEnv, StrictUndefined, PackageLoader, FileSystemLoader
 import yaml
-from ficloud.deployment import FicloudDeployment
-from ficloud.util import format_service_status
+from mfcloud.deployment import MfcloudDeployment
+from mfcloud.util import format_service_status
 
 
-class FicloudHost():
+class MfcloudHost():
 
     def __init__(self):
         self.client = Client()
@@ -216,13 +216,13 @@ class FicloudHost():
 
     def inotify_dump(self, source, haproxytpl, argv0, **kwargs):
 
-        print('%(conf-dir)s IN_MODIFY,IN_CREATE,IN_DELETE,IN_NO_LOOP %(ficloud-server)s balancer-dump %(conf-dir)s' % {
-            'ficloud-server': argv0,
+        print('%(conf-dir)s IN_MODIFY,IN_CREATE,IN_DELETE,IN_NO_LOOP %(mfcloud-server)s balancer-dump %(conf-dir)s' % {
+            'mfcloud-server': argv0,
             'conf-dir': source
         })
-        print('%(haproxytpl)s IN_MODIFY,IN_CREATE,IN_DELETE,IN_NO_LOOP %(ficloud-server)s balancer-dump %(conf-dir)s' % {
+        print('%(haproxytpl)s IN_MODIFY,IN_CREATE,IN_DELETE,IN_NO_LOOP %(mfcloud-server)s balancer-dump %(conf-dir)s' % {
             'haproxytpl': haproxytpl,
-            'ficloud-server': argv0,
+            'mfcloud-server': argv0,
             'conf-dir': source
         })
 
@@ -264,7 +264,7 @@ class FicloudHost():
         """
         Command is used inside git's post-receive hook
         """
-        #!/home/alex/dev/ficloud/.env/bin/python
+        #!/home/alex/dev/mfcloud/.env/bin/python
 
         p = re.compile(r'refs/heads/([^\s]+)')
 
@@ -281,7 +281,7 @@ class FicloudHost():
             print('\n\nNB! No branch to deploy!\n\n')
 
     def get_deployment(self, name, version):
-        deployment = FicloudDeployment()
+        deployment = MfcloudDeployment()
         target_dir = self.get_app_deployment_dir(name, version)
         deployment.init(target_dir, 'prod', '%s0%s' % (name, version))
 

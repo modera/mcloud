@@ -2,7 +2,7 @@
 web:
   image: dockerfile/nginx
   volumes:
-   - .ficloud:/etc/nginx/sites-enabled
+   - .mfcloud:/etc/nginx/sites-enabled
    - public:/var/www
   ports:
    - 80
