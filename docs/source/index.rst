@@ -24,11 +24,7 @@ Get started quickly with a simple example in quickstart.
 
 Easy installation
 -----------------
-You can use pip to install mfcloud quickly and easily::
 
-    $ pip install mfcloud
-
-Need more help with installing? See installation.
 
 .. raw:: html
 
@@ -44,14 +40,8 @@ User's Guide
    :maxdepth: 2
 
    installation
-   quickstart
-
-Contribute
-==========
-Found a bug in or want a feature added to mfcloud?
-You can fork the official https://github.com/pywizard/mfcloud or file an issue ticket
-on github. You can also ask questions at the official
-mfcloud-project@googlegroups.com or directli in google-group https://groups.google.com/forum/#!forum/mfcloud-project.
+   server
+   deploy
 
 
 Indices and tables

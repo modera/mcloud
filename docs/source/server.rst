@@ -1,22 +1,7 @@
-mfcloud
-======
 
-mfcloud alows to deploy your fig infrastructure to remote servers . Also it
-provides all the services needed for hosting production apps.
 
-Features:
-
- - define your app config through Dockerfile and fig.yml
- - easy deploy through git push
- - pushing several versions of app (dev, staging, production ... etc)
- - haproxy based balancer tcp
- - easy switch balancer endpoint between app versions (ex swap prod and dev)
- - persistent storage for containers
- - easy copying persistence storage between containers (prod -> staging, etc)
- - push and pull persistent volumes from your production server
-
-Installation
--------------
+Modera Cloud server installation
+=======================================
 
 Install docker: http://docs.docker.io/en/latest/installation/
 
@@ -93,48 +78,3 @@ And the last thing. Allow mfcloud to read-write any docker container volume:
 Install git:
 
     sudo apt-get install git
-
-
-Deployement
--------------
-
-Start by creating application that is working locally using fig.yml
-
-Set working ssh account::
-
-    $ mfcloud use mfcloud@myserver.com
-
-Create an application:
-
-    $ mfcloud remote app-create foo
-
-Deploy code:
-
-    $ git push mfcloud@myserver.com:apps/foo master:prod
-
-Check port number:
-
-    $ mfcloud remote app-list
-
-Configure balancer:
-
-    $ mfcloud remote balancer set mydomain.com web:80@foo#prod
-
-Push volume to deployment:
-
-    $ filcoud volume-push web/code@foo#master
-
-Push volume from deployment:
-
-    $ filcoud volume-pull web/code@foo#master
-
-Remote volume copy:
-
-    $ mfcloud remote volume-copy web/code@foo#master foo#v1
-
-Your app is deployed!
-
-Data migration
-----------------
-
-
