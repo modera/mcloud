@@ -15,16 +15,6 @@ Features
  * Fast rollbacks, easy backups
 
 
-Demo
------------------
-
-.. raw:: html
-
-    <div style="margin-left: -53px; margin-right: -80px;">
-        <script type="text/javascript" src="https://asciinema.org/a/14.js" id="asciicast-14" async></script>
-    </div>
-
-
 User's Guide
 ============
 
@@ -34,6 +24,18 @@ User's Guide
    installation
    server
    deploy
+
+Demo
+-----------------
+
+Start netiapteek application localy
+
+.. raw:: html
+
+    <div style="margin-left: -53px; margin-right: -80px;">
+        <script type="text/javascript" src="http://asciinema.org/a/8467" id="asciicast-14" async></script>
+    </div>
+
 
 
 Indices and tables
