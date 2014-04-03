@@ -1,7 +1,11 @@
+from abc import abstractmethod
+from mfcloud.util import Interface
 import os
 from os.path import dirname
 import yaml
 from .service import Service
+from voluptuous import Schema, MultipleInvalid
+from voluptuous import Required, All, Length, Range
 
 
 class PrebuiltImageBuilder(object):
@@ -17,7 +21,16 @@ class DockerfileImageBuilder(object):
         self.path = path
 
 
-class YamlConfig(object):
+class IConfig(Interface):
+
+    @abstractmethod
+    def get_services(self):
+        """
+        :rtype:
+        """
+        pass
+
+class YamlConfig(IConfig):
 
     def __init__(self, file=None):
         super(YamlConfig, self).__init__()
@@ -27,15 +40,45 @@ class YamlConfig(object):
 
         self._file = str(file)
 
-        self.services = []
+        self.services = {}
+
+    def get_services(self):
+        return self.services
 
 
     def load(self):
 
         with open(self._file) as f:
-            print f
             cfg = yaml.load(f)
+
+            self.validate(config=cfg)
             self.process(config=cfg, path=dirname(self._file))
+
+
+    def validate(self, config):
+        try:
+            Schema({
+                Required(str): {
+                    'image': str,
+                    'build': str,
+
+                    'volumes': {
+                        str: str
+                    },
+
+                    'env': {
+                        str: str
+                    }
+                }
+            })(config)
+
+            for service in config.values():
+                if not 'image' in service and not 'build' in service:
+                    raise ValueError('You should define "image" or "build" as a vay to build a container.')
+        except MultipleInvalid as e:
+            raise ValueError(e)
+
+        return True
 
     def process_command_build(self, service, config, path):
         if 'cmd' in config and config['cmd'] and  len(str(config['cmd']).strip()) > 0:
@@ -79,4 +122,4 @@ class YamlConfig(object):
             self.process_volumes_build(s, service, path)
             self.process_command_build(s, service, path)
 
-            self.services.append(s)
+            self.services[name] = service

@@ -1,9 +1,8 @@
+from mfcloud.config import YamlConfig
+import os
 from abc import ABCMeta, abstractmethod
-from mfcloud.util import accepts
-
-
-class Interface(object):
-    __metaclass__ = ABCMeta
+from mfcloud.util import accepts, Interface
+from os.path import dirname
 
 
 class IMfCloudCompontent(Interface):
@@ -61,15 +60,7 @@ class IServiceLocator(Interface):
 class IDeploymentEndpoint(Interface):
 
     @abstractmethod
-    def on_application_created(self, application_name):
-        pass
-
-    @abstractmethod
-    def on_application_removed(self, application_name):
-        pass
-
-    @abstractmethod
-    def on_application_version_removed(self, application_name):
+    def list_applications(self):
         pass
 
     @abstractmethod
@@ -77,7 +68,7 @@ class IDeploymentEndpoint(Interface):
         pass
 
     @abstractmethod
-    def get_application_path(self, application_name, application_version):
+    def load_application_version_config(self, application_name, application_version):
         pass
 
 
@@ -170,65 +161,41 @@ class LocalSkyDnsServiceLocator(SkyDnsServiceLocator):
 
 
 class FtpEndpoint(IDeploymentEndpoint):
+    def load_application_version_config(self, application_name, application_version):
+        super(FtpEndpoint, self).load_application_version_config(application_name, application_version)
 
-    def on_application_created(self, application_name):
-        super(FtpEndpoint, self).on_application_created(application_name)
+    def list_applications(self):
+        super(FtpEndpoint, self).list_applications()
 
     def list_application_versions(self, application_name):
         super(FtpEndpoint, self).list_application_versions(application_name)
 
-    def on_application_version_removed(self, application_name):
-        super(FtpEndpoint, self).on_application_version_removed(application_name)
-
-    def get_application_path(self, application_name, application_version):
-        super(FtpEndpoint, self).get_application_path(application_name, application_version)
-
-    def on_application_removed(self, application_name):
-        super(FtpEndpoint, self).on_application_removed(application_name)
-
-    def __init__(self, **kwargs):
-        super(FtpEndpoint, self).__init__()
-
 
 class GitEndpoint(IDeploymentEndpoint):
+    def load_application_version_config(self, application_name, application_version):
+        super(GitEndpoint, self).load_application_version_config(application_name, application_version)
 
-    def on_application_created(self, application_name):
-        super(GitEndpoint, self).on_application_created(application_name)
+    def list_applications(self):
+        super(GitEndpoint, self).list_applications()
 
     def list_application_versions(self, application_name):
         super(GitEndpoint, self).list_application_versions(application_name)
 
-    def on_application_version_removed(self, application_name):
-        super(GitEndpoint, self).on_application_version_removed(application_name)
-
-    def get_application_path(self, application_name, application_version):
-        super(GitEndpoint, self).get_application_path(application_name, application_version)
-
-    def on_application_removed(self, application_name):
-        super(GitEndpoint, self).on_application_removed(application_name)
-
-    def __init__(self, **kwargs):
-        super(GitEndpoint, self).__init__()
-
 
 class LocalDeploymentEndpoint(IDeploymentEndpoint):
 
-    def __init__(self, **kwargs):
+    def __init__(self, path=None):
         super(LocalDeploymentEndpoint, self).__init__()
 
-    def on_application_created(self, application_name):
-        super(LocalDeploymentEndpoint, self).on_application_created(application_name)
+        self.path = path
+
+    def load_application_version_config(self, application_name, application_version):
+        config = YamlConfig(file=os.path.join(self.path, 'mfcloud.yml'))
+        config.load()
+        return config
+
+    def list_applications(self):
+        return [os.path.basename(self.path)]
 
     def list_application_versions(self, application_name):
-        super(LocalDeploymentEndpoint, self).list_application_versions(application_name)
-
-    def on_application_version_removed(self, application_name):
-        super(LocalDeploymentEndpoint, self).on_application_version_removed(application_name)
-
-    def get_application_path(self, application_name, application_version):
-        super(LocalDeploymentEndpoint, self).get_application_path(application_name, application_version)
-
-    def on_application_removed(self, application_name):
-        super(LocalDeploymentEndpoint, self).on_application_removed(application_name)
-
-
+        return ['dev']

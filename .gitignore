@@ -37,4 +37,5 @@ pip-log.txt
 *.mo
 
 ## paver generated files
-/paver-minilib.zip
+/paver-minilib.zip.cache
+.cache/

@@ -3,6 +3,7 @@ import sys
 from flexmock import flexmock
 from mfcloud.config import YamlConfig, Service, PrebuiltImageBuilder, DockerfileImageBuilder
 import pytest
+from voluptuous import MultipleInvalid
 
 
 def test_not_existent_file():
@@ -20,8 +21,75 @@ def test_load_cofig(tmpdir):
 
     config = YamlConfig(file=p.realpath())
 
+    flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=p.dirname).once()
     config.load()
+
+@pytest.yield_fixture(params=[
+
+    ])
+def valid_config(request):
+    yield request.param
+
+@pytest.mark.parametrize("config", [
+
+    # one service - image
+    {
+        'foo': {
+            'image': 'boo'
+        }
+    },
+
+    # one service - build
+    {
+        'foo': {
+            'build': 'boo'
+        }
+    },
+
+    # one service - full config
+    {
+        'foo': {
+            'image': 'boo',
+            'env': {
+                'boo': 'baz',
+                'boo2': 'baz',
+                'boo3': 'baz',
+            },
+
+            'volumes': {
+                'foo1': 'bar1',
+                'foo2': 'bar2',
+                'foo3': 'bar3',
+            }
+
+        }
+    }
+])
+def test_validate_valid(config):
+    c = YamlConfig()
+    assert c.validate(config)
+
+@pytest.mark.parametrize("config", [
+
+    # no services
+    {},
+
+    # no image or build
+    {'foo': {}},
+
+    # some random key
+    {
+        'foo': {
+            'build1': 'boo'
+        }
+    }
+])
+def test_validate_invalid(config):
+    c = YamlConfig()
+
+    with pytest.raises(ValueError):
+        assert c.validate(config)
 
 
 def test_process():

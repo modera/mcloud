@@ -1,3 +1,5 @@
+from abc import ABCMeta
+
 
 def format_service_status(service):
     if len(service.containers()):
@@ -13,6 +15,10 @@ def format_service_status(service):
     else:
         service_status = 'NO CONTAINERS'
     return service_status
+
+
+class Interface(object):
+    __metaclass__ = ABCMeta
 
 
 def accepts(*types):

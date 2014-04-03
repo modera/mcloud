@@ -10,3 +10,5 @@ Flask-API
 twisted
 txredisapi
 inject
+
+voluptuous
