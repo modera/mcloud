@@ -1,8 +1,12 @@
 # Python 2.6 compatibility
 # argparse==1.2.1
 
-fig
-fabric
-cuisine
 jinja2
 prettytable
+
+flask
+Flask-API
+
+twisted
+txredisapi
+inject
