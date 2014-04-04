@@ -1,27 +1,7 @@
-from contextlib import contextmanager
-from flexmock import flexmock
-import inject
 import docker
 from mfcloud.container import DockerLocal
-
-
-@contextmanager
-def real_docker():
-    def configurator(binder):
-        binder.bind_to_constructor(docker.Client, lambda: docker.Client(base_url='unix://var/run/docker.sock',
-                                                                        version='1.6',
-                                                                        timeout=10))
-    inject.clear_and_configure(configurator)
-
-    yield
-
-
-@contextmanager
-def mock_docker():
-    mock = flexmock()
-    inject.clear_and_configure(lambda binder: binder.bind(docker.Client, mock))
-
-    yield mock
+from mfcloud.service import Service
+from mfcloud.util import real_docker
 
 
 def test_docker_local():
@@ -36,23 +16,40 @@ def test_docker_local():
 
 
 def test_gen_wrapper():
-    def gen():
+    """
+    Tests how well works generator for workaround.
+    """
+
+    def broken_generator():
+
         for x in range(1, 4):
             if x < 3:
                 yield x
             else:
                 raise ValueError()
 
-    vals = [x for x in DockerLocal._gen_wrapper(gen())]
+    vals = [x for x in DockerLocal._gen_wrapper(broken_generator())]
 
     assert vals == [1, 2]
 
 
-def test_build_image_with_generator():
-
-    with real_docker():
-        d = DockerLocal()
-        stream = DockerLocal._gen_wrapper(d.client.build(path='mfcloud/dns_locator', stream=True))
-
-        for x in stream:
-            print x
+#def test_start_container():
+#
+#    with real_docker():
+#
+#        s = Service()
+#        s.image_builder =
+#
+#
+#        d = DockerLocal()
+#
+#
+#
+#        #
+#        #for x in stream:
+#        #    print x
+#
+#        #builder =
+#
+#        image_name = d.build_image()
+##

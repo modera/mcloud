@@ -1,9 +1,8 @@
 
-import sys
 from flexmock import flexmock
-from mfcloud.config import YamlConfig, Service, PrebuiltImageBuilder, DockerfileImageBuilder
+from mfcloud.config import YamlConfig, Service
+from mfcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
 import pytest
-from voluptuous import MultipleInvalid
 
 
 def test_not_existent_file():
@@ -236,7 +235,7 @@ def test_build_image_dockerfile():
 def test_build_image_empty():
 
     s = Service()
-    c = YamlConfig()
+    c = YamlConfig() 
 
     with pytest.raises(ValueError) as e:
         c.process_image_build(s, {}, '/base/path')

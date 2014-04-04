@@ -1,4 +1,5 @@
 from mfcloud.config import YamlConfig
+from mfcloud.container import IDocker
 import os
 from abc import ABCMeta, abstractmethod
 from mfcloud.util import accepts, Interface
@@ -10,10 +11,6 @@ class IMfCloudCompontent(Interface):
     @abstractmethod
     def set_event_bus(self, bus):
         pass
-
-
-class IDocker(Interface):
-    pass
 
 
 class IBalancer(Interface):

@@ -1,6 +1,27 @@
 from contextlib import contextmanager
 from abc import ABCMeta
+import docker
+from flexmock import flexmock
 import inject
+
+
+@contextmanager
+def real_docker():
+    def configurator(binder):
+        binder.bind_to_constructor(docker.Client, lambda: docker.Client(base_url='unix://var/run/docker.sock',
+                                                                        version='1.6',
+                                                                        timeout=10))
+    inject.clear_and_configure(configurator)
+
+    yield
+
+
+@contextmanager
+def mock_docker():
+    mock = flexmock()
+    inject.clear_and_configure(lambda binder: binder.bind(docker.Client, mock))
+
+    yield mock
 
 
 def format_service_status(service):

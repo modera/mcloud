@@ -1,24 +1,12 @@
 from abc import abstractmethod
+from mfcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
 from mfcloud.util import Interface
 import os
 from os.path import dirname
 import yaml
 from .service import Service
 from voluptuous import Schema, MultipleInvalid
-from voluptuous import Required, All, Length, Range
-
-
-class PrebuiltImageBuilder(object):
-    def __init__(self, image):
-        super(PrebuiltImageBuilder, self).__init__()
-
-        self.image = image
-
-
-class DockerfileImageBuilder(object):
-    def __init__(self, path):
-        super(DockerfileImageBuilder, self).__init__()
-        self.path = path
+from voluptuous import Required
 
 
 class IConfig(Interface):
