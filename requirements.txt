@@ -12,3 +12,5 @@ txredisapi
 inject
 
 voluptuous
+
+docker-py

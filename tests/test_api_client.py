@@ -1,5 +1,6 @@
 from flexmock import flexmock
-from mfcloud.api import MfCloudApi, DockerLocal, DnsService, SkyDnsServiceLocator, FtpEndpoint, GitEndpoint, LocalSkyDnsServiceLocator, LocalDeploymentEndpoint, IBalancer
+from mfcloud.api import MfCloudApi, DnsService, SkyDnsServiceLocator, FtpEndpoint, GitEndpoint, LocalSkyDnsServiceLocator, LocalDeploymentEndpoint, IBalancer
+from mfcloud.container import DockerLocal
 from mfcloud.util import abstract
 import pytest
 
@@ -8,10 +9,7 @@ def test_api():
 
     cloud = MfCloudApi()
 
-    cloud.add_docker(DockerLocal(base_url='unix://var/run/docker.sock',
-                  version='1.6',
-                  timeout=10
-    ))
+    cloud.add_docker(DockerLocal())
 
     assert 1 == len(cloud.dockers())
 
@@ -36,13 +34,11 @@ def test_api():
 def test_build_local_deployment():
 
     cloud = MfCloudApi()
-    cloud.add_docker(DockerLocal(base_url='unix://var/run/docker.sock',
-                  version='1.6',
-                  timeout=10
-    ))
+    cloud.add_docker(DockerLocal())
 
     locator = LocalSkyDnsServiceLocator(host='foo')
     locator.ensure_started()
+
     cloud.add_service_locator(locator)
 
     cloud.add_deployment_endpoint(LocalDeploymentEndpoint(path='/foo/bar/baz'))

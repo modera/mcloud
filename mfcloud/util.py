@@ -1,4 +1,6 @@
+from contextlib import contextmanager
 from abc import ABCMeta
+import inject
 
 
 def format_service_status(service):
@@ -52,3 +54,9 @@ def abstract(class_to_mock):
             abstract_methods[name] = lambda: None
 
     return type('%s_mock_' % class_to_mock.__name__, (class_to_mock,), abstract_methods)()
+
+@contextmanager
+def inject_services(configurator):
+    inject.clear_and_configure(configurator)
+    yield
+    inject.clear()

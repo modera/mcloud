@@ -119,13 +119,6 @@ class MfCloudApi():
     def endpoints(self):
         return self._endpoints
 
-
-class DockerLocal(IDocker):
-
-    def __init__(self, **kwargs):
-        super(DockerLocal, self).__init__()
-
-
 class DnsService(IDnsService):
 
     def __init__(self, **kwargs):
