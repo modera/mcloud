@@ -24,7 +24,7 @@ class ApplicationController(object):
         return d
 
     def remove(self, name):
-        pass
+        return self.redis.hdel('mfcloud-apps', name)
 
     def get(self, name):
 
@@ -35,6 +35,15 @@ class ApplicationController(object):
                 return None
             else:
                 return Application(json.loads(config))
+        d.addCallback(ready)
+
+        return d
+
+    def list(self):
+        d = self.redis.hgetall('mfcloud-apps')
+
+        def ready(config):
+            return dict([(name, Application(json.loads(config))) for name, config in config.items()])
         d.addCallback(ready)
 
         return d
