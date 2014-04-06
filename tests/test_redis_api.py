@@ -5,7 +5,7 @@ import txredisapi as redis
 
 @pytest.inlineCallbacks
 def test_incr():
-    rc = yield redis.Connection()
+    rc = yield redis.Connection(dbid=2)
 
     yield rc.set("foo", 4)
 
@@ -18,3 +18,14 @@ def test_incr():
     assert v == 5
 
     yield rc.disconnect()
+
+@pytest.inlineCallbacks
+def test_hash_set():
+
+    rc = yield redis.Connection(dbid=2)
+
+    yield rc.hmset("foo", {"bar": "baz"})
+    #
+    #v = yield rc.hget("foo", "bar")
+    #
+    #assert v == 'baz'
