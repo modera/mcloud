@@ -21,7 +21,7 @@ def test_image_builder_prebuilt():
 
         builder = PrebuiltImageBuilder('foo/bar')
 
-        result = yield builder.build_image()
+        result = yield builder.build_image(ticket_id=123123)
         assert result == 'foo/bar'
 
 @pytest.inlineCallbacks
@@ -48,7 +48,7 @@ def test_image_builder_prebuilt_already_built():
 
         builder = PrebuiltImageBuilder('foo/bar')
 
-        result = yield builder.build_image()
+        result = yield builder.build_image(ticket_id=123123)
         assert result == 'foo/bar'
 
 
@@ -73,9 +73,9 @@ def test_image_builder_build():
 
         builder.should_receive('create_archive').once().and_return(defer.succeed('foo'))
 
-        client.should_receive('build_image').with_args('foo').and_return(defer.succeed('baz'))
+        client.should_receive('build_image').with_args('foo', ticket_id=123123).and_return(defer.succeed('baz'))
 
-        result = yield builder.build_image()
+        result = yield builder.build_image(ticket_id=123123)
 
         assert result == 'baz'
 

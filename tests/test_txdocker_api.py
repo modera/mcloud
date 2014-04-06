@@ -1,3 +1,4 @@
+import json
 import os
 from flexmock import flexmock
 from mfcloud import txhttp
@@ -38,15 +39,27 @@ def test_images_all(client):
 @pytest.inlineCallbacks
 def test_build(client):
 
+    def publish(ticket_id, stream_type, data):
+        assert ticket_id == 123123
+        assert stream_type == 'log'
+        assert len(data) > 0
+
+        publish.called += 1
+
+    publish.called = 0
+    client.message_publisher = publish
+
     builder = DockerfileImageBuilder(os.path.join(os.path.dirname(__file__), '_files/ct_bash'))
 
     d = builder.create_archive()
 
     def build_image(docker_file):
-        return client.build_image(docker_file)
+        return client.build_image(docker_file, ticket_id=123123)
 
     d.addCallback(build_image)
 
     result = yield d
 
     assert re.match('^[0-9a-f]+$', result)
+
+    assert publish.called > 0

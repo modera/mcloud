@@ -17,7 +17,7 @@ class IImageBuilder(Interface):
     client = inject.attr(IDockerClient)
 
     @abstractmethod
-    def build_image(self):
+    def build_image(self, ticket_id):
         pass
 
     @abstractmethod
@@ -31,7 +31,7 @@ class PrebuiltImageBuilder(IImageBuilder):
 
         self.image = image
 
-    def build_image(self):
+    def build_image(self, ticket_id):
 
         def on_ready(images):
             if not images:
@@ -72,12 +72,12 @@ class DockerfileImageBuilder(IImageBuilder):
         reactor.callLater(0, archive)
         return d
 
-    def build_image(self):
+    def build_image(self, ticket_id):
 
         d = self.create_archive()
 
         def on_archive_ready(archive):
-            return self.client.build_image(archive)
+            return self.client.build_image(archive, ticket_id=123123)
 
         d.addCallback(on_archive_ready)
 

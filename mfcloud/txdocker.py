@@ -20,6 +20,7 @@ class DockerTwistedClient(object):
         super(DockerTwistedClient, self).__init__()
 
         self.url = url
+        self.message_publisher = None
 
     def _request(self, url, method=txhttp.get, response_handler=json_response, **kwargs):
 
@@ -50,7 +51,7 @@ class DockerTwistedClient(object):
             q = None
         return self._get('images/json', data=q)
 
-    def build_image(self, dockerfile):
+    def build_image(self, dockerfile, ticket_id=None):
 
         headers = {'Content-Type': 'application/tar'}
 
@@ -58,6 +59,8 @@ class DockerTwistedClient(object):
         def on_content(chunk):
 
             #print 'Data chunk: %s' % chunk
+            if ticket_id and self.message_publisher:
+                self.message_publisher(ticket_id, 'log', json.loads(chunk)['stream'])
 
             if not 'image_id' in result:
                 match = re.search(r'Successfully built ([0-9a-f]+)', chunk)
