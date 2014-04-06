@@ -6,9 +6,9 @@ import txredisapi
 
 def test_new_app_instance():
 
-    app = Application('foo/bar')
+    app = Application({'path': 'foo/bar'})
 
-    assert app.config_path == 'foo/bar'
+    assert app.config['path'] == 'foo/bar'
 
 
 @pytest.inlineCallbacks
@@ -21,14 +21,12 @@ def test_app_controller():
         binder.bind(txredisapi.Connection, redis)
 
     with inject_services(configure):
-
-
         controller = ApplicationController()
 
         r = yield controller.get('foo')
         assert r is None
 
         r = yield controller.create('foo', 'some/path')
-        assert r is Application
-        assert r.config_path == 'some/path'
+        assert isinstance(r, Application)
+        assert r.config['path'] == 'some/path'
 
