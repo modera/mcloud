@@ -22,14 +22,8 @@ class DockerTwistedClient(object):
         self.url = url
         self.message_publisher = None
 
-    def _request(self, url, method=txhttp.get, response_handler=json_response, **kwargs):
-
-        d = method('%s%s' % (self.url, url), **kwargs)
-
-        if response_handler:
-            d.addCallback(response_handler)
-
-        return d
+    def _request(self, url, method=txhttp.get, **kwargs):
+        return method('%s%s' % (self.url, url), **kwargs)
 
     def _get(self, url, **kwargs):
         if 'data' in kwargs and  not kwargs['data'] is None:
@@ -40,6 +34,9 @@ class DockerTwistedClient(object):
     def _post(self, url, **kwargs):
         return self._request(url, method=txhttp.post, **kwargs)
 
+    def _delete(self, url, **kwargs):
+        return self._request(url, method=txhttp.delete, **kwargs)
+
     #######################################
     # Public API
     #######################################
@@ -49,7 +46,9 @@ class DockerTwistedClient(object):
             q = {'all': 0, 'filter': name}
         else:
             q = None
-        return self._get('images/json', data=q)
+        r = self._get('images/json', data=q)
+        r.addCallback(json_response)
+        return r
 
     def build_image(self, dockerfile, ticket_id=None):
 
@@ -79,3 +78,90 @@ class DockerTwistedClient(object):
 
     def pull(self, name=None):
         pass
+
+    def create_container(self, config, name, ticket_id):
+
+        d = self._post('containers/create', params={'name': name}, headers={'Content-Type': 'application/json'}, data=json.dumps(config))
+
+        def done(result):
+            if result.code != 201:
+                return None
+            return txhttp.json_content(result)
+
+        d.addCallback(done)
+        return d
+
+    def inspect(self, id):
+        r = self._get('containers/%s/json' % bytes(id))
+        r.addCallback(txhttp.json_content)
+
+        def error(r):
+            return None
+
+        r.addErrback(error)
+
+        return r
+
+    def remove_container(self, id, ticket_id):
+        r = self._delete('containers/%s' % bytes(id))
+
+        def done(result):
+            return result.code == 204
+
+        r.addCallback(done)
+
+        def error(r):
+            return False
+
+        r.addErrback(error)
+
+        return r
+
+    def start_container(self, id, ticket_id):
+        r = self._post('containers/%s/start' % bytes(id))
+
+        def done(result):
+            return result.code == 204
+
+        r.addCallback(done)
+
+        def error(r):
+            return False
+
+        r.addErrback(error)
+
+        return r
+
+    def stop_container(self, id, ticket_id):
+        r = self._post('containers/%s/stop' % bytes(id))
+
+        def done(result):
+            return result.code == 204
+
+        r.addCallback(done)
+
+        def error(r):
+            return False
+
+        r.addErrback(error)
+
+        return r
+
+    def find_container_by_name(self, name):
+        r = self._get('containers/json?all=1')
+
+        def on_response(response):
+            for ct in response:
+                if ('/%s' % name) in ct['Names']:
+                    return ct['Id']
+            return None
+
+        r.addCallback(txhttp.json_content)
+        r.addCallback(on_response)
+
+        def error(r):
+            return None
+
+        r.addErrback(error)
+
+        return r

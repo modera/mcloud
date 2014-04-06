@@ -1,6 +1,9 @@
+import os
 from flexmock import flexmock
 from mfcloud.config import YamlConfig
+from mfcloud.container import DockerfileImageBuilder
 from mfcloud.service import Service
+from mfcloud.test_utils import real_docker
 import pytest
 from twisted.internet import defer
 
@@ -21,3 +24,59 @@ def test_service_init():
     assert s.volumes == [{'foo': 'bar'}]
     assert s.command == 'some --cmd'
     assert s.env == {'baz': 'bar'}
+
+
+@pytest.inlineCallbacks
+def test_service_api():
+
+    with real_docker():
+
+        name = 'test.foo'
+
+        s = Service(
+            image_builder=DockerfileImageBuilder(os.path.join(os.path.dirname(__file__), '_files/ct_bash')),
+            name=name
+        )
+
+        r = yield s.is_created()
+        assert r is False
+
+        r = yield s.is_running()
+        assert r is False
+
+        r = yield s.create(ticket_id=123123)
+        assert 'Id' in r
+
+        r = yield s.is_created()
+        assert r is True
+
+        r = yield s.is_running()
+        assert r is False
+
+
+        r = yield s.start(ticket_id=123123)
+        assert r is True
+
+        r = yield s.is_created()
+        assert r is True
+
+        r = yield s.is_running()
+        assert r is True
+
+        r = yield s.stop(ticket_id=123123)
+        assert r is True
+
+        r = yield s.is_created()
+        assert r is True
+
+        r = yield s.is_running()
+        assert r is False
+
+        r = yield s.destroy(ticket_id=123123)
+        assert r is True
+
+        r = yield s.is_created()
+        assert r is False
+
+        r = yield s.is_running()
+        assert r is False

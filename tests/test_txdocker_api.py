@@ -9,7 +9,6 @@ import pytest
 import re
 from twisted.internet import defer
 
-
 @pytest.fixture
 def client():
     with real_docker():

@@ -49,3 +49,11 @@ def test_post(client):
 
     assert client._post('foo', foo='bar') == 'baz'
 
+
+def test_delete(client):
+
+    flexmock(client)
+    client.should_receive('_request').with_args(url='foo', method=txhttp.delete, foo='bar').once().and_return('baz')
+
+    assert client._delete('foo', foo='bar') == 'baz'
+
