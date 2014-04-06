@@ -1,16 +1,17 @@
 from abc import abstractmethod
 import docker
 import inject
+from mfcloud.txdocker import IDockerClient
 from mfcloud.util import Interface
 
 
-class IDocker(Interface):
+class IContainerBuilder(Interface):
     pass
 
 
 class IImageBuilder(Interface):
 
-    client = inject.attr(docker.Client)
+    client = inject.attr(IDockerClient)
 
     @abstractmethod
     def build_image(self):
@@ -29,10 +30,18 @@ class PrebuiltImageBuilder(IImageBuilder):
 
     def build_image(self):
 
-        if not self.client.images(name=self.image):
-            return self.client.pull(name=self.image, stream=True)
+        def on_ready(images):
+            if not images:
+                d_pull = self.client.pull(name=self.image)
+                d_pull.addCallback(lambda *args: self.image)
+                return d_pull
+            else:
+                return self.image
 
-        return ()
+        d = self.client.images(name=self.image)
+        d.addCallback(on_ready)
+
+        return d
 
     def get_image_name(self):
         return self.image
@@ -56,18 +65,10 @@ class DockerfileImageBuilder(IImageBuilder):
         return self.image_id
 
 
-class DockerLocal(IDocker):
-    client = inject.attr(docker.Client)
+class ContainerBuider(IContainerBuilder):
 
-    @classmethod
-    def _gen_wrapper(self, subgenerator):
-        try:
-            for x in subgenerator:
+    client = inject.attr(IDockerClient)
 
-                yield x
-        except ValueError:
-            pass
 
-    def build_image(self):
-        pass
+
 

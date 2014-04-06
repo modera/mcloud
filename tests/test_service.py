@@ -1,5 +1,8 @@
 from flexmock import flexmock
+from mfcloud.config import YamlConfig
 from mfcloud.service import Service
+import pytest
+from twisted.internet import defer
 
 
 def test_service_init():

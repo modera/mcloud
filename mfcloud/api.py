@@ -1,5 +1,5 @@
 from mfcloud.config import YamlConfig
-from mfcloud.container import IDocker
+from mfcloud.container import IContainerBuilder
 import os
 from abc import ABCMeta, abstractmethod
 from mfcloud.util import accepts, Interface
@@ -81,7 +81,7 @@ class MfCloudApi():
         self._locators = []
         self._endpoints = []
 
-    @accepts(IDocker)
+    @accepts(IContainerBuilder)
     def add_docker(self, docker):
         self._dockers.append(docker)
 
