@@ -1,8 +1,11 @@
+from StringIO import StringIO
+import tarfile
 from abc import abstractmethod
 import docker
 import inject
 from mfcloud.txdocker import IDockerClient
 from mfcloud.util import Interface
+from twisted.internet import reactor, defer
 
 
 class IContainerBuilder(Interface):
@@ -54,12 +57,31 @@ class DockerfileImageBuilder(IImageBuilder):
 
         self.image_id = None
 
+    def create_archive(self):
+        d = defer.Deferred()
+
+        def archive():
+            memfile = StringIO()
+            try:
+                t = tarfile.open(mode='w', fileobj=memfile)
+                t.add(self.path, arcname='.')
+                d.callback(memfile.getvalue())
+            finally:
+                memfile.close()
+
+        reactor.callLater(0, archive)
+        return d
+
     def build_image(self):
-        out = self.client.build(self.path)
 
-        self.image_id = out.next()  # first line is image id beeing built
+        d = self.create_archive()
 
-        return out
+        def on_archive_ready(archive):
+            return self.client.build_image(archive)
+
+        d.addCallback(on_archive_ready)
+
+        return d
 
     def get_image_name(self):
         return self.image_id

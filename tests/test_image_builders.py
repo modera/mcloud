@@ -1,4 +1,6 @@
 from itertools import chain as generator
+from flexmock import flexmock
+import os
 from mfcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
 from mfcloud.test_utils import mock_docker
 import pytest
@@ -49,25 +51,33 @@ def test_image_builder_prebuilt_already_built():
         result = yield builder.build_image()
         assert result == 'foo/bar'
 
-#
-# def test_image_builder_build():
-#
-#     with mock_docker() as docker_mock:
-#         dm = docker_mock
-#         """@type : flexmock.Mock"""
-#
-#         dm.should_receive('build').with_args('/foo/bar').and_return(generator([
-#             'eec8980ee833',
-#             'Step 0 : FROM ubuntu',
-#             'Step 1 : RUN hello',
-#         ]))
-#         #dm.should_receive('images').with_args(name='foo/bar').and_return([])
-#
-#         builder = DockerfileImageBuilder('/foo/bar')
-#
-#         assert [x for x in builder.build_image()] == ['Step 0 : FROM ubuntu', 'Step 1 : RUN hello']
-#
-#         assert builder.get_image_name() == 'eec8980ee833'
+
+@pytest.inlineCallbacks
+def test_image_builder_create_archive():
+
+    builder = DockerfileImageBuilder(os.path.join(os.path.dirname(__file__), '_files/ct_bash'))
+
+    file = yield builder.create_archive()
+
+    assert len(file) > 30
+
+
+@pytest.inlineCallbacks
+def test_image_builder_build():
+
+    with mock_docker() as client:
+
+        builder = DockerfileImageBuilder(os.path.join(os.path.dirname(__file__), '_files/ct_bash'))
+
+        flexmock(builder)
+
+        builder.should_receive('create_archive').once().and_return(defer.succeed('foo'))
+
+        client.should_receive('build_image').with_args('foo').and_return(defer.succeed('baz'))
+
+        result = yield builder.build_image()
+
+        assert result == 'baz'
 
 
 
