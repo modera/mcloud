@@ -24,12 +24,6 @@ def test_load_cofig(tmpdir):
     flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=p.dirname).once()
     config.load()
 
-@pytest.yield_fixture(params=[
-
-    ])
-def valid_config(request):
-    yield request.param
-
 @pytest.mark.parametrize("config", [
 
     # one service - image
