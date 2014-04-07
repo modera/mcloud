@@ -4,6 +4,7 @@ from mfcloud import txhttp
 from mfcloud.util import Interface
 import re
 import treq
+from twisted.internet import defer
 
 
 class IDockerClient(Interface):

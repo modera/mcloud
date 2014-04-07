@@ -3,6 +3,10 @@ from mfcloud.txdocker import IDockerClient
 
 
 class Service(object):
+
+
+    client = inject.attr(IDockerClient)
+
     image_builder = None
     name = None
     volumes = None
@@ -10,11 +14,11 @@ class Service(object):
     env = None
     config = None
 
-    client = inject.attr(IDockerClient)
-
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
         super(Service, self).__init__()
+
+        self._inspect_data = None
 
     def build_docker_config(self):
         pass
@@ -95,6 +99,9 @@ class Service(object):
         d.addCallback(on_result)
 
         return d
+
+    def is_inspected(self):
+        return not self._inspect_data is None
 
 
 

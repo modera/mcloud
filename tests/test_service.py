@@ -26,6 +26,20 @@ def test_service_init():
     assert s.env == {'baz': 'bar'}
 
 
+def test_inspected():
+
+    s = Service()
+    s._inspect_data = {'foo': 'bar'}
+
+    assert s.is_inspected() is True
+
+
+def test_not_inspected():
+
+    s = Service()
+    assert s.is_inspected() is False
+
+
 @pytest.inlineCallbacks
 def test_service_api():
 
