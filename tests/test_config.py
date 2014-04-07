@@ -98,6 +98,8 @@ def test_process():
         'nginx': {'foo': 'bar'}
     }, path='foo')
 
+    assert isinstance(c.services['nginx'], Service)
+
 
 def test_build_command_empty():
 

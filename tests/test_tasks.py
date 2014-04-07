@@ -22,7 +22,7 @@ def test_init_app_task():
 
         ts = TaskService()
 
-        r = yield ts.task_init_app('foo', 'some/path')
+        r = yield ts.task_init_app(123123, 'foo', 'some/path')
         assert r is True
 
 @pytest.inlineCallbacks
@@ -39,5 +39,5 @@ def test_list_app_task():
 
         ts = TaskService()
 
-        r = yield ts.task_list_app()
+        r = yield ts.task_list_app(123123)
         assert r == [('foo', 'some/path')]

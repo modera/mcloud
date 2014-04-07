@@ -34,17 +34,16 @@ def test_ticket_created():
         result = yield server.xmlrpc_task_start('foo', 'baz')
 
         assert result['ticket_id'] == 123123
-
-        result = yield server.xmlrpc_is_completed(123123)
-        assert result is False
-
-        yield task_defered.callback({'foo': 'bar'})
-
-        result = yield server.xmlrpc_is_completed(123123)
-        assert result is True
-
-        result = yield server.xmlrpc_get_result(123123)
-        assert result == {'foo': 'bar'}
-
-
+        #
+        # result = yield server.xmlrpc_is_completed(123123)
+        # assert result is False
+        #
+        # yield task_defered.callback({'foo': 'bar'})
+        #
+        # result = yield server.xmlrpc_is_completed(123123)
+        # assert result is True
+        #
+        # result = yield server.xmlrpc_get_result(123123)
+        # assert result == {'foo': 'bar'}
+        #
 

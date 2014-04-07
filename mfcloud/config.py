@@ -21,8 +21,6 @@ class IConfig(Interface):
 class YamlConfig(IConfig):
 
     def __init__(self, file=None):
-        super(YamlConfig, self).__init__()
-
         if not file is None and not os.path.exists(str(file)):
             raise ValueError('Bad config file given!')
 
@@ -31,6 +29,9 @@ class YamlConfig(IConfig):
         self.services = {}
 
     def get_services(self):
+        """
+        @rtype: dict[str, Service]
+        """
         return self.services
 
 
@@ -110,4 +111,4 @@ class YamlConfig(IConfig):
             self.process_volumes_build(s, service, path)
             self.process_command_build(s, service, path)
 
-            self.services[name] = service
+            self.services[name] = s

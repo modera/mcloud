@@ -1,12 +1,13 @@
 import inject
 from mfcloud.application import ApplicationController, Application
+from twisted.internet import defer, reactor
 
 
 class TaskService():
 
     app_controller = inject.attr(ApplicationController)
 
-    def task_init_app(self, name, path):
+    def task_init_app(self, ticket_id, name, path):
 
         d = self.app_controller.create(name, path)
 
@@ -16,7 +17,7 @@ class TaskService():
         d.addCallback(done)
         return d
 
-    def task_list_app(self):
+    def task_list_app(self, ticket_id):
         d = self.app_controller.list()
 
         def done(apps):
@@ -24,3 +25,51 @@ class TaskService():
 
         d.addCallback(done)
         return d
+
+    def task_del_app(self, ticket_id, name):
+        d = self.app_controller.remove(name)
+
+        # d.addCallback(done)
+        return d
+
+    def task_app_status(self, ticket_id, name):
+        d = self.app_controller.get(name)
+
+        def on_result(app):
+            """
+            @type app: Application
+            """
+            if not app:
+                return {'message': 'No such application: %s' % name}
+            else:
+
+                config = app.load()
+
+                data = []
+                for service in config.get_services().values():
+
+                    # is_created = yield service.is_created()
+                    # is_running = yield service.is_running()
+
+                    data.append([
+                        service.name,
+                        # is_created,
+                        # is_running
+                        False,
+                        False,
+                    ])
+
+                return data
+
+
+        d.addCallback(on_result)
+        return d
+
+    def register(self, rpc_server):
+
+        rpc_server.tasks.update({
+            'init': self.task_init_app,
+            'list': self.task_list_app,
+            'status': self.task_app_status,
+            'remove': self.task_del_app,
+        })

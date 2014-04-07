@@ -83,7 +83,7 @@ setup(
     entry_points={
         'console_scripts': [
             'mfcloud = mfcloud.client_cli:entry_point',
-            'mfcloud-server = mfcloud.server_cli:entry_point',
+            # 'mfcloud-server = mfcloud.server_cli:entry_point',
         ],
         # if you have a gui, use this
         # 'gui_scripts': [

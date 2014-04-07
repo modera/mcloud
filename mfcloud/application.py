@@ -1,5 +1,7 @@
 import json
 import inject
+from mfcloud.config import YamlConfig
+import os
 import txredisapi
 
 
@@ -9,6 +11,11 @@ class Application(object):
         super(Application, self).__init__()
 
         self.config = config
+
+    def load(self):
+        yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'))
+        yaml_config.load()
+        return yaml_config
 
 
 class ApplicationController(object):
