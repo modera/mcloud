@@ -1,7 +1,6 @@
 from StringIO import StringIO
 import tarfile
 from abc import abstractmethod
-import docker
 import inject
 from mfcloud.txdocker import IDockerClient
 from mfcloud.util import Interface
@@ -18,10 +17,6 @@ class IImageBuilder(Interface):
 
     @abstractmethod
     def build_image(self, ticket_id):
-        pass
-
-    @abstractmethod
-    def get_image_name(self):
         pass
 
 
@@ -45,9 +40,6 @@ class PrebuiltImageBuilder(IImageBuilder):
         d.addCallback(on_ready)
 
         return d
-
-    def get_image_name(self):
-        return self.image
 
 
 class DockerfileImageBuilder(IImageBuilder):
@@ -82,9 +74,6 @@ class DockerfileImageBuilder(IImageBuilder):
         d.addCallback(on_archive_ready)
 
         return d
-
-    def get_image_name(self):
-        return self.image_id
 
 
 class ContainerBuider(IContainerBuilder):

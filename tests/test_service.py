@@ -84,11 +84,21 @@ def test_no_lazy_inspect(method):
     getattr(s, method)()
 
 
+def test_wrong_inspect_data():
+
+    s = Service()
+    s._inspected = True
+    s._inspect_data = {'foo': 'bar'}
+
+    assert not s.is_running()
+
+
 def test_is_inspected():
 
     s = Service()
 
     assert not s.is_inspected()
+
 
 @pytest.inlineCallbacks
 def test_service_api():
