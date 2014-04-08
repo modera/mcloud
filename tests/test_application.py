@@ -3,6 +3,7 @@ from mfcloud.application import Application, ApplicationController
 from mfcloud.config import YamlConfig
 from mfcloud.container import DockerfileImageBuilder
 from mfcloud.service import Service
+from mfcloud.test_utils import real_docker
 from mfcloud.util import inject_services
 import os
 import pytest
@@ -13,21 +14,22 @@ def test_new_app_instance():
 
     app = Application({'path': 'foo/bar'})
     assert app.config['path'] == 'foo/bar'
-#
-#@pytest.inlineCallbacks
-#def test_app_load():
-#
-#    app = Application({'path': os.path.realpath(os.path.dirname(__file__) + '/../')})
-#    config = yield app.load()
-#
-#    assert isinstance(config, YamlConfig)
-#    assert len(config.get_services()) == 1
-#
-#    service = config.get_services()['controller']
-#    assert isinstance(service, Service)
-#    assert isinstance(service.image_builder, DockerfileImageBuilder)
-#
-#    assert service.is_inspected()
+
+@pytest.inlineCallbacks
+def test_app_load():
+
+    with real_docker():
+        app = Application({'path': os.path.realpath(os.path.dirname(__file__) + '/../')})
+        config = yield app.load()
+
+        assert isinstance(config, YamlConfig)
+        assert len(config.get_services()) == 1
+
+        service = config.get_services()['controller']
+        assert isinstance(service, Service)
+        assert isinstance(service.image_builder, DockerfileImageBuilder)
+
+        assert service.is_inspected()
 
 
 @pytest.inlineCallbacks

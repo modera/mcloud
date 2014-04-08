@@ -2,8 +2,13 @@ import inject
 from mfcloud.txdocker import IDockerClient
 
 
+class NotInspectedYet(Exception):
+    pass
+
+
 class Service(object):
 
+    NotInspectedYet = NotInspectedYet
 
     client = inject.attr(IDockerClient)
 
@@ -19,6 +24,7 @@ class Service(object):
         super(Service, self).__init__()
 
         self._inspect_data = None
+        self._inspected = False
 
     def build_docker_config(self):
         pass
@@ -29,27 +35,29 @@ class Service(object):
 
         d.addCallback(self.client.inspect)
 
+        def save_inspect_data(data):
+            self._inspect_data = data
+            self._inspected = True
+            return data
+
+        d.addCallback(save_inspect_data)
+
         return d
 
     def is_running(self):
-        d = self.inspect()
+        if not self.is_inspected():
+            raise self.NotInspectedYet()
 
-        def on_inspect_done(inspect_data):
-            if not inspect_data:
-                return False
-            return inspect_data['State']['Running']
-
-        d.addCallback(on_inspect_done)
-        return d
+        try:
+            return self.is_created() and self._inspect_data['State']['Running']
+        except KeyError:
+            return False
 
     def is_created(self):
-        d = self.inspect()
+        if not self.is_inspected():
+            raise self.NotInspectedYet()
 
-        def on_inspect_done(inspect_data):
-            return not inspect_data is None
-
-        d.addCallback(on_inspect_done)
-        return d
+        return not self._inspect_data is None
 
     def start(self, ticket_id):
 
@@ -59,6 +67,7 @@ class Service(object):
             return self.client.start_container(id, ticket_id=ticket_id)
 
         d.addCallback(on_result)
+        d.addCallback(lambda *args: self.inspect())
 
         return d
 
@@ -70,6 +79,7 @@ class Service(object):
             return self.client.stop_container(id, ticket_id=ticket_id)
 
         d.addCallback(on_result)
+        d.addCallback(lambda *args: self.inspect())
 
         return d
 
@@ -86,6 +96,7 @@ class Service(object):
             return self.client.create_container(config, self.name, ticket_id=ticket_id)
 
         d.addCallback(image_ready)
+        d.addCallback(lambda *args: self.inspect())
 
         return d
 
@@ -97,11 +108,12 @@ class Service(object):
             return self.client.remove_container(id, ticket_id=ticket_id)
 
         d.addCallback(on_result)
+        d.addCallback(lambda *args: self.inspect())
 
         return d
 
     def is_inspected(self):
-        return not self._inspect_data is None
+        return self._inspected
 
 
 

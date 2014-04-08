@@ -29,7 +29,7 @@ def test_service_init():
 def test_inspected():
 
     s = Service()
-    s._inspect_data = {'foo': 'bar'}
+    s._inspected = True
 
     assert s.is_inspected() is True
 
@@ -39,6 +39,56 @@ def test_not_inspected():
     s = Service()
     assert s.is_inspected() is False
 
+
+@pytest.inlineCallbacks
+def test_inspect():
+
+    s = Service(name='foo', client=flexmock())
+
+    s.client.should_receive('find_container_by_name').with_args('foo').ordered().and_return(defer.succeed('abc123'))
+    s.client.should_receive('inspect').with_args('abc123').ordered().and_return(defer.succeed({'foo': 'bar'}))
+
+    assert s.is_inspected() is False
+
+    r = yield s.inspect()
+    assert r == {'foo': 'bar'}
+
+    assert s.is_inspected() is True
+
+    assert s._inspect_data == {'foo': 'bar'}
+
+
+@pytest.mark.parametrize("method", [
+    'is_created',
+    'is_running',
+])
+def test_no_lazy_inspect_not_inspected(method):
+
+    s = Service(name='foo', client=flexmock())
+    s._inspected = False
+
+    with pytest.raises(Service.NotInspectedYet):
+        getattr(s, method)()
+
+
+@pytest.mark.parametrize("method", [
+    'is_created',
+    'is_running',
+])
+def test_no_lazy_inspect(method):
+
+    s = Service(name='foo', client=flexmock())
+    s._inspected = True
+    s._inspect_data = {'State': {'Running': True}}
+
+    getattr(s, method)()
+
+
+def test_is_inspected():
+
+    s = Service()
+
+    assert not s.is_inspected()
 
 @pytest.inlineCallbacks
 def test_service_api():
@@ -52,45 +102,27 @@ def test_service_api():
             name=name
         )
 
-        r = yield s.is_created()
-        assert r is False
+        yield s.inspect()
 
-        r = yield s.is_running()
-        assert r is False
+        assert not s.is_created()
+        assert not s.is_running()
 
-        r = yield s.create(ticket_id=123123)
-        assert 'Id' in r
+        yield s.create(ticket_id=123123)
 
-        r = yield s.is_created()
-        assert r is True
+        assert s.is_created()
+        assert not s.is_running()
 
-        r = yield s.is_running()
-        assert r is False
+        yield s.start(ticket_id=123123)
 
+        assert s.is_created()
+        assert s.is_running()
 
-        r = yield s.start(ticket_id=123123)
-        assert r is True
+        yield s.stop(ticket_id=123123)
 
-        r = yield s.is_created()
-        assert r is True
+        assert s.is_created()
+        assert not s.is_running()
 
-        r = yield s.is_running()
-        assert r is True
+        yield s.destroy(ticket_id=123123)
 
-        r = yield s.stop(ticket_id=123123)
-        assert r is True
-
-        r = yield s.is_created()
-        assert r is True
-
-        r = yield s.is_running()
-        assert r is False
-
-        r = yield s.destroy(ticket_id=123123)
-        assert r is True
-
-        r = yield s.is_created()
-        assert r is False
-
-        r = yield s.is_running()
-        assert r is False
+        assert not s.is_created()
+        assert not s.is_running()

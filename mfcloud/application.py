@@ -2,6 +2,7 @@ import json
 import inject
 from mfcloud.config import YamlConfig
 import os
+from twisted.internet import defer, reactor
 import txredisapi
 
 
@@ -15,7 +16,10 @@ class Application(object):
     def load(self):
         yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'))
         yaml_config.load()
-        return yaml_config
+
+        d = defer.DeferredList([service.inspect() for service in yaml_config.get_services().values()])
+        d.addCallback(lambda *result: yaml_config)
+        return d
 
 
 class ApplicationController(object):

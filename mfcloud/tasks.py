@@ -4,7 +4,6 @@ from twisted.internet import defer, reactor
 
 
 class TaskService():
-
     app_controller = inject.attr(ApplicationController)
 
     def task_init_app(self, ticket_id, name, path):
