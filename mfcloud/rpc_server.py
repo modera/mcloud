@@ -52,7 +52,6 @@ class ApiRpcServer(xmlrpc.XMLRPC):
             }
 
         def on_error(error):
-            print error
             return xmlrpc.Fault(1, "Task execution failed: <%s> %s" % (error.type, error.getErrorMessage()))
 
         d.addCallback(process_task_id)
