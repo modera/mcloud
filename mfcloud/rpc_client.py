@@ -8,55 +8,67 @@ from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
 
 class ApiRpcClient(object):
 
-    def _remote_exec(self, task_name, on_result, *args):
+    def __init__(self):
+        super(ApiRpcClient, self).__init__()
 
-        ticket = {}
+        self.init_zmq()
 
+        self.ticket = {}
+        self.proxy = Proxy('http://127.0.0.1:7080')
+
+        self.on_result = None
+
+        self.reactor = reactor
+
+    def init_zmq(self):
         zf2 = ZmqFactory()
         e2 = ZmqEndpoint('connect', 'tcp://127.0.0.1:5555')
-
         s2 = ZmqSubConnection(zf2, e2)
         s2.subscribe("")
+        s2.gotMessage = self._on_message
 
-        def doPrint(message, tag):
-            # print "message received: <%s> %s" % (tag, message)
+    def _remote_exec(self, task_name, on_result, *args):
 
-            if tag == 'task-completed-%s' % ticket['ticket_id']:
-                reactor.stop()
+        self.on_result = on_result
 
-                data = json.loads(message)
-                if isinstance(data, dict) and 'message' in data:
-                    print data['message']
-                else:
-                    on_result(data)
-
-
-            elif tag == 'task-failed-%s' % ticket['ticket_id']:
-                reactor.stop()
-                print 'Task failed during execution: %s' % message
-
-
-            elif tag == 'log-%s' % ticket['ticket_id']:
-                data = json.loads(message)
-                print(data)
-
-        s2.gotMessage = doPrint
-
-
-        proxy = Proxy('http://127.0.0.1:7080')
-        d = proxy.callRemote('task_start', task_name, *args)
+        d = self.proxy.callRemote('task_start', task_name, *args)
 
         def ready(result):
-            print result
-            ticket['ticket_id'] = result['ticket_id']
+            self.ticket['ticket_id'] = result['ticket_id']
 
         def failed(result):
             print('Failed to execute the task: %s' % result.getErrorMessage())
-            reactor.stop()
+            self.reactor.stop()
 
         d.addCallback(ready)
         d.addErrback(failed)
-        reactor.run()
+        self.reactor.run()
+
+    def _task_failed(self, message):
+        self.reactor.stop()
+        print 'task failed during execution: %s' % message
+
+    def _task_completed(self, message):
+        self.reactor.stop()
+        data = json.loads(message)
+        if isinstance(data, dict) and 'message' in data:
+            print data['message']
+        else:
+            self.on_result(data)
+
+    def _on_message(self, message, tag):
+
+        if tag == 'task-completed-%s' % self.ticket['ticket_id']:
+            self._task_completed(message)
+
+
+        elif tag == 'task-failed-%s' % self.ticket['ticket_id']:
+            self._task_failed(message)
+
+
+        elif tag == 'log-%s' % self.ticket['ticket_id']:
+            data = json.loads(message)
+            print(data)
 
     def init(self, name, path, **kwargs):
 
