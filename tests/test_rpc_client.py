@@ -13,7 +13,6 @@ def client():
 
 
 def test_init(client):
-
     flexmock(client)
     client.should_receive('init_zmq').once()
 
@@ -31,6 +30,7 @@ def test_task_failed(client):
 
     client._task_failed('boo')
 
+
 def test_task_completed_json(client):
     flexmock(client)
     client.reactor = flexmock()
@@ -43,12 +43,11 @@ def test_task_completed_json(client):
 
 @pytest.inlineCallbacks
 def test_remote_exec(client):
-
     flexmock(client)
     client.reactor = flexmock()
     client.proxy = flexmock()
 
-    client.proxy.should_receive('callRemote').with_args('task_start', 'foo', 'hoho', 'hehe')\
+    client.proxy.should_receive('callRemote').with_args('task_start', 'foo', 'hoho', 'hehe') \
         .and_return(defer.succeed({'ticket_id': 123})).ordered().once()
 
     client.reactor.should_receive('stop').never()
@@ -64,12 +63,11 @@ def test_remote_exec(client):
 
 @pytest.inlineCallbacks
 def test_remote_exec_fail(client):
-
     flexmock(client)
     client.reactor = flexmock()
     client.proxy = flexmock()
 
-    client.proxy.should_receive('callRemote').with_args('task_start', 'foo', 'hoho', 'hehe')\
+    client.proxy.should_receive('callRemote').with_args('task_start', 'foo', 'hoho', 'hehe') \
         .and_return(defer.fail(Exception)).ordered().once()
 
     # on some strange reason order should be defined like this
@@ -90,7 +88,33 @@ def test_populeate_is_syntactically_correct():
     populate_client_parser(subparsers)
 
 
+def test_on_message_task_completed(client):
+    flexmock(client)
 
+    client.ticket = {'ticket_id': 123}
+
+    client.should_receive('_task_completed').with_args('foo')
+
+    client._on_message('foo', 'task-completed-123')
+
+
+def test_on_message_task_failed(client):
+    flexmock(client)
+
+    client.ticket = {'ticket_id': 123}
+
+    client.should_receive('_task_failed').with_args('foo')
+
+    client._on_message('foo', 'task-failed-123')
+
+
+def test_on_message_message(client, capsys):
+    flexmock(client)
+
+    client.ticket = {'ticket_id': 123}
+    client._on_message('"foo"', 'log-123')
+    out, err = capsys.readouterr()
+    assert out == 'foo\n'
 
 
 
