@@ -132,7 +132,7 @@ def test_xmlrpc_task_start_proper_exec():
 
 
 @pytest.inlineCallbacks
-def test_xmlrpc_task_start_proper_exec():
+def test_xmlrpc_task_start_exec_fail():
 
     mock_task = flexmock()
     mock_task.should_receive('task').with_args(321, 'bar', baz='123abc').once().and_return(defer.fail(Exception('Foo')))
