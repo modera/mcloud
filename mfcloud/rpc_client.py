@@ -16,9 +16,10 @@ class ApiRpcClient(object):
         self.ticket = {}
         self.proxy = Proxy('http://127.0.0.1:7080')
 
-        self.on_result = None
-
         self.reactor = reactor
+
+    def on_result(self, result):
+        pass
 
     def init_zmq(self):
         zf2 = ZmqFactory()
@@ -51,10 +52,7 @@ class ApiRpcClient(object):
     def _task_completed(self, message):
         self.reactor.stop()
         data = json.loads(message)
-        if isinstance(data, dict) and 'message' in data:
-            print data['message']
-        else:
-            self.on_result(data)
+        self.on_result(data)
 
     def _on_message(self, message, tag):
 
