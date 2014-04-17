@@ -1,12 +1,18 @@
 import json
+import logging
+import sys
 from mfcloud.config import ConfigParseError
 import os
+import pprintpp
 from prettytable import PrettyTable
+from texttable import Texttable
 from twisted.internet import defer, reactor
 from twisted.internet.error import ConnectionRefusedError
 from twisted.web.xmlrpc import Proxy
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
 
+
+logger = logging.getLogger('mfcloud.client')
 
 class ApiRpcClient(object):
 
@@ -34,9 +40,11 @@ class ApiRpcClient(object):
 
         self.on_result = on_result
 
+        logger.debug('rpc call: task_start %s %s' % (task_name, args))
         d = self.proxy.callRemote('task_start', task_name, *args)
 
         def ready(result):
+            logger.debug('rpc response:%s' % result)
             self.ticket['ticket_id'] = result['ticket_id']
 
         def failed(failure):
@@ -62,6 +70,8 @@ class ApiRpcClient(object):
 
     def _on_message(self, message, tag):
 
+        logger.debug('zmq message: %s tag: %s', message, tag)
+
         if not 'ticket_id' in self.ticket:
             self.reactor.callLater(0.1, self._on_message, message, tag)
             return
@@ -75,13 +85,27 @@ class ApiRpcClient(object):
 
 
         elif tag == 'log-%s' % self.ticket['ticket_id']:
-            data = json.loads(message)
-            print(data)
+            try:
+                data = json.loads(message)
+                if 'status' in data and 'progress' in data:
+                    sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
+
+                elif 'status' in data and 'id' in data:
+                    sys.stdout.write('\n[%s] %s' % (data['id'], data['status']))
+
+                elif 'status' in data:
+                    sys.stdout.write('\n%s' % (data['status']))
+
+                else:
+                    print pprintpp.pformat(data)
+
+            except ValueError:
+                print(message)
 
     def init(self, name, path, **kwargs):
 
         def on_result(data):
-            print 'result: %r' % data
+            print 'result: %r' % pprintpp.pformat(data)
 
         self._remote_exec('init', on_result, name, os.path.realpath(path))
 
@@ -105,23 +129,52 @@ class ApiRpcClient(object):
             x = PrettyTable(["Service name", "is created", "is running"])
             for row in data:
                 x.add_row(row)
-                print x
+            print x
 
         self._remote_exec('status', on_result, name)
+
+    def inspect(self, name, service, **kwargs):
+
+        def on_result(data):
+
+            if not isinstance(data, dict):
+                print data
+
+            else:
+
+                table = Texttable(max_width=120)
+                table.set_cols_dtype(['t',  'a'])
+                table.set_cols_width([20,  100])
+
+                rows = [["Name", "Value"]]
+                for name, val in data.items():
+                    rows.append([name, pprintpp.pformat(val)])
+
+                table.add_rows(rows)
+                print table.draw() + "\\n"
+
+        self._remote_exec('inspect', on_result, name, service)
 
     def remove(self, name, **kwargs):
 
         def on_result(data):
-            print 'result: %r' % data
+            print 'result: %r' % pprintpp.pformat(data)
 
         self._remote_exec('remove', on_result, name)
 
-    def run(self, name, **kwargs):
+    def start(self, name, **kwargs):
 
         def on_result(data):
-            print 'result: %r' % data
+            print 'result: %r' % pprintpp.pformat(data)
 
-        self._remote_exec('run', on_result, name)
+        self._remote_exec('start', on_result, name)
+
+    def stop(self, name, **kwargs):
+
+        def on_result(data):
+            print 'result: %r' % pprintpp.pformat(data)
+
+        self._remote_exec('stop', on_result, name)
 
 
 def populate_client_parser(subparsers):
@@ -142,6 +195,19 @@ def populate_client_parser(subparsers):
     cmd = subparsers.add_parser('status', help='Remove application')
     cmd.add_argument('name', help='App name')
     cmd.set_defaults(func='status')
+
+    cmd = subparsers.add_parser('start', help='Start application')
+    cmd.add_argument('name', help='App name')
+    cmd.set_defaults(func='start')
+
+    cmd = subparsers.add_parser('stop', help='Stop application')
+    cmd.add_argument('name', help='App name')
+    cmd.set_defaults(func='stop')
+
+    cmd = subparsers.add_parser('inspect', help='Inspect application service')
+    cmd.add_argument('name', help='App name')
+    cmd.add_argument('service', help='Service name')
+    cmd.set_defaults(func='inspect')
 
 
     # # # mfcloud use ubuntu@myserver.com

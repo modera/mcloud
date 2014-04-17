@@ -2,7 +2,7 @@
 # argparse==1.2.1
 
 jinja2
-prettytable
+texttable
 
 flask
 Flask-API

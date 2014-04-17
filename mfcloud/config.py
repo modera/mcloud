@@ -21,6 +21,9 @@ class IConfig(Interface):
 class ConfigParseError(Exception):
     pass
 
+class UnknownServiceError(Exception):
+    pass
+
 class YamlConfig(IConfig):
 
     def __init__(self, file=None):
@@ -36,6 +39,15 @@ class YamlConfig(IConfig):
         @rtype: dict[str, Service]
         """
         return self.services
+
+    def get_service(self, name):
+        """
+        @rtype: Service
+        """
+        if not name in self.services:
+            raise UnknownServiceError('Unknown service %s' % name)
+
+        return self.services[name]
 
 
     def load(self):

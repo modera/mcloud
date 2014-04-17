@@ -1,6 +1,8 @@
+import logging
 import inject
 from mfcloud.txdocker import IDockerClient
 
+logger = logging.getLogger('mfcloud.application')
 
 class NotInspectedYet(Exception):
     pass
@@ -63,8 +65,22 @@ class Service(object):
 
         d = self.client.find_container_by_name(self.name)
 
+        logger.debug('[%s][%s] Starting service' % (ticket_id, self.name))
+
         def on_result(id):
-            return self.client.start_container(id, ticket_id=ticket_id)
+            logger.debug('[%s][%s] Service resolve by name result: %s' % (ticket_id, self.name, id))
+
+            def start(*args):
+                logger.debug('[%s][%s] Starting service...' % (ticket_id, self.name))
+                return self.client.start_container(id, ticket_id=ticket_id)
+
+            if not id:
+                logger.debug('[%s][%s] Service not created. Creating ...' % (ticket_id, self.name))
+                d = self.create(ticket_id)
+                d.addCallback(start, ticket_id)
+                return d
+            else:
+                return start()
 
         d.addCallback(on_result)
         d.addCallback(lambda *args: self.inspect())

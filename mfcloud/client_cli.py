@@ -46,11 +46,13 @@ def main(argv):
 
     console_handler = logging.StreamHandler(stream=sys.stderr)
     console_handler.setFormatter(logging.Formatter())
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.DEBUG)
 
     root_logger = logging.getLogger()
     root_logger.addHandler(console_handler)
     root_logger.setLevel(logging.DEBUG)
+    root_logger.debug('Logger initialized')
+
 
     logging.getLogger("requests").propagate = False
 

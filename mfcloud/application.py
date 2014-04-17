@@ -1,4 +1,5 @@
 import json
+import logging
 import inject
 from mfcloud.config import YamlConfig, ConfigParseError
 import os
@@ -21,6 +22,7 @@ class Application(object):
         d = defer.DeferredList([service.inspect() for service in yaml_config.get_services().values()])
         d.addCallback(lambda *result: yaml_config)
         return d
+
 
 class ApplicationController(object):
 

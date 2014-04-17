@@ -1,4 +1,5 @@
 from StringIO import StringIO
+import logging
 import tarfile
 from abc import abstractmethod
 import inject
@@ -7,6 +8,8 @@ from mfcloud.util import Interface
 from twisted.internet import reactor, defer
 
 
+logger = logging.getLogger('mfcloud.application')
+
 class IContainerBuilder(Interface):
     pass
 
@@ -14,6 +17,9 @@ class IContainerBuilder(Interface):
 class IImageBuilder(Interface):
 
     client = inject.attr(IDockerClient)
+    """
+    @type client: DockerTwistedClient
+    """
 
     @abstractmethod
     def build_image(self, ticket_id):
@@ -28,12 +34,16 @@ class PrebuiltImageBuilder(IImageBuilder):
 
     def build_image(self, ticket_id):
 
+        logger.debug('[%s] Building image "%s".', ticket_id, self.image)
+
         def on_ready(images):
             if not images:
-                d_pull = self.client.pull(name=self.image)
+                logger.debug('[%s] Image is not there. Pulling "%s" ...', ticket_id, self.image)
+                d_pull = self.client.pull(self.image, ticket_id)
                 d_pull.addCallback(lambda *args: self.image)
                 return d_pull
             else:
+                logger.debug('[%s] Image "%s" is ready to use.', ticket_id, self.image)
                 return self.image
 
         d = self.client.images(name=self.image)

@@ -1,11 +1,15 @@
 import json
+import logging
 from urllib import urlencode
+import inject
 from mfcloud import txhttp
 from mfcloud.util import Interface
 import re
 import treq
 from twisted.internet import defer
+from txzmq import ZmqPubConnection
 
+logger = logging.getLogger('mfcloud.docker')
 
 class IDockerClient(Interface):
     pass
@@ -14,17 +18,29 @@ class IDockerClient(Interface):
 def json_response(result):
         return txhttp.json_content(result)
 
+class CommandFailed(Exception):
+    pass
+
 
 class DockerTwistedClient(object):
+
+    message_publisher = inject.attr(ZmqPubConnection)
 
     def __init__(self, url='unix://var/run/docker.sock//'):
         super(DockerTwistedClient, self).__init__()
 
         self.url = url
-        self.message_publisher = None
 
     def _request(self, url, method=txhttp.get, **kwargs):
-        return method('%s%s' % (self.url, url), **kwargs)
+        d = method('%s%s' % (self.url, url), **kwargs)
+
+        def error(failure):
+            e = Exception('Can not connect to docker: %s' % failure.getErrorMessage())
+            logger.error(e)
+            raise e
+
+        d.addErrback(error)
+        return d
 
     def _get(self, url, **kwargs):
         if 'data' in kwargs and  not kwargs['data'] is None:
@@ -60,7 +76,7 @@ class DockerTwistedClient(object):
 
             #print 'Data chunk: %s' % chunk
             if ticket_id and self.message_publisher:
-                self.message_publisher(ticket_id, 'log', json.loads(chunk)['stream'])
+                self.message_publisher.publish(chunk, 'log-%s' % ticket_id)
 
             if not 'image_id' in result:
                 match = re.search(r'Successfully built ([0-9a-f]+)', chunk)
@@ -77,8 +93,34 @@ class DockerTwistedClient(object):
         return r
 
 
-    def pull(self, name=None):
-        pass
+    def pull(self, name, ticket_id):
+
+        logger.debug('[%s] Pulling image "%s"', ticket_id, name)
+
+        def on_content(chunk):
+
+            logger.debug('[%s] Content chunk <%s>', ticket_id, chunk)
+
+            if ticket_id and self.message_publisher:
+                self.message_publisher.publish(chunk, 'log-%s' % ticket_id)
+
+            try:
+                data = json.loads(chunk)
+                if 'error' in data:
+                    raise CommandFailed('Failed to pull image "%s": %s' % (name, data['error']))
+
+            except ValueError:
+                pass
+
+        def done(*args):
+            logger.debug('[%s] Done pulling image.', ticket_id)
+            return True
+
+        r = self._post('images/create', params={'fromImage': name}, response_handler=None)
+        r.addCallback(txhttp.collect, on_content)
+        r.addCallback(done)
+
+        return r
 
     def create_container(self, config, name, ticket_id):
 
@@ -95,11 +137,11 @@ class DockerTwistedClient(object):
     def inspect(self, id):
         r = self._get('containers/%s/json' % bytes(id))
         r.addCallback(txhttp.json_content)
-
-        def error(r):
-            return None
-
-        r.addErrback(error)
+        #
+        # def error(r):
+        #     return None
+        #
+        # r.addErrback(error)
 
         return r
 
@@ -110,11 +152,11 @@ class DockerTwistedClient(object):
             return result.code == 204
 
         r.addCallback(done)
-
-        def error(r):
-            return False
-
-        r.addErrback(error)
+        #
+        # def error(r):
+        #     return False
+        #
+        # r.addErrback(error)
 
         return r
 
@@ -125,11 +167,11 @@ class DockerTwistedClient(object):
             return result.code == 204
 
         r.addCallback(done)
-
-        def error(r):
-            return False
-
-        r.addErrback(error)
+        #
+        # def error(r):
+        #     return False
+        #
+        # r.addErrback(error)
 
         return r
 
@@ -141,10 +183,10 @@ class DockerTwistedClient(object):
 
         r.addCallback(done)
 
-        def error(r):
-            return False
-
-        r.addErrback(error)
+        # def error(r):
+        #     return False
+        #
+        # r.addErrback(error)
 
         return r
 
@@ -160,9 +202,9 @@ class DockerTwistedClient(object):
         r.addCallback(txhttp.json_content)
         r.addCallback(on_response)
 
-        def error(r):
-            return None
-
-        r.addErrback(error)
+        # def error(r):
+        #     return None
+        #
+        # r.addErrback(error)
 
         return r

@@ -1,5 +1,7 @@
 import json
+import logging
 import time
+import sys
 import inject
 from mfcloud.tasks import TaskService
 from mfcloud.txdocker import IDockerClient, DockerTwistedClient
@@ -9,6 +11,8 @@ from twisted.web import xmlrpc, server
 import txredisapi
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqPubConnection
 
+
+logger = logging.getLogger('mfcloud.server')
 
 class ApiRpcServer(xmlrpc.XMLRPC):
     redis = inject.attr(txredisapi.Connection)
@@ -29,7 +33,7 @@ class ApiRpcServer(xmlrpc.XMLRPC):
         ])
 
     def task_failed(self, error, ticket_id):
-        self.zmq.publish("%s" % (error.getErrorMessage()), 'task-failed-%s' % ticket_id)
+        self.zmq.publish("<%s> %s" % (error.type, error.getErrorMessage()), 'task-failed-%s' % ticket_id)
 
     def xmlrpc_task_start(self, task_name, *args, **kwargs):
         """
@@ -76,19 +80,14 @@ class ApiRpcServer(xmlrpc.XMLRPC):
 
 if __name__ == '__main__':
 
-    import json
-    import time
-    import inject
-    from mfcloud.rpc_server import ApiRpcServer
-    from mfcloud.tasks import TaskService
-    from mfcloud.txdocker import IDockerClient, DockerTwistedClient
-    import os
-    from twisted.internet import defer, reactor
-    from twisted.web import xmlrpc, server
-    import txredisapi
-    from txzmq import ZmqFactory, ZmqEndpoint, ZmqPubConnection
-    from twisted.internet import inotify
-    from twisted.python import filepath
+    console_handler = logging.StreamHandler(stream=sys.stderr)
+    console_handler.setFormatter(logging.Formatter())
+    console_handler.setLevel(logging.DEBUG)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(console_handler)
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.debug('Logger initialized')
 
     def run_server(redis):
 
