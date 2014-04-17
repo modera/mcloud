@@ -1,6 +1,6 @@
 import json
 import inject
-from mfcloud.config import YamlConfig
+from mfcloud.config import YamlConfig, ConfigParseError
 import os
 from twisted.internet import defer, reactor
 import txredisapi
@@ -14,13 +14,13 @@ class Application(object):
         self.config = config
 
     def load(self):
+
         yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'))
         yaml_config.load()
 
         d = defer.DeferredList([service.inspect() for service in yaml_config.get_services().values()])
         d.addCallback(lambda *result: yaml_config)
         return d
-
 
 class ApplicationController(object):
 
@@ -43,9 +43,10 @@ class ApplicationController(object):
 
         def ready(config):
             if not config:
-                return None
+                raise ValueError('Application with name "%s" do not exist' % name)
             else:
                 return Application(json.loads(config))
+
         d.addCallback(ready)
 
         return d

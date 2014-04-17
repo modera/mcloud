@@ -18,6 +18,9 @@ class IConfig(Interface):
         """
         pass
 
+class ConfigParseError(Exception):
+    pass
+
 class YamlConfig(IConfig):
 
     def __init__(self, file=None):
@@ -37,11 +40,15 @@ class YamlConfig(IConfig):
 
     def load(self):
 
-        with open(self._file) as f:
-            cfg = yaml.load(f)
+        try:
+            with open(self._file) as f:
+                cfg = yaml.load(f)
 
-            self.validate(config=cfg)
-            self.process(config=cfg, path=dirname(self._file))
+                self.validate(config=cfg)
+                self.process(config=cfg, path=dirname(self._file))
+
+        except ValueError as e:
+            raise ConfigParseError('Failed to parse %s: %s' % (self._file, e.message))
 
 
     def validate(self, config):

@@ -4,7 +4,11 @@ from twisted.internet import defer, reactor
 
 
 class TaskService():
+
     app_controller = inject.attr(ApplicationController)
+    """
+    @type app_controller: ApplicationController
+    """
 
     def task_init_app(self, ticket_id, name, path):
 
@@ -34,33 +38,28 @@ class TaskService():
     def task_app_status(self, ticket_id, name):
         d = self.app_controller.get(name)
 
-        def on_result(app):
+        def on_result(config):
             """
-            @type app: Application
+            @type config: YamlConfig
             """
-            if not app:
-                return {'message': 'No such application: %s' % name}
-            else:
 
-                config = app.load()
+            data = []
+            for service in config.get_services().values():
 
-                data = []
-                for service in config.get_services().values():
+                # is_created = yield service.is_created()
+                # is_running = yield service.is_running()
 
-                    # is_created = yield service.is_created()
-                    # is_running = yield service.is_running()
+                data.append([
+                    service.name,
+                    # is_created,
+                    # is_running
+                    False,
+                    False,
+                ])
 
-                    data.append([
-                        service.name,
-                        # is_created,
-                        # is_running
-                        False,
-                        False,
-                    ])
+            return data
 
-                return data
-
-
+        d.addCallback(lambda app: app.load())
         d.addCallback(on_result)
         return d
 

@@ -1,7 +1,9 @@
 import json
+from mfcloud.config import ConfigParseError
 import os
 from prettytable import PrettyTable
 from twisted.internet import defer, reactor
+from twisted.internet.error import ConnectionRefusedError
 from twisted.web.xmlrpc import Proxy
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
 
@@ -37,8 +39,12 @@ class ApiRpcClient(object):
         def ready(result):
             self.ticket['ticket_id'] = result['ticket_id']
 
-        def failed(result):
-            print('Failed to execute the task: %s' % result.getErrorMessage())
+        def failed(failure):
+
+            if failure.type == ConnectionRefusedError:
+                print('\nConnection failure. Server is not started? \n\nRun "mfcloud service start"\n')
+            else:
+                print('Failed to execute the task: %s' % failure.getErrorMessage())
             self.reactor.stop()
 
         d.addCallback(ready)
@@ -47,7 +53,7 @@ class ApiRpcClient(object):
 
     def _task_failed(self, message):
         self.reactor.stop()
-        print 'task failed during execution: %s' % message
+        print message
 
     def _task_completed(self, message):
         self.reactor.stop()
@@ -55,6 +61,10 @@ class ApiRpcClient(object):
         self.on_result(data)
 
     def _on_message(self, message, tag):
+
+        if not 'ticket_id' in self.ticket:
+            self.reactor.callLater(0.1, self._on_message, message, tag)
+            return
 
         if tag == 'task-completed-%s' % self.ticket['ticket_id']:
             self._task_completed(message)
@@ -105,6 +115,13 @@ class ApiRpcClient(object):
             print 'result: %r' % data
 
         self._remote_exec('remove', on_result, name)
+
+    def run(self, name, **kwargs):
+
+        def on_result(data):
+            print 'result: %r' % data
+
+        self._remote_exec('run', on_result, name)
 
 
 def populate_client_parser(subparsers):

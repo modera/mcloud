@@ -3,6 +3,7 @@ import time
 import inject
 from mfcloud.tasks import TaskService
 from mfcloud.txdocker import IDockerClient, DockerTwistedClient
+import os
 from twisted.internet import defer, reactor
 from twisted.web import xmlrpc, server
 import txredisapi
@@ -10,7 +11,6 @@ from txzmq import ZmqFactory, ZmqEndpoint, ZmqPubConnection
 
 
 class ApiRpcServer(xmlrpc.XMLRPC):
-
     redis = inject.attr(txredisapi.Connection)
     zmq = inject.attr(ZmqPubConnection)
 
@@ -20,7 +20,6 @@ class ApiRpcServer(xmlrpc.XMLRPC):
         self.tasks = {}
 
     def task_completed(self, result, ticket_id):
-
         self.zmq.publish(json.dumps(result), 'task-completed-%s' % ticket_id)
 
         #print 'Result is %s' % result
@@ -30,7 +29,7 @@ class ApiRpcServer(xmlrpc.XMLRPC):
         ])
 
     def task_failed(self, error, ticket_id):
-        self.zmq.publish("<%s> %s" % (error.type, error.getErrorMessage()), 'task-failed-%s' % ticket_id)
+        self.zmq.publish("%s" % (error.getErrorMessage()), 'task-failed-%s' % ticket_id)
 
     def xmlrpc_task_start(self, task_name, *args, **kwargs):
         """
@@ -74,7 +73,22 @@ class ApiRpcServer(xmlrpc.XMLRPC):
         return d
 
 
+
 if __name__ == '__main__':
+
+    import json
+    import time
+    import inject
+    from mfcloud.rpc_server import ApiRpcServer
+    from mfcloud.tasks import TaskService
+    from mfcloud.txdocker import IDockerClient, DockerTwistedClient
+    import os
+    from twisted.internet import defer, reactor
+    from twisted.web import xmlrpc, server
+    import txredisapi
+    from txzmq import ZmqFactory, ZmqEndpoint, ZmqPubConnection
+    from twisted.internet import inotify
+    from twisted.python import filepath
 
     def run_server(redis):
 
@@ -96,7 +110,6 @@ if __name__ == '__main__':
         tasks.register(api)
 
         reactor.listenTCP(7080, server.Site(api))
-
 
     txredisapi.Connection(dbid=1).addCallback(run_server)
 

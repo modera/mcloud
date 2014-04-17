@@ -1,0 +1,12 @@
+
+web:
+  image: dockerfile/nginx
+  volumes:
+   .mfcloud: /etc/nginx/sites-enabled
+   public: /var/www
+
+
+
+
+
+
