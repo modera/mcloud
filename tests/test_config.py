@@ -1,6 +1,6 @@
 
 from flexmock import flexmock
-from mfcloud.config import YamlConfig, Service
+from mfcloud.config import YamlConfig, Service, UnknownServiceError, ConfigParseError
 from mfcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
 import pytest
 
@@ -23,6 +23,20 @@ def test_load_cofig(tmpdir):
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=p.dirname).once()
     config.load()
+
+
+def test_load_config_not_valid(tmpdir):
+
+    p = tmpdir.join('mfcloud.yml')
+    p.write('foo: bar')
+
+    config = YamlConfig(file=p.realpath())
+
+    flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once().and_raise(ValueError('boo'))
+    flexmock(config).should_receive('process').times(0)
+
+    with pytest.raises(ConfigParseError):
+        config.load()
 
 @pytest.mark.parametrize("config", [
 
@@ -236,6 +250,18 @@ def test_build_image_empty():
     with pytest.raises(ValueError) as e:
         c.process_image_build(s, {}, '/base/path')
 
+
+def test_get_service():
+    c = YamlConfig()
+    c.services = {'foo': 'bar'}
+    assert c.get_service('foo') == 'bar'
+
+def test_get_service_no():
+    c = YamlConfig()
+    c.services = {'foo': 'bar'}
+
+    with pytest.raises(UnknownServiceError):
+        c.get_service('baz')
 
 
 
