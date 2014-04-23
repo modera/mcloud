@@ -72,7 +72,15 @@ class Service(object):
 
             def start(*args):
                 logger.debug('[%s][%s] Starting service...' % (ticket_id, self.name))
-                return self.client.start_container(id, ticket_id=ticket_id)
+
+                config = {}
+
+                if self.volumes and len(self.volumes):
+                    config['Volumes'] = dict([
+                        (x['remote'], x['local']) for x in self.volumes
+                    ])
+
+                return self.client.start_container(id, ticket_id=ticket_id, config=config)
 
             if not id:
                 logger.debug('[%s][%s] Service not created. Creating ...' % (ticket_id, self.name))
@@ -99,15 +107,25 @@ class Service(object):
 
         return d
 
+    def _generate_config(self, image_name):
+        config = {
+            "Hostname": self.name,
+            "Image": image_name
+        }
+
+        if self.volumes and len(self.volumes):
+            config['Volumes'] = dict([
+                (x['remote'], {}) for x in self.volumes
+            ])
+
+        return config
+
     def create(self, ticket_id):
 
         d = self.image_builder.build_image(ticket_id=ticket_id)
 
         def image_ready(image_name):
-            config = {
-                "Hostname": self.name,
-                "Image": image_name
-            }
+            config = self._generate_config(image_name)
 
             return self.client.create_container(config, self.name, ticket_id=ticket_id)
 

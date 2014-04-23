@@ -101,6 +101,108 @@ def test_is_inspected():
 
 
 @pytest.inlineCallbacks
+def test_create():
+
+    s = Service()
+    s.name = 'my_service'
+    flexmock(s)
+
+    s.image_builder = flexmock()
+    s.image_builder.should_receive('build_image').with_args(ticket_id=123123).ordered().once().and_return(defer.succeed('boo'))
+
+    s.client = flexmock()
+    s.client.should_receive('create_container').with_args({
+        "Hostname": 'my_service',
+        "Image": 'boo'
+    }, 'my_service', ticket_id=123123).ordered().once().and_return('magic')
+
+    s.should_receive('inspect').with_args().ordered().once().and_return('magic')
+
+    r = yield s.create(ticket_id=123123)
+
+    assert r == 'magic'
+
+
+
+@pytest.inlineCallbacks
+def test_start():
+
+    s = Service()
+    s.name = 'my_service'
+    flexmock(s)
+
+    s.client = flexmock()
+
+    s.client.should_receive('find_container_by_name').with_args('my_service').once().and_return(defer.succeed('123abc'))
+    s.client.should_receive('start_container').with_args('123abc', ticket_id=123123, config={}).once().and_return(defer.succeed('boo'))
+    s.should_receive('inspect').with_args().once().and_return(defer.succeed('baz'))
+
+    r = yield s.start(ticket_id=123123)
+
+    assert r == 'baz'
+
+
+@pytest.inlineCallbacks
+def test_start_volumes():
+
+    s = Service()
+    s.name = 'my_service'
+    s.volumes = [
+        {'local': '/base/path/foo1', 'remote': '/bar1'},
+        {'local': '/base/path/foo2', 'remote': '/bar2'},
+        {'local': '/base/path/foo3', 'remote': '/bar3'}
+    ]
+    flexmock(s)
+
+    s.client = flexmock()
+
+    s.client.should_receive('find_container_by_name').with_args('my_service').once().and_return(defer.succeed('123abc'))
+    s.client.should_receive('start_container').with_args('123abc', ticket_id=123123, config={
+        "Volumes": {
+            '/bar1': '/base/path/foo1',
+            '/bar2': '/base/path/foo2',
+            '/bar3': '/base/path/foo3'
+        }
+    }).once().and_return(defer.succeed('boo'))
+    s.should_receive('inspect').with_args().once().and_return(defer.succeed('baz'))
+
+    r = yield s.start(ticket_id=123123)
+
+    assert r == 'baz'
+
+
+def test_generate_config():
+
+    s = Service()
+    s.name = 'my_service'
+
+    assert s._generate_config('foo') == {
+        "Hostname": 'my_service',
+        "Image": 'foo'
+    }
+
+def test_generate_config_volumes():
+
+    s = Service()
+    s.name = 'my_service'
+    s.volumes = [
+        {'local': '/base/path/foo1', 'remote': '/bar1'},
+        {'local': '/base/path/foo2', 'remote': '/bar2'},
+        {'local': '/base/path/foo3', 'remote': '/bar3'}
+    ]
+
+    assert s._generate_config('foo') == {
+        "Hostname": 'my_service',
+        "Image": 'foo',
+        "Volumes": {
+            "/bar1": {},
+            "/bar2": {},
+            "/bar3": {},
+        }
+    }
+
+
+@pytest.inlineCallbacks
 def test_service_api():
 
     with real_docker():
