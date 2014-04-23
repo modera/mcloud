@@ -33,7 +33,9 @@ class ApiRpcServer(xmlrpc.XMLRPC):
         ])
 
     def task_failed(self, error, ticket_id):
-        self.zmq.publish("<%s> %s" % (error.type, error.getErrorMessage()), 'task-failed-%s' % ticket_id)
+        print 'Failure: <%s> %s' % (error.type, error.getErrorMessage())
+        print error.printTraceback()
+        self.zmq.publish("Failed: <%s> %s" % (error.type, error.getErrorMessage()), 'task-failed-%s' % ticket_id)
 
     def xmlrpc_task_start(self, task_name, *args, **kwargs):
         """

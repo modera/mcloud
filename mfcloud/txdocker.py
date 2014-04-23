@@ -7,6 +7,7 @@ from mfcloud.util import Interface
 import re
 import treq
 from twisted.internet import defer
+from twisted.internet.defer import CancelledError
 from twisted.web._newclient import ResponseFailed
 from txzmq import ZmqPubConnection
 
@@ -32,7 +33,7 @@ class DockerTwistedClient(object):
 
     message_publisher = inject.attr(ZmqPubConnection)
 
-    def __init__(self, url='unix://var/run/docker.sock//', timeout=5):
+    def __init__(self, url='unix://var/run/docker.sock//', timeout=10):
         super(DockerTwistedClient, self).__init__()
 
         self.url = url
@@ -40,10 +41,11 @@ class DockerTwistedClient(object):
 
     def _request(self, url, method=txhttp.get, **kwargs):
 
-        d = method('%s%s' % (self.url, url), timeout=self.timeout, **kwargs)
+        url_ = '%s%s' % (self.url, url)
+        d = method(url_, timeout=self.timeout, **kwargs)
 
         def error(failure):
-            e = DockerConnectionFailed('Can not connect to docker: %s' % failure.getErrorMessage())
+            e = DockerConnectionFailed('Connection timeout (%ss): %s When connecting to: %s' % (self.timeout, failure.getErrorMessage(), url_))
             logger.error(e)
             raise e
 
@@ -170,6 +172,7 @@ class DockerTwistedClient(object):
         return d
 
     def inspect(self, id):
+        assert not id is None
         r = self._get('containers/%s/json' % bytes(id))
         r.addCallback(self.collect_json_or_none)
         return r

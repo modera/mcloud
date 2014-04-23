@@ -50,7 +50,7 @@ def main(argv):
 
     root_logger = logging.getLogger()
     root_logger.addHandler(console_handler)
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.INFO)
     root_logger.debug('Logger initialized')
 
 
@@ -141,41 +141,7 @@ Cloud that loves your data.
             else:
                 args.func(**vars(args))
 
-        def onecmd(self, line):
-            try:
-                # reset project config
-                self.client._project = None
-
-                if line.strip() != '':
-                    args = shlex.split(line.strip())
-                    if args[0] == 'EOF':
-                        if confirm('\nCtrl+d. Exit?', True):
-                            return True
-                    if args[0] in ('docker', 'ls', 'll', 'l', 'git'):
-                        os.system(' '.join(args))
-                    else:
-                        self.exec_argparse(args)
-                else:
-                    arg_parser.print_help()
-            except KeyboardInterrupt as e:
-                print('Ctrl+c. Task interrupted.')
-            except SystemExit as e:
-                pass
-            except Exception as e:
-                print('Error: %s' % str(e))
-
-            self.update_prompt()
-
-    if len(argv) > 1:
-        foo().exec_argparse(argv[1:])
-    else:
-        # if not os.path.exists('mfcloud.yml'):
-        #     if not confirm('Directory do not contain mfcloud.yml, mfcloud may be not so useful, continue to mfcloud?', False):
-        #         raise SystemExit(0)
-        foo().cmdloop()
-
-
-
+    foo().exec_argparse(argv[1:])
 
 
 def entry_point():

@@ -88,9 +88,9 @@ def test_task_failed():
 
     s.zmq = flexmock()
 
-    s.zmq.should_receive('publish').with_args('<foo> bar', "task-failed-123").once()
+    s.zmq.should_receive('publish').with_args('Failed: <foo> bar', "task-failed-123").once()
 
-    yield s.task_failed(flexmock(type='foo', getErrorMessage=lambda: 'bar'), 123)
+    yield s.task_failed(flexmock(type='foo', getErrorMessage=lambda: 'bar', printTraceback=lambda: None), 123)
 
 
 @pytest.inlineCallbacks

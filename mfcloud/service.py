@@ -14,19 +14,19 @@ class Service(object):
 
     client = inject.attr(IDockerClient)
 
-    image_builder = None
-    name = None
-    volumes = None
-    command = None
-    env = None
-    config = None
-
     def __init__(self, **kwargs):
+        self.image_builder = None
+        self.name = None
+        self.volumes = None
+        self.command = None
+        self.env = None
+        self.config = None
+        self._inspect_data = None
+        self._inspected = False
+
         self.__dict__.update(kwargs)
         super(Service, self).__init__()
 
-        self._inspect_data = None
-        self._inspected = False
 
     def build_docker_config(self):
         pass
@@ -35,7 +35,13 @@ class Service(object):
 
         d = self.client.find_container_by_name(self.name)
 
-        d.addCallback(self.client.inspect)
+        def id_resolved(id):
+            if not id:
+                return None
+            else:
+                return self.client.inspect(id)
+
+        d.addCallback(id_resolved)
 
         def save_inspect_data(data):
             self._inspect_data = data
