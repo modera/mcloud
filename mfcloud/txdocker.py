@@ -7,6 +7,7 @@ from mfcloud.util import Interface
 import re
 import treq
 from twisted.internet import defer
+from twisted.web._newclient import ResponseFailed
 from txzmq import ZmqPubConnection
 
 logger = logging.getLogger('mfcloud.docker')
@@ -72,9 +73,10 @@ class DockerTwistedClient(object):
         headers = {'Content-Type': 'application/tar'}
 
         result = {}
-        def on_content(chunk):
 
-            #print 'Data chunk: %s' % chunk
+        def on_content(chunk):
+            print chunk
+
             if ticket_id and self.message_publisher:
                 self.message_publisher.publish(chunk, 'log-%s' % ticket_id)
 
@@ -86,10 +88,24 @@ class DockerTwistedClient(object):
         def done(*args):
             return result['image_id']
 
-        r = self._post('build', data=dockerfile, headers=headers, response_handler=None)
-        r.addCallback(txhttp.collect, on_content)
-        r.addCallback(done)
+        def err(failure):
+            failure.trap(ResponseFailed)
+            raise failure.value.reasons[0]
 
+        r = self._post('build', data=dockerfile, headers=headers, response_handler=None)
+
+        def before_collect(response):
+            # print response.code
+            # print response.headers
+            # print response.length
+
+            return txhttp.collect(response, on_content)
+
+        r.addCallback(before_collect)
+        r.addCallback(done)
+        r.addErrback(err)
+
+        print 'jpjpjp'
         return r
 
 
@@ -134,15 +150,22 @@ class DockerTwistedClient(object):
         d.addCallback(done)
         return d
 
+    def collect_json_or_none(self, response):
+
+        def on_collected(result):
+            if response.code == 404:
+                return None
+            else:
+                return json.loads(result)
+
+        d = txhttp.content(response)
+        d.addCallback(on_collected)
+
+        return d
+
     def inspect(self, id):
         r = self._get('containers/%s/json' % bytes(id))
-        r.addCallback(txhttp.json_content)
-        #
-        # def error(r):
-        #     return None
-        #
-        # r.addErrback(error)
-
+        r.addCallback(self.collect_json_or_none)
         return r
 
     def remove_container(self, id, ticket_id):

@@ -114,7 +114,7 @@ def test_on_message_message(client, capsys):
     client.ticket = {'ticket_id': 123}
     client._on_message('"foo"', 'log-123')
     out, err = capsys.readouterr()
-    assert out == 'foo\n'
+    assert out == 'foo'
 
 
 

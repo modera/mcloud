@@ -24,6 +24,10 @@ class Application(object):
         return d
 
 
+class AppDoesNotExist(Exception):
+    pass
+
+
 class ApplicationController(object):
 
     redis = inject.attr(txredisapi.Connection)
@@ -45,7 +49,7 @@ class ApplicationController(object):
 
         def ready(config):
             if not config:
-                raise ValueError('Application with name "%s" do not exist' % name)
+                raise AppDoesNotExist('Application with name "%s" do not exist' % name)
             else:
                 return Application(json.loads(config))
 

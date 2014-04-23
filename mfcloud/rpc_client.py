@@ -97,7 +97,10 @@ class ApiRpcClient(object):
                     sys.stdout.write('\n%s' % (data['status']))
 
                 else:
-                    print pprintpp.pformat(data)
+                    if isinstance(data, basestring):
+                        sys.stdout.write(data)
+                    else:
+                        print pprintpp.pformat(data)
 
             except ValueError:
                 print(message)

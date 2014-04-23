@@ -112,6 +112,12 @@ def test_service_api():
             name=name
         )
 
+        class Printer(object):
+            def publish(self, *args):
+                print args
+
+        s.client.message_publisher = Printer()
+
         yield s.inspect()
 
         assert not s.is_created()

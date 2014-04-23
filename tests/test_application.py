@@ -1,5 +1,5 @@
 from flexmock import flexmock
-from mfcloud.application import Application, ApplicationController
+from mfcloud.application import Application, ApplicationController, AppDoesNotExist
 from mfcloud.config import YamlConfig
 from mfcloud.container import DockerfileImageBuilder
 from mfcloud.service import Service
@@ -44,8 +44,8 @@ def test_app_controller():
     with inject_services(configure):
         controller = ApplicationController()
 
-        r = yield controller.get('foo')
-        assert r is None
+        with pytest.raises(AppDoesNotExist):
+            yield controller.get('foo')
 
         r = yield controller.create('foo', 'some/path')
         assert isinstance(r, Application)
@@ -68,6 +68,6 @@ def test_app_controller():
 
         yield controller.remove('foo')
 
-        r = yield controller.get('foo')
-        assert r is None
+        with pytest.raises(AppDoesNotExist):
+            yield controller.get('foo')
 

@@ -38,15 +38,18 @@ def test_images_all(client):
 @pytest.inlineCallbacks
 def test_build(client):
 
-    def publish(ticket_id, stream_type, data):
-        assert ticket_id == 123123
-        assert stream_type == 'log'
-        assert len(data) > 0
+    class Publisher(object):
 
-        publish.called += 1
+        def __init__(self):
+            self.called = 0
 
-    publish.called = 0
-    client.message_publisher = publish
+        def publish(self, data, tag):
+            assert tag == 'log-123123'
+            assert len(data) > 0
+
+            self.called += 1
+
+    client.message_publisher = Publisher()
 
     builder = DockerfileImageBuilder(os.path.join(os.path.dirname(__file__), '_files/ct_bash'))
 
@@ -61,4 +64,4 @@ def test_build(client):
 
     assert re.match('^[0-9a-f]+$', result)
 
-    assert publish.called > 0
+    assert client.message_publisher.called > 0
