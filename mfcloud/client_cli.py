@@ -108,17 +108,6 @@ Cloud that loves your data.
 
 '''
 
-        def update_prompt(self):
-            # if os.path.exists('mfcloud.yml'):
-            #     project = project_name_by_dir()
-            # else:
-            #     project = '~'
-
-            # self.prompt = '(%s:%s) ' % (project, env.host_string or '~')
-
-            self.prompt = '(~:~) '
-
-
         def __init__(self, completekey='tab', stdin=None, stdout=None):
 
             # self.client = MfcloudDeployment()
@@ -126,11 +115,7 @@ Cloud that loves your data.
 
             self.client = ApiRpcClient()
 
-            self.update_prompt()
             Cmd.__init__(self, completekey, stdin, stdout)
-
-        def completedefault(self, *ignored):
-            return Cmd.completedefault(self, *ignored)
 
 
         def exec_argparse(self, args):

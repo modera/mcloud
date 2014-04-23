@@ -108,7 +108,7 @@ class ApiRpcClient(object):
     def init(self, name, path, **kwargs):
 
         def on_result(data):
-            print 'result: %r' % pprintpp.pformat(data)
+            print 'result: %s' % pprintpp.pformat(data)
 
         self._remote_exec('init', on_result, name, os.path.realpath(path))
 
@@ -161,21 +161,21 @@ class ApiRpcClient(object):
     def remove(self, name, **kwargs):
 
         def on_result(data):
-            print 'result: %r' % pprintpp.pformat(data)
+            print 'result: %s' % pprintpp.pformat(data)
 
         self._remote_exec('remove', on_result, name)
 
     def start(self, name, **kwargs):
 
         def on_result(data):
-            print 'result: %r' % pprintpp.pformat(data)
+            print 'result: %s' % pprintpp.pformat(data)
 
         self._remote_exec('start', on_result, name)
 
     def stop(self, name, **kwargs):
 
         def on_result(data):
-            print 'result: %r' % pprintpp.pformat(data)
+            print 'result: %s' % pprintpp.pformat(data)
 
         self._remote_exec('stop', on_result, name)
 

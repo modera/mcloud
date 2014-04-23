@@ -79,7 +79,7 @@ class DockerfileImageBuilder(IImageBuilder):
         d = self.create_archive()
 
         def on_archive_ready(archive):
-            return self.client.build_image(archive, ticket_id=123123)
+            return self.client.build_image(archive, ticket_id=ticket_id)
 
         d.addCallback(on_archive_ready)
 
