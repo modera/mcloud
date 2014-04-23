@@ -36,8 +36,8 @@ def test_request(client):
 @pytest.inlineCallbacks
 def test_wrong_url_connection_refused():
 
-    client = DockerTwistedClient()
-    client.url = 'http://localhost:1'
+    client = DockerTwistedClient(timeout=1)
+    client.url = 'http://ci.dev.modera.org:1'
 
     with pytest.raises(DockerConnectionFailed):
         yield client._get('foo')
@@ -46,8 +46,8 @@ def test_wrong_url_connection_refused():
 @pytest.inlineCallbacks
 def test_wrong_url_wrong_port():
 
-    client = DockerTwistedClient()
-    client.url = 'http://localhost:22'
+    client = DockerTwistedClient(timeout=2)
+    client.url = 'http://ci.dev.modera.org:22'
 
     with pytest.raises(DockerConnectionFailed):
         yield client._get('foo')

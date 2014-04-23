@@ -32,13 +32,15 @@ class DockerTwistedClient(object):
 
     message_publisher = inject.attr(ZmqPubConnection)
 
-    def __init__(self, url='unix://var/run/docker.sock//'):
+    def __init__(self, url='unix://var/run/docker.sock//', timeout=5):
         super(DockerTwistedClient, self).__init__()
 
         self.url = url
+        self.timeout = timeout
 
     def _request(self, url, method=txhttp.get, **kwargs):
-        d = method('%s%s' % (self.url, url), **kwargs)
+
+        d = method('%s%s' % (self.url, url), timeout=self.timeout, **kwargs)
 
         def error(failure):
             e = DockerConnectionFailed('Can not connect to docker: %s' % failure.getErrorMessage())
