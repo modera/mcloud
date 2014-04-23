@@ -12,6 +12,7 @@ txredisapi
 inject
 
 voluptuous
+pprintpp
 
 docker-py
 treq
