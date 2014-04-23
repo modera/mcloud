@@ -19,7 +19,12 @@ class IDockerClient(Interface):
 def json_response(result):
         return txhttp.json_content(result)
 
+
 class CommandFailed(Exception):
+    pass
+
+
+class DockerConnectionFailed(Exception):
     pass
 
 
@@ -36,7 +41,7 @@ class DockerTwistedClient(object):
         d = method('%s%s' % (self.url, url), **kwargs)
 
         def error(failure):
-            e = Exception('Can not connect to docker: %s' % failure.getErrorMessage())
+            e = DockerConnectionFailed('Can not connect to docker: %s' % failure.getErrorMessage())
             logger.error(e)
             raise e
 
@@ -105,7 +110,6 @@ class DockerTwistedClient(object):
         r.addCallback(done)
         r.addErrback(err)
 
-        print 'jpjpjp'
         return r
 
 
