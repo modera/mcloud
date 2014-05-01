@@ -1,14 +1,17 @@
 import logging
 import inject
 from mfcloud.application import ApplicationController, Application
+from mfcloud.deployment import DeploymentController
 from twisted.internet import defer, reactor
-from twisted.internet.defer import Deferred, DeferredList
+from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 
 
 logger = logging.getLogger('mfcloud.tasks')
 
 class TaskService():
     app_controller = inject.attr(ApplicationController)
+    deployment_controller = inject.attr(DeploymentController)
+
     """
     @type app_controller: ApplicationController
     """
@@ -146,11 +149,64 @@ class TaskService():
         d.addCallback(on_result)
         return d
 
+    def expand_app_list_on_deployment(self, deployment):
+
+        apps = []
+        for app in deployment['apps']:
+
+            da = self.app_controller.get(app)
+            def on_app_resolved(app_instance):
+                return {'name': app, 'path': app_instance.config['path']}
+            da.addCallback(on_app_resolved)
+            apps.append(da)
+
+        print apps
+
+        d = defer.gatherResults(apps, consumeErrors=True)
+
+        def apps_received(app_data):
+            print app_data
+            deployment['apps'] = app_data
+            return deployment
+
+        d.addCallback(apps_received)
+
+        return d
+
+    def task_list_deployments(self, ticket_id):
+        d = self.deployment_controller.list()
+
+        def done(deployments):
+            deployment_list = []
+
+            for deployment in deployments:
+                print deployment
+                data = deployment.config
+                deployment_list.append(self.expand_app_list_on_deployment(data))
+
+            return defer.gatherResults(deployment_list, consumeErrors=True)
+
+        d.addCallback(done)
+        return d
+
+    def task_create_deployment(self, ticket_id, name, public_domain):
+
+        d = self.deployment_controller.create(name, public_domain)
+
+        def done(deployment):
+            return not deployment is None
+
+        d.addCallback(done)
+        return d
+
+
     def register(self, rpc_server):
 
         rpc_server.tasks.update({
             'init': self.task_init_app,
             'list': self.task_list_app,
+            'deployments': self.task_list_deployments,
+            'deployment_create': self.task_create_deployment,
             'status': self.task_app_status,
             'inspect': self.task_app_service_inspect,
             'start': self.task_app_start,

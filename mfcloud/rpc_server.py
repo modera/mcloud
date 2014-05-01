@@ -1,11 +1,9 @@
 import json
 import logging
-import time
 import sys
 import inject
 from mfcloud.tasks import TaskService
 from mfcloud.txdocker import IDockerClient, DockerTwistedClient
-import os
 from twisted.internet import defer, reactor
 from twisted.web import xmlrpc, server
 import txredisapi
@@ -77,7 +75,6 @@ class ApiRpcServer(xmlrpc.XMLRPC):
         d = self.redis.get('mfcloud-ticket-%s-result' % ticket_id)
         d.addCallback(lambda result: json.loads(result))
         return d
-
 
 
 if __name__ == '__main__':
