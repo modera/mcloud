@@ -74,8 +74,19 @@ class WebsocketProtocol(Protocol):
             del self.factory.tid_map[ticket_id]
             del self.rid_map[ticket_id]
 
+    def handle_event(self, event_name, data):
+        self.transport.write(json.dumps({
+            'type': 'event',
+            'event_name': event_name,
+            'message': data
+        }))
+
     def connectionLost(self, *args, **kwargs):
         Protocol.connectionLost(self, *args, **kwargs)
+
+        self.factory.subscribers.remove(self)
+
+        logger.debug('Connection lost! Total connections: %s' % (len(self.factory.subscribers)))
 
         for ticket_id, protocol in self.factory.tid_map.items():
             if protocol == self:
@@ -97,31 +108,48 @@ class ZmqAwareWebSockJsFactory(Factory):
         self.proxy = Proxy('http://127.0.0.1:7080')
 
         self.tid_map = {}
+        self.subscribers = []
         self.reactor = reactor
+
+    def buildProtocol(self, addr):
+        protocol = Factory.buildProtocol(self, addr)
+        self.subscribers.append(protocol)
+        logger.debug('New connection %s! Total connections: %s' % (addr, len(self.subscribers)))
+        return protocol
+
+
+
 
     def _on_message(self, message, tag, attempt=0):
 
-        ticket_id = int(tag.split('-')[-1])
-        message_type = '-'.join(tag.split('-')[:-1])
+        if tag.startswith('event-'):
 
-        if not ticket_id in self.tid_map:
-            logger.debug('delaying zmq message. Ticket id %s, map: %s', ticket_id, self.tid_map.keys())
-            if attempt < 5:
-                self.reactor.callLater(0.1, self._on_message, message, tag, attempt + 1)
-            return
+            logger.debug('Seending event to %s listeners' % len(self.subscribers))
+            for protocol in self.subscribers:
+                protocol.handle_event('-'.join(tag.split('-')[1:]), json.loads(message))
 
-        logger.debug('zmq message: %s tag: %s', message, tag)
+        else:
+            ticket_id = int(tag.split('-')[-1])
+            message_type = '-'.join(tag.split('-')[:-1])
 
-        protocol = self.tid_map[ticket_id]
+            if not ticket_id in self.tid_map:
+                logger.debug('delaying zmq message. Ticket id %s, map: %s', ticket_id, self.tid_map.keys())
+                if attempt < 5:
+                    self.reactor.callLater(0.1, self._on_message, message, tag, attempt + 1)
+                return
 
-        if message_type == 'task-completed':
-            protocol.handle_message(ticket_id, 'result', message)
+            logger.debug('zmq message: %s tag: %s', message, tag)
 
-        elif message_type == 'task-failed':
-            protocol.handle_message(ticket_id, 'failure', message)
+            protocol = self.tid_map[ticket_id]
 
-        elif message_type == 'log':
-            protocol.handle_message(ticket_id, 'log', message)
+            if message_type == 'task-completed':
+                protocol.handle_message(ticket_id, 'result', message)
+
+            elif message_type == 'task-failed':
+                protocol.handle_message(ticket_id, 'failure', message)
+
+            elif message_type == 'log':
+                protocol.handle_message(ticket_id, 'log', message)
 
 
 if __name__ == '__main__':

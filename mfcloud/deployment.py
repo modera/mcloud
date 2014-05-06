@@ -1,10 +1,7 @@
 import json
-import logging
 import inject
 from mfcloud.application import ApplicationController
-from mfcloud.config import YamlConfig, ConfigParseError
-import os
-from twisted.internet import defer, reactor
+from mfcloud.events import EventBus
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
 
@@ -37,6 +34,8 @@ class DeploymentController(object):
 
     redis = inject.attr(txredisapi.Connection)
     app_controller = inject.attr(ApplicationController)
+    eb = inject.attr(EventBus)
+
     """
     @type app_controller: ApplicationController
     """
@@ -44,11 +43,17 @@ class DeploymentController(object):
     def create(self, name, domain):
         deployment = Deployment(name=name, public_domain=domain)
         d = self._persist_dployment(deployment)
-        d.addCallback(lambda r: deployment)
+
+        def on_ready(r):
+            self.eb.fire_event('new-deployment', **deployment.config)
+            return deployment
+
+        d.addCallback(on_ready)
 
         return d
 
     def remove(self, name):
+        self.eb.fire_event('remove-deployment', name=name)
         return self.redis.hdel('mfcloud-deployments', name)
 
     def get(self, name):

@@ -13,7 +13,7 @@ from fabric.state import env
 from fabric.contrib.console import confirm
 
 from mfcloud import metadata
-from mfcloud.rpc_client import ApiRpcClient, populate_client_parser, CliApiClient
+from mfcloud.rpc_client import ApiRpcClient, populate_client_parser
 import os
 import shlex
 
@@ -113,7 +113,7 @@ Cloud that loves your data.
             # self.client = MfcloudDeployment()
             # self.client.init(os.getcwd(), 'dev')
 
-            self.client = CliApiClient()
+            self.client = ApiRpcClient()
 
             Cmd.__init__(self, completekey, stdin, stdout)
 

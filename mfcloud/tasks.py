@@ -199,6 +199,16 @@ class TaskService():
         d.addCallback(done)
         return d
 
+    def task_remove_deployment(self, ticket_id, name):
+
+        d = self.deployment_controller.remove(name)
+
+        def done(deployment):
+            return not deployment is None
+
+        d.addCallback(done)
+        return d
+
 
     def register(self, rpc_server):
 
@@ -207,6 +217,7 @@ class TaskService():
             'list': self.task_list_app,
             'deployments': self.task_list_deployments,
             'deployment_create': self.task_create_deployment,
+            'deployment_remove': self.task_remove_deployment,
             'status': self.task_app_status,
             'inspect': self.task_app_service_inspect,
             'start': self.task_app_start,

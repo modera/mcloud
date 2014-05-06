@@ -180,6 +180,14 @@ class ApiRpcClient(object):
         self._remote_exec('stop', on_result, name)
 
 
+    def list_deployments(self, **kwargs):
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        self._remote_exec('deployments', on_result)
+
+
 def populate_client_parser(subparsers):
 
 
@@ -206,6 +214,9 @@ def populate_client_parser(subparsers):
     cmd = subparsers.add_parser('stop', help='Stop application')
     cmd.add_argument('name', help='App name')
     cmd.set_defaults(func='stop')
+
+    cmd = subparsers.add_parser('list_deployments', help='Stop application')
+    cmd.set_defaults(func='list_deployments')
 
     cmd = subparsers.add_parser('inspect', help='Inspect application service')
     cmd.add_argument('name', help='App name')

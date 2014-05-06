@@ -1,7 +1,10 @@
+from flexmock import flexmock
 from mfcloud.deployment import Deployment, DeploymentController, DeploymentDoesNotExist
+from mfcloud.events import EventBus
 from mfcloud.util import inject_services
 import pytest
 import txredisapi
+from txzmq import ZmqPubConnection
 
 
 def test_deployment_new_instance():
@@ -27,14 +30,20 @@ def test_deployment_controller():
     redis = yield txredisapi.Connection(dbid=2)
     yield redis.flushdb()
 
+    eb = flexmock()
+
     def configure(binder):
         binder.bind(txredisapi.Connection, redis)
+        binder.bind(EventBus, eb)
 
     with inject_services(configure):
         controller = DeploymentController()
 
         with pytest.raises(DeploymentDoesNotExist):
             yield controller.get('foo')
+
+        eb.should_receive('fire_event').with_args('new-deployment', apps=[], name='foo', public_domain='foo.bar').once()
+        eb.should_receive('fire_event').with_args('new-deployment', apps=[], name='boo', public_domain='other.path').once()
 
         r = yield controller.create('foo', 'foo.bar')
         assert isinstance(r, Deployment)
@@ -52,11 +61,12 @@ def test_deployment_controller():
 
         r = yield controller.list()
 
-        assert isinstance(r, dict)
+        assert isinstance(r, list)
         assert len(r) == 2
-        for app in r.values():
+        for app in r:
             assert isinstance(app, Deployment)
 
+        eb.should_receive('fire_event').with_args('remove-deployment', name='foo').once()
         yield controller.remove('foo')
 
         with pytest.raises(DeploymentDoesNotExist):
@@ -71,12 +81,16 @@ def test_deployment_controller_new_app():
     redis = yield txredisapi.Connection(dbid=2)
     yield redis.flushdb()
 
+    eb = flexmock()
+
     def configure(binder):
         binder.bind(txredisapi.Connection, redis)
+        binder.bind(EventBus, eb)
 
     with inject_services(configure):
         controller = DeploymentController()
 
+        eb.should_receive('fire_event').once()
         yield controller.create('foo', 'foo.bar')
 
         r = yield controller.get('foo')
