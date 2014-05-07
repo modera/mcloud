@@ -39,6 +39,10 @@ class ApplicationController(object):
     redis = inject.attr(txredisapi.Connection)
 
     def create(self, name, config):
+
+        # validate first
+        Application(config).load()
+
         d = self.redis.hset('mfcloud-apps', name, json.dumps(config))
         d.addCallback(lambda r: Application(config))
 
@@ -55,7 +59,8 @@ class ApplicationController(object):
             if not config:
                 raise AppDoesNotExist('Application with name "%s" do not exist' % name)
             else:
-                return Application(json.loads(config))
+                app = Application(json.loads(config))
+                return app
 
         d.addCallback(ready)
 

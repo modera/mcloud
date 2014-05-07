@@ -1,4 +1,5 @@
 from flexmock import flexmock
+from mfcloud.application import ApplicationController
 from mfcloud.deployment import Deployment, DeploymentController, DeploymentDoesNotExist
 from mfcloud.events import EventBus
 from mfcloud.util import inject_services
@@ -82,10 +83,12 @@ def test_deployment_controller_new_app():
     yield redis.flushdb()
 
     eb = flexmock()
+    ac = flexmock()
 
     def configure(binder):
         binder.bind(txredisapi.Connection, redis)
         binder.bind(EventBus, eb)
+        binder.bind(ApplicationController, ac)
 
     with inject_services(configure):
         controller = DeploymentController()
@@ -96,7 +99,8 @@ def test_deployment_controller_new_app():
         r = yield controller.get('foo')
         assert r.apps == []
 
-        yield controller.new_app('foo', 'bar', 'some/path')
+        ac.should_receive('create').with_args('bar.foo', {'path': 'some/path'}).once()
+        yield controller.new_app('foo', 'bar', {'path': 'some/path'})
 
         r = yield controller.get('foo')
         assert r.apps == ['bar.foo']

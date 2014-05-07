@@ -114,6 +114,10 @@ class YamlConfig(IConfig):
         service.volumes = []
 
         if 'volumes' in config and len(config['volumes']):
+            if path is None:
+                raise ConfigParseError('Service %s requested to attach volumes, but'
+                                       'yaml config was uploaded separately without source files attached.' % service)
+
             for local_path, container_path in config['volumes'].items():
                 service.volumes.append({
                     'local': os.path.join(path, local_path),
@@ -135,7 +139,7 @@ class YamlConfig(IConfig):
         elif 'build' in config:
             if path is None:
                 raise ConfigParseError('Service %s image requested build container image using Dockerfile but, '
-                                       'yaml config was uploaded separately without source files attached.')
+                                       'yaml config was uploaded separately without source files attached.' % service)
             service.image_builder = DockerfileImageBuilder(path=os.path.join(path, config['build']))
         else:
             raise ValueError('Specify image source for service %s: image or build' % service.name)

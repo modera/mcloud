@@ -11,3 +11,7 @@ def inject_services(configurator):
     inject.clear_and_configure(configurator)
     yield
     inject.clear()
+
+
+class ValidationError(Exception):
+    pass

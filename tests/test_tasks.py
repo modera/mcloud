@@ -37,11 +37,28 @@ def test_init_app_task_source():
 
     with inject_services(configure):
 
-        ac.should_receive('create').with_args('foo', {'source': 'foo: bar'}).and_return(defer.succeed(flexmock()))
+        ac.should_receive('create').with_args('foo', {'source': 'foo: bar'}).and_return(defer.succeed(flexmock())).once()
 
         ts = TaskService()
 
         r = yield ts.task_init_app_source(123123, 'foo', 'foo: bar')
+        assert r is True
+
+@pytest.inlineCallbacks
+def test_deployment_new_app_task_source():
+
+    dc = flexmock()
+
+    def configure(binder):
+        binder.bind(DeploymentController, dc)
+
+    with inject_services(configure):
+
+        dc.should_receive('new_app').with_args('baz', 'foo', {'source': 'foo: bar'}).and_return(defer.succeed(flexmock())).once()
+
+        ts = TaskService()
+
+        r = yield ts.task_deployment_new_app_source(123123, 'baz', 'foo', 'foo: bar')
         assert r is True
 
 
@@ -55,7 +72,7 @@ def test_list_app_task():
 
     with inject_services(configure):
 
-        ac.should_receive('list').and_return(defer.succeed({'foo': Application({'path': 'some/path'})}))
+        ac.should_receive('list').and_return(defer.succeed({'foo': Application({'path': 'some/path'})})).once()
 
         ts = TaskService()
 
@@ -77,8 +94,8 @@ def test_list_deployments_task():
 
     with inject_services(configure):
 
-        ac.should_receive('get').with_args('foo').and_return(defer.succeed(Application({'path': 'some/path'})))
-        dc.should_receive('list').and_return(defer.succeed([Deployment(public_domain='foo.bar', name='baz', apps=['foo'])]))
+        ac.should_receive('get').with_args('foo').and_return(defer.succeed(Application({'path': 'some/path'}))).once()
+        dc.should_receive('list').and_return(defer.succeed([Deployment(public_domain='foo.bar', name='baz', apps=['foo'])])).once()
 
         ts = TaskService()
 
@@ -91,7 +108,7 @@ def test_list_deployments_task():
             'apps': [
                 {
                     'name': 'foo',
-                    'path': 'some/path'
+                    'config': {'path': 'some/path'}
                 }
             ]
         }]
@@ -110,8 +127,8 @@ def test_expand_app_list_on_deployment():
 
     with inject_services(configure):
 
-        ac.should_receive('get').with_args('foo').and_return(defer.succeed(Application({'path': 'some/path'})))
-        ac.should_receive('get').with_args('boo').and_return(defer.succeed(Application({'path': 'some/other/path'})))
+        ac.should_receive('get').with_args('foo').and_return(defer.succeed(Application({'path': 'some/path'}))).once()
+        ac.should_receive('get').with_args('boo').and_return(defer.succeed(Application({'source': 'foo: bar'}))).once()
 
         ts = TaskService()
 
@@ -124,11 +141,15 @@ def test_expand_app_list_on_deployment():
             'apps': [
                 {
                     'name': 'foo',
-                    'path': 'some/path'
+                    'config': {
+                        'path': 'some/path'
+                    }
                 },
                 {
                     'name': 'boo',
-                    'path': 'some/other/path'
+                    'config': {
+                        'source': 'foo: bar'
+                    }
                 }
             ]
         }

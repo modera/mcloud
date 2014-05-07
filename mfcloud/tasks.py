@@ -1,6 +1,7 @@
 import logging
 import inject
-from mfcloud.application import ApplicationController, Application
+from mfcloud.application import ApplicationController, Application, AppDoesNotExist
+from mfcloud.config import ConfigParseError
 from mfcloud.deployment import DeploymentController
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
@@ -40,7 +41,14 @@ class TaskService():
         d = self.app_controller.list()
 
         def done(apps):
-            return [(name, apps.config['path']) for name, apps in apps.items()]
+            all = []
+            for name, app in apps.items():
+                if 'path' in app.config:
+                    path = app.config['path']
+                else:
+                    path = None
+                all.append((name, path))
+            return all
 
         d.addCallback(done)
         return d
@@ -159,29 +167,6 @@ class TaskService():
         d.addCallback(on_result)
         return d
 
-    def expand_app_list_on_deployment(self, deployment):
-
-        apps = []
-        for app in deployment['apps']:
-
-            da = self.app_controller.get(app)
-            def on_app_resolved(app_instance):
-                return {'name': app, 'path': app_instance.config['path']}
-            da.addCallback(on_app_resolved)
-            apps.append(da)
-
-        print apps
-
-        d = defer.gatherResults(apps, consumeErrors=True)
-
-        def apps_received(app_data):
-            deployment['apps'] = app_data
-            return deployment
-
-        d.addCallback(apps_received)
-
-        return d
-
     def task_list_deployments(self, ticket_id):
         d = self.deployment_controller.list()
 
@@ -189,9 +174,7 @@ class TaskService():
             deployment_list = []
 
             for deployment in deployments:
-                print deployment
-                data = deployment.config
-                deployment_list.append(self.expand_app_list_on_deployment(data))
+                deployment_list.append(deployment.load_data())
 
             return defer.gatherResults(deployment_list, consumeErrors=True)
 
@@ -204,6 +187,17 @@ class TaskService():
 
         def done(deployment):
             return not deployment is None
+
+        d.addCallback(done)
+        return d
+
+
+    def task_deployment_new_app_source(self, ticket_id, deployment_name, name, source):
+
+        d = self.deployment_controller.new_app(deployment_name, name, {'source': source})
+
+        def done(app):
+            return not app is None
 
         d.addCallback(done)
         return d
@@ -235,14 +229,15 @@ class TaskService():
     #    d.addCallback(done)
     #    return d
 
-
     def register(self, rpc_server):
 
         rpc_server.tasks.update({
             'init': self.task_init_app,
+            'init_source': self.task_init_app_source,
             'list': self.task_list_app,
             'deployments': self.task_list_deployments,
             'deployment_create': self.task_create_deployment,
+            'deployment_new_app_source': self.task_deployment_new_app_source,
             'deployment_remove': self.task_remove_deployment,
             'status': self.task_app_status,
             'inspect': self.task_app_service_inspect,
