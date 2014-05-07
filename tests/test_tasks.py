@@ -19,11 +19,29 @@ def test_init_app_task():
 
     with inject_services(configure):
 
-        ac.should_receive('create').with_args('foo', 'some/path').and_return(defer.succeed(flexmock()))
+        ac.should_receive('create').with_args('foo', {'path': 'some/path'}).and_return(defer.succeed(flexmock()))
 
         ts = TaskService()
 
         r = yield ts.task_init_app(123123, 'foo', 'some/path')
+        assert r is True
+
+
+@pytest.inlineCallbacks
+def test_init_app_task_source():
+
+    ac = flexmock()
+
+    def configure(binder):
+        binder.bind(ApplicationController, ac)
+
+    with inject_services(configure):
+
+        ac.should_receive('create').with_args('foo', {'source': 'foo: bar'}).and_return(defer.succeed(flexmock()))
+
+        ts = TaskService()
+
+        r = yield ts.task_init_app_source(123123, 'foo', 'foo: bar')
         assert r is True
 
 

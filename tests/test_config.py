@@ -13,7 +13,7 @@ def test_none_to_parser():
     YamlConfig()
 
 
-def test_load_cofig(tmpdir):
+def test_load_config(tmpdir):
 
     p = tmpdir.join('mfcloud.yml')
     p.write('foo: bar')
@@ -22,6 +22,16 @@ def test_load_cofig(tmpdir):
 
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=p.dirname).once()
+    config.load()
+
+
+
+def test_load_config_from_config():
+
+    config = YamlConfig(source='foo: bar')
+
+    flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
+    flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=None).once()
     config.load()
 
 
@@ -240,6 +250,15 @@ def test_build_image_dockerfile():
 
     assert isinstance(s.image_builder, DockerfileImageBuilder)
     assert s.image_builder.path == '/base/path/foo/bar'
+
+
+def test_build_image_dockerfile_no_path():
+
+    s = Service()
+    c = YamlConfig()
+
+    with pytest.raises(ConfigParseError):
+        c.process_image_build(s, {'build': 'foo/bar'}, None)
 
 
 def test_build_image_empty():

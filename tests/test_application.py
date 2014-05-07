@@ -1,7 +1,7 @@
 from flexmock import flexmock
 from mfcloud.application import Application, ApplicationController, AppDoesNotExist
 from mfcloud.config import YamlConfig
-from mfcloud.container import DockerfileImageBuilder
+from mfcloud.container import DockerfileImageBuilder, PrebuiltImageBuilder
 from mfcloud.service import Service
 from mfcloud.test_utils import real_docker
 from mfcloud.util import inject_services
@@ -31,6 +31,26 @@ def test_app_load():
 
         assert service.is_inspected()
 
+@pytest.inlineCallbacks
+def test_app_load_source():
+
+    with real_docker():
+        app = Application({'source': '''
+controller:
+  image: foo/bar
+'''})
+
+        config = yield app.load()
+
+        assert isinstance(config, YamlConfig)
+        assert len(config.get_services()) == 1
+
+        service = config.get_services()['controller']
+        assert isinstance(service, Service)
+        assert isinstance(service.image_builder, PrebuiltImageBuilder)
+
+        assert service.is_inspected()
+
 
 @pytest.inlineCallbacks
 def test_app_controller():
@@ -47,7 +67,7 @@ def test_app_controller():
         with pytest.raises(AppDoesNotExist):
             yield controller.get('foo')
 
-        r = yield controller.create('foo', 'some/path')
+        r = yield controller.create('foo', {'path': 'some/path'})
         assert isinstance(r, Application)
         assert r.config['path'] == 'some/path'
 
@@ -55,7 +75,7 @@ def test_app_controller():
         assert isinstance(r, Application)
         assert r.config['path'] == 'some/path'
 
-        r = yield controller.create('boo', 'other/path')
+        r = yield controller.create('boo', {'path': 'other/path'})
         assert isinstance(r, Application)
         assert r.config['path'] == 'other/path'
 

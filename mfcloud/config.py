@@ -21,16 +21,26 @@ class IConfig(Interface):
 class ConfigParseError(Exception):
     pass
 
+
 class UnknownServiceError(Exception):
     pass
 
+
 class YamlConfig(IConfig):
 
-    def __init__(self, file=None):
-        if not file is None and not os.path.exists(str(file)):
-            raise ValueError('Bad config file given!')
+    def __init__(self, file=None, source=None):
 
-        self._file = str(file)
+        if not file is None:
+            if not os.path.exists(str(file)):
+                raise ValueError('Bad config file given!')
+
+            self._file = str(file)
+            self._source = None
+
+        elif not source is None:
+            self._source = source
+            self._file = None
+
 
         self.services = {}
 
@@ -49,15 +59,23 @@ class YamlConfig(IConfig):
 
         return self.services[name]
 
-
     def load(self):
 
         try:
-            with open(self._file) as f:
-                cfg = yaml.load(f)
+            print(repr(self._file))
+            if not self._file is None:
+                with open(self._file) as f:
+                    cfg = yaml.load(f)
 
-                self.validate(config=cfg)
-                self.process(config=cfg, path=dirname(self._file))
+                path = dirname(self._file)
+            else:
+                cfg = yaml.load(self._source)
+                path = None
+
+            self.validate(config=cfg)
+
+            self.process(config=cfg, path=path)
+
 
         except ValueError as e:
             raise ConfigParseError('Failed to parse %s: %s' % (self._file, e.message))
@@ -115,6 +133,9 @@ class YamlConfig(IConfig):
         if 'image' in config:
             service.image_builder = PrebuiltImageBuilder(image=config['image'])
         elif 'build' in config:
+            if path is None:
+                raise ConfigParseError('Service %s image requested build container image using Dockerfile but, '
+                                       'yaml config was uploaded separately without source files attached.')
             service.image_builder = DockerfileImageBuilder(path=os.path.join(path, config['build']))
         else:
             raise ValueError('Specify image source for service %s: image or build' % service.name)

@@ -16,7 +16,13 @@ class Application(object):
 
     def load(self):
 
-        yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'))
+        if 'path' in self.config:
+            yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'))
+        elif 'source' in self.config:
+            yaml_config = YamlConfig(source=self.config['source'])
+        else:
+            raise ConfigParseError('Can not load config.')
+
         yaml_config.load()
 
         d = defer.DeferredList([service.inspect() for service in yaml_config.get_services().values()])
@@ -32,9 +38,7 @@ class ApplicationController(object):
 
     redis = inject.attr(txredisapi.Connection)
 
-    def create(self, name, path):
-        config = {'path': path}
-
+    def create(self, name, config):
         d = self.redis.hset('mfcloud-apps', name, json.dumps(config))
         d.addCallback(lambda r: Application(config))
 

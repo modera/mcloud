@@ -18,7 +18,17 @@ class TaskService():
 
     def task_init_app(self, ticket_id, name, path):
 
-        d = self.app_controller.create(name, path)
+        d = self.app_controller.create(name, {'path': path})
+
+        def done(app):
+            return not app is None
+
+        d.addCallback(done)
+        return d
+
+    def task_init_app_source(self, ticket_id, name, source):
+
+        d = self.app_controller.create(name, {'source': source})
 
         def done(app):
             return not app is None
@@ -165,7 +175,6 @@ class TaskService():
         d = defer.gatherResults(apps, consumeErrors=True)
 
         def apps_received(app_data):
-            print app_data
             deployment['apps'] = app_data
             return deployment
 
@@ -208,6 +217,23 @@ class TaskService():
 
         d.addCallback(done)
         return d
+
+    #
+    #def task_deployment_details(self, ticket_id, name):
+    #    d = self.deployment_controller.get(name)
+    #
+    #    def done(deployment):
+    #        deployment_list = []
+    #
+    #        for deployment in deployments:
+    #            print deployment
+    #            data = deployment.config
+    #            deployment_list.append(self.expand_app_list_on_deployment(data))
+    #
+    #        return defer.gatherResults(deployment_list, consumeErrors=True)
+    #
+    #    d.addCallback(done)
+    #    return d
 
 
     def register(self, rpc_server):
