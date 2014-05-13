@@ -32,11 +32,13 @@ from mfcloud import metadata
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
-              'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.viewcode']
+              'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.viewcode', 'sphinxcontrib.plantuml']
 
 sys.path.append(os.path.abspath('_themes'))
 #html_theme_path = ['_themes']
 #html_theme = 'flask'
+
+plantuml = 'java -jar %s/plantuml.jar' % os.path.dirname(__file__)
 
 import sphinx_rtd_theme
 
