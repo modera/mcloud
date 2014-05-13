@@ -12,8 +12,9 @@ import txredisapi
 
 def test_new_app_instance():
 
-    app = Application({'path': 'foo/bar'})
+    app = Application({'path': 'foo/bar'}, name='foo')
     assert app.config['path'] == 'foo/bar'
+    assert app.name == 'foo'
 
 @pytest.inlineCallbacks
 def test_app_load():
@@ -67,7 +68,9 @@ def test_app_controller():
         with pytest.raises(AppDoesNotExist):
             yield controller.get('foo')
 
-        r = yield controller.create('foo', {'path': 'some/path'})
+
+
+        r = yield controller.create('foo', {'path': 'some/path'}, skip_validation=True)
         assert isinstance(r, Application)
         assert r.config['path'] == 'some/path'
 
@@ -75,7 +78,7 @@ def test_app_controller():
         assert isinstance(r, Application)
         assert r.config['path'] == 'some/path'
 
-        r = yield controller.create('boo', {'path': 'other/path'})
+        r = yield controller.create('boo', {'path': 'other/path'}, skip_validation=True)
         assert isinstance(r, Application)
         assert r.config['path'] == 'other/path'
 

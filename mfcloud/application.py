@@ -9,10 +9,11 @@ import txredisapi
 
 class Application(object):
 
-    def __init__(self, config):
+    def __init__(self, config, name=None):
         super(Application, self).__init__()
 
         self.config = config
+        self.name = name
 
     def load(self):
 
@@ -38,10 +39,11 @@ class ApplicationController(object):
 
     redis = inject.attr(txredisapi.Connection)
 
-    def create(self, name, config):
+    def create(self, name, config, skip_validation=False):
 
         # validate first
-        Application(config).load()
+        if not skip_validation:
+            Application(config).load()
 
         d = self.redis.hset('mfcloud-apps', name, json.dumps(config))
         d.addCallback(lambda r: Application(config))
@@ -59,7 +61,7 @@ class ApplicationController(object):
             if not config:
                 raise AppDoesNotExist('Application with name "%s" do not exist' % name)
             else:
-                app = Application(json.loads(config))
+                app = Application(json.loads(config), name=name)
                 return app
 
         d.addCallback(ready)

@@ -3,8 +3,8 @@ web:
   image: dockerfile/nginx
 
 another:
-  image: dockerfile/nginx
 
+  image: dockerfile/nginx
 
 
 

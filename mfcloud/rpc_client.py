@@ -119,7 +119,7 @@ class ApiRpcClient(object):
             x = PrettyTable(["Application name", "Application path"])
             for row in data:
                 x.add_row(row)
-                print x
+            print x
 
         self._remote_exec('list', on_result)
 

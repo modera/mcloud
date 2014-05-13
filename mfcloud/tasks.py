@@ -1,3 +1,4 @@
+import inspect
 import logging
 import inject
 from mfcloud.application import ApplicationController, Application, AppDoesNotExist
@@ -17,7 +18,10 @@ class TaskService():
     @type app_controller: ApplicationController
     """
 
-    def task_init_app(self, ticket_id, name, path):
+    def task_help(self, ticket_id):
+        pass
+
+    def task_init(self, ticket_id, name, path):
 
         d = self.app_controller.create(name, {'path': path})
 
@@ -27,7 +31,7 @@ class TaskService():
         d.addCallback(done)
         return d
 
-    def task_init_app_source(self, ticket_id, name, source):
+    def task_init_source(self, ticket_id, name, source):
 
         d = self.app_controller.create(name, {'source': source})
 
@@ -37,7 +41,7 @@ class TaskService():
         d.addCallback(done)
         return d
 
-    def task_list_app(self, ticket_id):
+    def task_list(self, ticket_id):
         d = self.app_controller.list()
 
         def done(apps):
@@ -53,13 +57,13 @@ class TaskService():
         d.addCallback(done)
         return d
 
-    def task_del_app(self, ticket_id, name):
+    def task_remove(self, ticket_id, name):
         d = self.app_controller.remove(name)
 
         # d.addCallback(done)
         return d
 
-    def task_app_status(self, ticket_id, name):
+    def task_status(self, ticket_id, name):
         d = self.app_controller.get(name)
 
         def on_result(config):
@@ -87,7 +91,7 @@ class TaskService():
         d.addCallback(on_result)
         return d
 
-    def task_app_start(self, ticket_id, name):
+    def task_start(self, ticket_id, name):
 
         logger.debug('[%s] Starting application' % (ticket_id, ))
 
@@ -114,7 +118,7 @@ class TaskService():
         d.addCallback(on_result)
         return d
 
-    def task_app_stop(self, ticket_id, name):
+    def task_stop(self, ticket_id, name):
 
         logger.debug('[%s] Stoping application' % (ticket_id, ))
 
@@ -141,7 +145,7 @@ class TaskService():
         d.addCallback(on_result)
         return d
 
-    def task_app_service_inspect(self, ticket_id, name, service_name):
+    def task_inspect(self, ticket_id, name, service_name):
 
         logger.debug('[%s] Inspecting application service %s' % (ticket_id, service_name))
 
@@ -167,7 +171,7 @@ class TaskService():
         d.addCallback(on_result)
         return d
 
-    def task_list_deployments(self, ticket_id):
+    def task_deployments(self, ticket_id):
         d = self.deployment_controller.list()
 
         def done(deployments):
@@ -181,7 +185,17 @@ class TaskService():
         d.addCallback(done)
         return d
 
-    def task_create_deployment(self, ticket_id, name, public_domain):
+
+    def task_deployment_details(self, ticket_id, name):
+        d = self.deployment_controller.get(name)
+
+        def done(deployment):
+            return deployment.load_data()
+
+        d.addCallback(done)
+        return d
+
+    def task_deployment_create(self, ticket_id, name, public_domain):
 
         d = self.deployment_controller.create(name, public_domain)
 
@@ -190,7 +204,6 @@ class TaskService():
 
         d.addCallback(done)
         return d
-
 
     def task_deployment_new_app_source(self, ticket_id, deployment_name, name, source):
 
@@ -202,7 +215,7 @@ class TaskService():
         d.addCallback(done)
         return d
 
-    def task_remove_deployment(self, ticket_id, name):
+    def task_deployment_remove(self, ticket_id, name):
 
         d = self.deployment_controller.remove(name)
 
@@ -231,17 +244,10 @@ class TaskService():
 
     def register(self, rpc_server):
 
-        rpc_server.tasks.update({
-            'init': self.task_init_app,
-            'init_source': self.task_init_app_source,
-            'list': self.task_list_app,
-            'deployments': self.task_list_deployments,
-            'deployment_create': self.task_create_deployment,
-            'deployment_new_app_source': self.task_deployment_new_app_source,
-            'deployment_remove': self.task_remove_deployment,
-            'status': self.task_app_status,
-            'inspect': self.task_app_service_inspect,
-            'start': self.task_app_start,
-            'stop': self.task_app_stop,
-            'remove': self.task_del_app,
-        })
+        tasks = {}
+
+        for name, func in inspect.getmembers(self):
+            if name.startswith('task_'):
+                tasks[name[5:]] = func
+
+        rpc_server.tasks.update(tasks)

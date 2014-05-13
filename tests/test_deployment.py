@@ -1,28 +1,80 @@
 from flexmock import flexmock
-from mfcloud.application import ApplicationController
+from mfcloud.application import ApplicationController, Application
 from mfcloud.deployment import Deployment, DeploymentController, DeploymentDoesNotExist
 from mfcloud.events import EventBus
+from mfcloud.txdocker import IDockerClient
 from mfcloud.util import inject_services
 import pytest
+from twisted.internet import defer
 import txredisapi
 from txzmq import ZmqPubConnection
 
 
 def test_deployment_new_instance():
 
-    d = Deployment(public_domain='foo.bar', name='baz', apps=['v1.baz', 'v1.baz'])
+    d = Deployment(public_domain='foo.bar', name='baz', apps=['v1.baz', 'v2.baz'])
 
     assert d.name == 'baz'
     assert d.public_domain == 'foo.bar'
 
     assert len(d.apps) == 2
-    assert d.apps == ['v1.baz', 'v1.baz']
+    assert d.apps == ['v1.baz', 'v2.baz']
 
     assert d.config == {
         'name': 'baz',
         'public_domain': 'foo.bar',
-        'apps': ['v1.baz', 'v1.baz'],
+        'apps': ['v1.baz', 'v2.baz'],
     }
+
+
+
+@pytest.inlineCallbacks
+def test_load_data():
+
+    ac = flexmock()
+    docker = flexmock()
+
+    docker.should_receive('find_container_by_name').and_return(defer.succeed(None))
+
+    def configure(binder):
+        binder.bind(ApplicationController, ac)
+        binder.bind(IDockerClient, docker)
+
+    with inject_services(configure):
+
+        ac.should_receive('get').with_args('v1.baz').and_return(defer.succeed(Application({'source': 'srv: {image: bar}'}, 'v1.baz'))).once()
+        ac.should_receive('get').with_args('v2.baz').and_return(defer.succeed(Application({'source': 'srv: {image: baz}'}, 'v2.baz'))).once()
+
+
+        d = Deployment(public_domain='foo.bar', name='baz', apps=['v1.baz', 'v2.baz'])
+        config = yield d.load_data(skip_validation=True)
+
+        assert config == {
+            'name': 'baz',
+            'public_domain': 'foo.bar',
+            'apps': [
+                {
+                    'name': 'v1.baz',
+                    'config': {
+                        'source': 'srv: {image: bar}'
+                    },
+                    'services':[{
+                        'name': 'srv',
+                        'running': False
+                    }]
+                },
+                {
+                    'name': 'v2.baz',
+                    'config': {
+                        'source': 'srv: {image: baz}'
+                    },
+                    'services': [{
+                            'name': 'srv',
+                            'running': False
+                    }]
+                }
+            ]
+        }
 
 
 @pytest.inlineCallbacks
@@ -99,8 +151,8 @@ def test_deployment_controller_new_app():
         r = yield controller.get('foo')
         assert r.apps == []
 
-        ac.should_receive('create').with_args('bar.foo', {'path': 'some/path'}).once()
-        yield controller.new_app('foo', 'bar', {'path': 'some/path'})
+        ac.should_receive('create').with_args('bar.foo', {'path': 'some/path'}, skip_validation=True).once()
+        yield controller.new_app('foo', 'bar', {'path': 'some/path'}, skip_validation=True, skip_events=True)
 
         r = yield controller.get('foo')
         assert r.apps == ['bar.foo']
@@ -109,3 +161,5 @@ def test_deployment_controller_new_app():
 
         r = yield controller.get('foo')
         assert r.apps == []
+
+

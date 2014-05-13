@@ -61,6 +61,12 @@ class Service(object):
         except KeyError:
             return False
 
+    def ip(self):
+        if not self.is_running():
+            return None
+
+        return self._inspect_data['NetworkSettings']['IPAddress']
+
     def is_created(self):
         if not self.is_inspected():
             raise self.NotInspectedYet()

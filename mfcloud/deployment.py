@@ -33,6 +33,8 @@ class Deployment(object):
 
         deployment = self.config
 
+        print deployment
+
         apps = []
         for app in deployment['apps']:
 
@@ -44,16 +46,20 @@ class Deployment(object):
                     for service in app_config.get_services().values():
                         services.append({
                             'name': service.name,
+                            'ip': service.ip(),
                             'running': service.is_running()
                         })
 
-                    return {'name': app, 'config': app_instance.config, 'services': services}
+                    return {'name': app_instance.name, 'config': app_instance.config, 'services': services}
 
                 d = app_instance.load()
                 d.addCallback(on_loaded)
                 return d
 
             def on_error(failure):
+
+                print failure
+
                 failure.trap(AppDoesNotExist, ConfigParseError)
                 return None
 
@@ -61,8 +67,6 @@ class Deployment(object):
             da.addErrback(on_error)
 
             apps.append(da)
-
-        print apps
 
         d = defer.gatherResults(apps, consumeErrors=True)
 
@@ -130,7 +134,7 @@ class DeploymentController(object):
         return d
 
     @inlineCallbacks
-    def new_app(self, deployment_name, app_name, config):
+    def new_app(self, deployment_name, app_name, config, skip_validation=False, skip_events=False):
 
         if app_name is None or str(app_name).strip() == '':
             raise ValidationError('App name shouldn\'t be empty')
@@ -140,14 +144,14 @@ class DeploymentController(object):
 
         deployment = yield self.get(deployment_name)
         app_full_name = '%s.%s' % (app_name, deployment_name)
-        yield self.app_controller.create(app_full_name, config)
+        yield self.app_controller.create(app_full_name, config, skip_validation=skip_validation)
         deployment.apps.append(app_full_name)
 
         yield self._persist_dployment(deployment)
 
-        data = yield deployment.load_data()
-
-        self.eb.fire_event('updated-deployment', **data)
+        if not skip_events:
+            data = yield deployment.load_data()
+            self.eb.fire_event('updated-deployment', **data)
 
     def _persist_dployment(self, deployment):
         return self.redis.hset('mfcloud-deployments', deployment.name, json.dumps(deployment.config))

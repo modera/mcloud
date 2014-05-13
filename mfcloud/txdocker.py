@@ -83,10 +83,11 @@ class DockerTwistedClient(object):
         result = {}
 
         def on_content(chunk):
-            print chunk
 
             if ticket_id and self.message_publisher:
                 self.message_publisher.publish(chunk, 'log-%s' % ticket_id)
+            else:
+                print 'NB! >>>>>>>>>> MESSAGE NOT PUBLISHED: %s' % chunk
 
             if not 'image_id' in result:
                 match = re.search(r'Successfully built ([0-9a-f]+)', chunk)
