@@ -17,4 +17,5 @@ pprintpp
 docker-py
 treq
 txZMQ
+pyOpenSSL
 

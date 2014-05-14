@@ -9,3 +9,5 @@ sphinx
 sphinx_rtd_theme
 pytest-twisted
 flexmock
+
+sphinxcontrib-plantuml
