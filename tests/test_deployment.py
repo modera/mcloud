@@ -59,6 +59,7 @@ def test_load_data():
                         'source': 'srv: {image: bar}'
                     },
                     'services':[{
+                        'ip': None,
                         'name': 'srv',
                         'running': False
                     }]
@@ -69,6 +70,7 @@ def test_load_data():
                         'source': 'srv: {image: baz}'
                     },
                     'services': [{
+                            'ip': None,
                             'name': 'srv',
                             'running': False
                     }]
