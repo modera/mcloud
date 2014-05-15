@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from urllib import urlencode
 import inject
 from mfcloud import txhttp
@@ -33,10 +34,14 @@ class DockerTwistedClient(object):
 
     message_publisher = inject.attr(ZmqPubConnection)
 
-    def __init__(self, url='unix://var/run/docker.sock//'):
+    def __init__(self, url=None):
         super(DockerTwistedClient, self).__init__()
 
-        self.url = url
+        if url is None:
+            url = os.environ.get('DOCKER_API_URL', 'unix://var/run/docker.sock/')
+
+
+        self.url = url + '/'
 
     def _request(self, url, method=txhttp.get, **kwargs):
 
@@ -44,7 +49,7 @@ class DockerTwistedClient(object):
         d = method(url_, **kwargs)
 
         def error(failure):
-            e = DockerConnectionFailed('Connection timeout (%ss): %s When connecting to: %s' % (self.timeout, failure.getErrorMessage(), url_))
+            e = DockerConnectionFailed('Connection timeout: %s When connecting to: %s' % (failure.getErrorMessage(), url_))
             logger.error(e)
             raise e
 

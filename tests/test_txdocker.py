@@ -9,7 +9,7 @@ from twisted.internet import defer
 @pytest.fixture
 def client():
     with mock_docker():
-        client = DockerTwistedClient()
+        client = DockerTwistedClient(url='unix://var/run/docker.sock/')
         return client
 
 
