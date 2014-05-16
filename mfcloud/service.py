@@ -37,6 +37,8 @@ class Service(object):
 
         def id_resolved(id):
             if not id:
+                self._inspect_data = {}
+                self._inspected = True
                 return None
             else:
                 return self.client.inspect(id)
