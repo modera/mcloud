@@ -19,3 +19,4 @@ treq
 txZMQ
 pyOpenSSL
 
+pyunpack
