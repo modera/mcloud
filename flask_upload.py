@@ -9,8 +9,9 @@ app = Flask(__name__)
 def upload_file():
     if request.method == 'POST':
         f = request.files['file']
-        path = "{0}/archives/{1}".format(
-            os.path.dirname(os.path.abspath(__file__)), secure_filename(f.filename))
+        register_id = request.form.get("register_id")
+        path = "{0}/archives/{1}/{2}".format(
+            os.path.dirname(os.path.abspath(__file__)), register_id, secure_filename(f.filename))
         f.save(path)
         return 'OK'
     return ''
