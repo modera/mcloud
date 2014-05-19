@@ -28,7 +28,7 @@ class UnknownServiceError(Exception):
 
 class YamlConfig(IConfig):
 
-    def __init__(self, file=None, source=None):
+    def __init__(self, file=None, source=None, app_name=None):
 
         if not file is None:
             if not os.path.exists(str(file)):
@@ -41,7 +41,7 @@ class YamlConfig(IConfig):
             self._source = source
             self._file = None
 
-
+        self.app_name = app_name
         self.services = {}
 
     def get_services(self):
@@ -74,7 +74,7 @@ class YamlConfig(IConfig):
 
             self.validate(config=cfg)
 
-            self.process(config=cfg, path=path)
+            self.process(config=cfg, path=path, app_name=self.app_name)
 
 
         except ValueError as e:
@@ -144,9 +144,11 @@ class YamlConfig(IConfig):
         else:
             raise ValueError('Specify image source for service %s: image or build' % service.name)
 
-    def process(self, config, path):
+    def process(self, config, path, app_name=None):
 
         for name, service in config.items():
+            if app_name:
+                name = '%s.%s' % (name, app_name)
 
             s = Service()
             s.name = name

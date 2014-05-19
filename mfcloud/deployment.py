@@ -33,8 +33,6 @@ class Deployment(object):
 
         deployment = self.config
 
-        print deployment
-
         apps = []
         for app in deployment['apps']:
 

@@ -2,8 +2,10 @@ import json
 import logging
 import sys
 import inject
+from mfcloud.monitor import DockerMonitor
 from mfcloud.tasks import TaskService
 from mfcloud.txdocker import IDockerClient, DockerTwistedClient
+from mfcloud.util import txtimeout
 from twisted.internet import defer, reactor
 from twisted.web import xmlrpc, server
 import txredisapi
@@ -107,8 +109,15 @@ if __name__ == '__main__':
         api = ApiRpcServer()
         tasks.register(api)
 
+        monitor = DockerMonitor()
+        monitor.start()
+
         reactor.listenTCP(7080, server.Site(api))
 
-    txredisapi.Connection(dbid=1).addCallback(run_server)
+    def timeout():
+        print('Can not connect to redis!')
+        reactor.stop()
+
+    txtimeout(txredisapi.Connection(dbid=1), 3, timeout).addCallback(run_server)
 
     reactor.run()

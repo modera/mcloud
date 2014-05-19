@@ -60,7 +60,7 @@ def test_load_data():
                     },
                     'services':[{
                         'ip': None,
-                        'name': 'srv',
+                        'name': 'srv.v1.baz',
                         'running': False
                     }]
                 },
@@ -71,7 +71,7 @@ def test_load_data():
                     },
                     'services': [{
                             'ip': None,
-                            'name': 'srv',
+                            'name': 'srv.v2.baz',
                             'running': False
                     }]
                 }

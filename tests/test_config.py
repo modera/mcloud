@@ -18,20 +18,20 @@ def test_load_config(tmpdir):
     p = tmpdir.join('mfcloud.yml')
     p.write('foo: bar')
 
-    config = YamlConfig(file=p.realpath())
+    config = YamlConfig(file=p.realpath(), app_name='myapp')
 
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
-    flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=p.dirname).once()
+    flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=p.dirname, app_name='myapp').once()
     config.load()
 
 
 
 def test_load_config_from_config():
 
-    config = YamlConfig(source='foo: bar')
+    config = YamlConfig(source='foo: bar', app_name='myapp')
 
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
-    flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=None).once()
+    flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=None, app_name='myapp').once()
     config.load()
 
 
@@ -40,7 +40,7 @@ def test_load_config_not_valid(tmpdir):
     p = tmpdir.join('mfcloud.yml')
     p.write('foo: bar')
 
-    config = YamlConfig(file=p.realpath())
+    config = YamlConfig(file=p.realpath(), app_name='myapp')
 
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once().and_raise(ValueError('boo'))
     flexmock(config).should_receive('process').times(0)
@@ -123,6 +123,25 @@ def test_process():
     }, path='foo')
 
     assert isinstance(c.services['nginx'], Service)
+    assert c.services['nginx'].name == 'nginx'
+
+
+def test_process_with_app_name():
+
+    c = YamlConfig()
+
+    flexmock(c)
+
+    c.should_receive('process_image_build').once()
+    c.should_receive('process_volumes_build').once()
+    c.should_receive('process_command_build').once()
+
+    c.process({
+        'nginx': {'foo': 'bar'}
+    }, path='foo', app_name='myapp')
+
+    assert isinstance(c.services['nginx.myapp'], Service)
+    assert c.services['nginx.myapp'].name == 'nginx.myapp'
 
 
 def test_build_command_empty():
