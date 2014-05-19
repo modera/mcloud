@@ -20,3 +20,5 @@ txZMQ
 pyOpenSSL
 
 pyunpack
+Flask
+Werkzeug

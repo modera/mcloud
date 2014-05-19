@@ -6,13 +6,15 @@ from mfcloud.config import ConfigParseError
 from mfcloud.deployment import DeploymentController
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
-
+import txredisapi
 
 logger = logging.getLogger('mfcloud.tasks')
+
 
 class TaskService():
     app_controller = inject.attr(ApplicationController)
     deployment_controller = inject.attr(DeploymentController)
+    redis = inject.attr(txredisapi.Connection)
 
     """
     @type app_controller: ApplicationController
@@ -107,10 +109,12 @@ class TaskService():
             d = []
             for service in config.get_services().values():
                 if not service.is_running():
-                    logger.debug('[%s] Service %s is not running. Starting' % (ticket_id, service.name))
+                    logger.debug(
+                        '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
                     d.append(service.start(ticket_id))
                 else:
-                    logger.debug('[%s] Service %s is already running.' % (ticket_id, service.name))
+                    logger.debug(
+                        '[%s] Service %s is already running.' % (ticket_id, service.name))
 
             return DeferredList(d)
 
@@ -134,10 +138,12 @@ class TaskService():
             d = []
             for service in config.get_services().values():
                 if service.is_running():
-                    logger.debug('[%s] Service %s is running. Stoping' % (ticket_id, service.name))
+                    logger.debug(
+                        '[%s] Service %s is running. Stoping' % (ticket_id, service.name))
                     d.append(service.stop(ticket_id))
                 else:
-                    logger.debug('[%s] Service %s is already stopped.' % (ticket_id, service.name))
+                    logger.debug(
+                        '[%s] Service %s is already stopped.' % (ticket_id, service.name))
 
             return DeferredList(d)
 
@@ -147,7 +153,8 @@ class TaskService():
 
     def task_inspect(self, ticket_id, name, service_name):
 
-        logger.debug('[%s] Inspecting application service %s' % (ticket_id, service_name))
+        logger.debug('[%s] Inspecting application service %s' %
+                     (ticket_id, service_name))
 
         d = self.app_controller.get(name)
 
@@ -166,7 +173,6 @@ class TaskService():
                 else:
                     return service._inspect_data
 
-
         d.addCallback(lambda app: app.load())
         d.addCallback(on_result)
         return d
@@ -184,7 +190,6 @@ class TaskService():
 
         d.addCallback(done)
         return d
-
 
     def task_deployment_details(self, ticket_id, name):
         d = self.deployment_controller.get(name)
@@ -207,7 +212,8 @@ class TaskService():
 
     def task_deployment_new_app_source(self, ticket_id, deployment_name, name, source):
 
-        d = self.deployment_controller.new_app(deployment_name, name, {'source': source})
+        d = self.deployment_controller.new_app(
+            deployment_name, name, {'source': source})
 
         def done(app):
             return not app is None
@@ -226,7 +232,7 @@ class TaskService():
         return d
 
     #
-    #def task_deployment_details(self, ticket_id, name):
+    # def task_deployment_details(self, ticket_id, name):
     #    d = self.deployment_controller.get(name)
     #
     #    def done(deployment):
@@ -251,3 +257,6 @@ class TaskService():
                 tasks[name[5:]] = func
 
         rpc_server.tasks.update(tasks)
+
+    def task_register_file(self, ticket_id):
+        return self.redis.incr('file_register_id')
