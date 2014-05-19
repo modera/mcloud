@@ -5,6 +5,7 @@ from mfcloud.tasks import TaskService
 from mfcloud.util import inject_services
 import pytest
 from twisted.internet import defer
+import txredisapi
 
 
 def test_tasks_are_registered():
@@ -88,6 +89,29 @@ def test_list_app_task():
 
         r = yield ts.task_list(123123)
         assert r == [('foo', 'some/path')]
+
+
+@pytest.inlineCallbacks
+def test_register_file():
+
+    rc = yield txredisapi.Connection(dbid=2)
+    yield rc.flushdb()
+
+    def configure(binder):
+        binder.bind(txredisapi.Connection, rc)
+
+    with inject_services(configure):
+
+        ts = TaskService()
+
+        r = yield ts.task_register_file(None)
+        assert r == 1
+
+        r = yield ts.task_register_file(None)
+        assert r == 2
+
+        r = yield ts.task_register_file(None)
+        assert r == 3
 
 
 
