@@ -151,6 +151,11 @@ class DockerTwistedClient(object):
 
         return r
 
+    def events(self, on_event):
+        r = self._get('events', response_handler=None)
+        r.addCallback(txhttp.collect, on_event)
+        return r
+
     def create_container(self, config, name, ticket_id):
 
         d = self._post('containers/create', params={'name': name}, headers={'Content-Type': 'application/json'}, data=json.dumps(config))
@@ -179,6 +184,11 @@ class DockerTwistedClient(object):
     def inspect(self, id):
         assert not id is None
         r = self._get('containers/%s/json' % bytes(id))
+        r.addCallback(self.collect_json_or_none)
+        return r
+
+    def list(self):
+        r = self._get('containers/json' % bytes(id))
         r.addCallback(self.collect_json_or_none)
         return r
 

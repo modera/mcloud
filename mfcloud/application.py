@@ -18,9 +18,9 @@ class Application(object):
     def load(self):
 
         if 'path' in self.config:
-            yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'))
+            yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'), app_name=self.name)
         elif 'source' in self.config:
-            yaml_config = YamlConfig(source=self.config['source'])
+            yaml_config = YamlConfig(source=self.config['source'], app_name=self.name)
         else:
             raise ConfigParseError('Can not load config.')
 
@@ -46,7 +46,7 @@ class ApplicationController(object):
             Application(config).load()
 
         d = self.redis.hset('mfcloud-apps', name, json.dumps(config))
-        d.addCallback(lambda r: Application(config))
+        d.addCallback(lambda r: Application(config, name=name))
 
         return d
 
@@ -72,7 +72,7 @@ class ApplicationController(object):
         d = self.redis.hgetall('mfcloud-apps')
 
         def ready(config):
-            return dict([(name, Application(json.loads(config))) for name, config in config.items()])
+            return dict([(name, Application(json.loads(config), name=name)) for name, config in config.items()])
         d.addCallback(ready)
 
         return d
