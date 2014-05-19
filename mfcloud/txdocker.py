@@ -25,6 +25,9 @@ def json_response(result):
 class CommandFailed(Exception):
     pass
 
+class NotFound(Exception):
+    pass
+
 
 class DockerConnectionFailed(Exception):
     pass
@@ -151,6 +154,33 @@ class DockerTwistedClient(object):
 
         return r
 
+    def collect_to_exception(self, e, response):
+        def on_collected(content):
+            raise e(content)
+        d = txhttp.content(response)
+        d.addCallback(on_collected)
+        return d
+
+
+    def logs(self, container_id, on_log):
+        r = self._get('containers/%s/logs' % bytes(container_id), response_handler=None, data={
+            'follow': True,
+            'stdout': True,
+            'stderr': True
+        })
+
+        def on_result(result):
+            if result.code == 200:
+                return txhttp.collect(result, on_log)
+            elif result.code == 404:
+                return self.collect_to_exception(NotFound, result)
+            else:
+                return self.collect_to_exception(CommandFailed, result)
+
+        r.addBoth(on_result)
+        return r
+
+
     def events(self, on_event):
         r = self._get('events', response_handler=None)
         r.addCallback(txhttp.collect, on_event)
@@ -167,6 +197,8 @@ class DockerTwistedClient(object):
 
         d.addCallback(done)
         return d
+
+
 
     def collect_json_or_none(self, response):
 
@@ -188,7 +220,12 @@ class DockerTwistedClient(object):
         return r
 
     def list(self):
-        r = self._get('containers/json' % bytes(id))
+        r = self._get('containers/json')
+        r.addCallback(self.collect_json_or_none)
+        return r
+
+    def version(self):
+        r = self._get('version')
         r.addCallback(self.collect_json_or_none)
         return r
 

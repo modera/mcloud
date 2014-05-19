@@ -1,5 +1,5 @@
 from flexmock import flexmock
-from mfcloud.controller.app import Resolver
+from mfcloud.dns_resolver import Resolver
 import pytest
 from twisted.internet import defer
 from twisted.names import dns
@@ -25,7 +25,7 @@ def test_resolve_unknown_domain_local():
 
     #redis
     redis = flexmock()
-    redis.should_receive('get').with_args('domain:boo.local').and_return(defer.succeed('127.0.0.3'))
+    redis.should_receive('hget').with_args('domain', 'boo.local').and_return(defer.succeed('127.0.0.3'))
 
     resolver.server_factory = flexmock(redis=redis)
 
@@ -45,7 +45,7 @@ def test_resolve_unknown_domain_local_unknown():
 
     #redis
     redis = flexmock()
-    redis.should_receive('get').with_args('domain:boo.local').and_return(defer.succeed(None))
+    redis.should_receive('hget').with_args('domain', 'boo.local').and_return(defer.succeed(None))
 
     resolver.server_factory = flexmock(redis=redis)
 
