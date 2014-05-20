@@ -224,7 +224,7 @@ class TaskService():
     def task_deployment_publish_app(self, ticket_id, deployment_name, app_name):
         return self.deployment_controller.publish_app(deployment_name, app_name)
 
-    def task_deployment_unpublish_app(self, ticket_id, deployment_name, app_name):
+    def task_deployment_unpublish_app(self, ticket_id, deployment_name):
         return self.deployment_controller.unpublish_app(deployment_name)
 
     def task_deployment_remove(self, ticket_id, name):
