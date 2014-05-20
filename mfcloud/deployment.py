@@ -13,10 +13,11 @@ class Deployment(object):
 
     app_controller = inject.attr(ApplicationController)
 
-    def __init__(self, public_domain=None, name=None, apps=None):
+    def __init__(self, public_domain=None, name=None, apps=None, public_app=None):
         super(Deployment, self).__init__()
 
         self.public_domain = public_domain
+        self.public_app = public_app
         self.name = name
         self.apps = apps
 
@@ -25,6 +26,7 @@ class Deployment(object):
         return {
             'name': self.name,
             'public_domain': self.public_domain,
+            'public_app': self.public_app,
             'apps': self.apps or []
         }
 
@@ -130,6 +132,22 @@ class DeploymentController(object):
         d.addCallback(ready)
 
         return d
+
+    @inlineCallbacks
+    def publish_app(self, deployment_name, app_name):
+        deployment = yield self.get(deployment_name)
+
+        app_full_name = '%s.%s' % (app_name, deployment_name)
+
+        deployment.public_app = app_full_name
+        yield self._persist_dployment(deployment)
+
+    @inlineCallbacks
+    def unpublish_app(self, deployment_name):
+        deployment = yield self.get(deployment_name)
+        deployment.public_app = None
+        yield self._persist_dployment(deployment)
+
 
     @inlineCallbacks
     def new_app(self, deployment_name, app_name, config, skip_validation=False, skip_events=False):

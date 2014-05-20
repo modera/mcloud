@@ -12,16 +12,18 @@ from txzmq import ZmqPubConnection
 
 def test_deployment_new_instance():
 
-    d = Deployment(public_domain='foo.bar', name='baz', apps=['v1.baz', 'v2.baz'])
+    d = Deployment(public_domain='foo.bar', name='baz', apps=['v1.baz', 'v2.baz'], public_app='myapp',)
 
     assert d.name == 'baz'
     assert d.public_domain == 'foo.bar'
+    assert d.public_app == 'myapp'
 
     assert len(d.apps) == 2
     assert d.apps == ['v1.baz', 'v2.baz']
 
     assert d.config == {
         'name': 'baz',
+        'public_app': 'myapp',
         'public_domain': 'foo.bar',
         'apps': ['v1.baz', 'v2.baz'],
     }
@@ -52,6 +54,7 @@ def test_load_data():
         assert config == {
             'name': 'baz',
             'public_domain': 'foo.bar',
+            'public_app': None,
             'apps': [
                 {
                     'name': 'v1.baz',
@@ -97,8 +100,8 @@ def test_deployment_controller():
         with pytest.raises(DeploymentDoesNotExist):
             yield controller.get('foo')
 
-        eb.should_receive('fire_event').with_args('new-deployment', apps=[], name='foo', public_domain='foo.bar').once()
-        eb.should_receive('fire_event').with_args('new-deployment', apps=[], name='boo', public_domain='other.path').once()
+        eb.should_receive('fire_event').with_args('new-deployment', public_app=None, apps=[], name='foo', public_domain='foo.bar').once()
+        eb.should_receive('fire_event').with_args('new-deployment', public_app=None, apps=[], name='boo', public_domain='other.path').once()
 
         r = yield controller.create('foo', 'foo.bar')
         assert isinstance(r, Deployment)
@@ -163,5 +166,40 @@ def test_deployment_controller_new_app():
 
         r = yield controller.get('foo')
         assert r.apps == []
+
+
+
+
+
+@pytest.inlineCallbacks
+def test_deployment_controller_publish_app():
+
+    redis = yield txredisapi.Connection(dbid=2)
+    yield redis.flushdb()
+
+    eb = flexmock()
+
+    def configure(binder):
+        binder.bind(txredisapi.Connection, redis)
+        binder.bind(EventBus, eb)
+
+    with inject_services(configure):
+        controller = DeploymentController()
+
+        eb.should_receive('fire_event').once()
+        yield controller.create('foo', None)
+
+        r = yield controller.get('foo')
+        assert r.public_app is None
+
+        yield controller.publish_app('foo', 'bar')
+
+        r = yield controller.get('foo')
+        assert r.public_app == 'bar.foo'
+
+        yield controller.unpublish_app('foo')
+
+        r = yield controller.get('foo')
+        assert r.public_app is None
 
 
