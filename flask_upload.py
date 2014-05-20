@@ -3,6 +3,7 @@ import os
 from datetime import timedelta
 from flask import make_response, current_app
 from functools import update_wrapper
+from mfcloud.archive import ArchiveFile
 
 app = Flask(__name__)
 
@@ -55,14 +56,17 @@ def upload_file():
     if request.method == 'POST':
         f = request.files['file']
         register_id = request.form.get("register_id")
-        os.mkdir(
-            "{0}/archives/{1}".format(os.path.dirname(os.path.abspath(__file__)),
-                                      register_id))
-        path = "{0}/archives/{1}/{2}".format(os.path.dirname(os.path.abspath(__file__)),
-                                             register_id,
-                                             f.filename)
+        path = os.path.dirname(os.path.abspath(__file__))
+        folder = "{0}/archives/{1}/".format(path, register_id)
+        os.mkdir(folder)
+        path = "{0}/{1}".format(folder, f.filename)
         f.save(path)
-        return 'OK'
+        try:
+            archive = ArchiveFile(path, folder)
+            result = archive.extract()
+        except Exception, e:
+            pass
+        return "{0}unzip".format(folder)
 
 if __name__ == '__main__':
     app.run(debug=True)
