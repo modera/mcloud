@@ -65,11 +65,8 @@ def upload_file():
         path = "{0}/{1}".format(folder, filename)
         f.save(path)
 
-        try:
-            archive = ArchiveFile(path, folder)
-            result = archive.extract()
-        except Exception, e:
-            pass
+        archive = ArchiveFile(path, folder)
+        archive.extract()
 
         folder_archive = filename.split(".zip")
         if os.path.isfile("{0}unzip/{1}/mfcloud.yml".format(folder, folder_archive[0])):
