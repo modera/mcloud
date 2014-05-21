@@ -67,11 +67,23 @@ setup(
     ],
     packages=find_packages(exclude=(TESTS_DIRECTORY,)),
     install_requires=[
-       'fig',
-       'fabric',
-       'cuisine',
-       'jinja2',
-       'prettytable'
+        'jinja2',
+        'texttable',
+        'flask',
+        'Flask-API',
+        'twisted',
+        'txredisapi',
+        'inject',
+        'voluptuous',
+        'pprintpp',
+        'docker-py',
+        'treq',
+        'txZMQ',
+        'pyOpenSSL',
+        'PyYAML',
+        'pyunpack',
+        'txsockjs',
+        'Werkzeug'
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
     tests_require=[
@@ -83,7 +95,10 @@ setup(
     entry_points={
         'console_scripts': [
             'mfcloud = mfcloud.client_cli:entry_point',
-            # 'mfcloud-server = mfcloud.server_cli:entry_point',
+            'mfcloud-rpc-server = mfcloud.rpc_server:entry_point',
+            'mfcloud-balancer = mfcloud.haproxy:entry_point',
+            'mfcloud-dns = mfcloud.dns_resolver:entry_point',
+            'mfcloud-websocket = mfcloud.websocket:entry_point',
         ],
         # if you have a gui, use this
         # 'gui_scripts': [

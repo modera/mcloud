@@ -1,4 +1,6 @@
 import json
+import logging
+import sys
 import inject
 from mfcloud.util import txtimeout
 from twisted.internet import reactor
@@ -100,7 +102,22 @@ class HaproxyConfig(object):
         #
         # os.system('service haproxy reload')
 
-if __name__ == '__main__':
+def entry_point():
+
+    console_handler = logging.StreamHandler(stream=sys.stderr)
+    console_handler.setFormatter(logging.Formatter())
+    console_handler.setLevel(logging.DEBUG)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(console_handler)
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.debug('Logger initialized')
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Websocket server')
+    parser.add_argument('--endpoint', type=str, default=['tcp://127.0.0.1:5555'], nargs='+', help='ip address')
+    args = parser.parse_args()
 
     def run_server(redis):
         config = HaproxyConfig(path='/etc/haproxy/haproxy.cfg')
@@ -109,11 +126,15 @@ if __name__ == '__main__':
             if tag == 'event-containers-updated':
                 config.dump(json.loads(message)['list'])
 
+
+        print args.endpoint
+
         zf2 = ZmqFactory()
-        e2 = ZmqEndpoint('connect', 'tcp://127.0.0.1:5555')
-        s2 = ZmqSubConnection(zf2, e2)
-        s2.subscribe("")
-        s2.gotMessage = on_message
+
+        for endpoint in args.endpoint:
+            subscribe_con = ZmqSubConnection(zf2, ZmqEndpoint('connect', endpoint))
+            subscribe_con.subscribe("")
+            subscribe_con.gotMessage = on_message
 
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
@@ -128,3 +149,6 @@ if __name__ == '__main__':
     txtimeout(txredisapi.Connection(dbid=1), 3, timeout).addCallback(run_server)
 
     reactor.run()
+
+if __name__ == '__main__':
+    entry_point()

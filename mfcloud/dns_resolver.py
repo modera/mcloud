@@ -1,3 +1,5 @@
+import logging
+import sys
 import inject
 from mfcloud.util import txtimeout
 
@@ -53,7 +55,25 @@ class DNSServerFactory(server.DNSServerFactory):
     def stopFactory(self):
         self.redis.disconnect()
 
-if __name__ == '__main__':
+def entry_point():
+
+    console_handler = logging.StreamHandler(stream=sys.stderr)
+    console_handler.setFormatter(logging.Formatter())
+    console_handler.setLevel(logging.DEBUG)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(console_handler)
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.debug('Logger initialized')
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Dns resolver')
+
+    parser.add_argument('--port', type=int, default='53', help='port number')
+    parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
+
+    args = parser.parse_args()
 
     def run_server(redis):
         verbosity = 0
@@ -68,9 +88,8 @@ if __name__ == '__main__':
         # Configure a shared injector.
         inject.configure(my_config)
 
-        reactor.listenUDP(53, protocol, interface='172.17.42.1')
-        reactor.listenTCP(53, factory, interface='172.17.42.1')
-
+        reactor.listenUDP(args.port, protocol, interface=args.interface)
+        reactor.listenTCP(args.port, factory, interface=args.interface)
 
 
     def timeout():
@@ -80,3 +99,8 @@ if __name__ == '__main__':
     txtimeout(txredisapi.Connection(dbid=1), 3, timeout).addCallback(run_server)
 
     reactor.run()
+
+
+if __name__ == '__main__':
+    entry_point()
+

@@ -79,7 +79,7 @@ class ApiRpcServer(xmlrpc.XMLRPC):
         return d
 
 
-if __name__ == '__main__':
+def entry_point():
 
     console_handler = logging.StreamHandler(stream=sys.stderr)
     console_handler.setFormatter(logging.Formatter())
@@ -90,10 +90,22 @@ if __name__ == '__main__':
     root_logger.setLevel(logging.DEBUG)
     root_logger.debug('Logger initialized')
 
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Dns resolver')
+
+    parser.add_argument('--port', type=int, default=7080, help='port number')
+    parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
+    parser.add_argument('--zmq-bind', type=str, default='tcp://127.0.0.1:5555', help='ip address')
+
+    args = parser.parse_args()
+
+    print args
+
     def run_server(redis):
 
         zf = ZmqFactory()
-        e = ZmqEndpoint('bind', 'tcp://127.0.0.1:5555')
+        e = ZmqEndpoint('bind', args.zmq_bind)
         s = ZmqPubConnection(zf, e)
 
         def my_config(binder):
@@ -112,7 +124,7 @@ if __name__ == '__main__':
         monitor = DockerMonitor()
         monitor.start()
 
-        reactor.listenTCP(7080, server.Site(api))
+        reactor.listenTCP(args.port, server.Site(api), interface=args.interface)
 
     def timeout():
         print('Can not connect to redis!')
@@ -121,3 +133,7 @@ if __name__ == '__main__':
     txtimeout(txredisapi.Connection(dbid=1), 3, timeout).addCallback(run_server)
 
     reactor.run()
+
+
+if __name__ == '__main__':
+    entry_point()

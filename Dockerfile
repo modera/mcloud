@@ -40,8 +40,7 @@ RUN \
   sed -i 's/^\(\[supervisord\]\)$/\1\nnodaemon=true/' /etc/supervisor/supervisord.conf
 
 # install python
-RUN apt-get install -y python python-dev python-pip libssl-dev build-essential
-RUN apt-get install -y libffi-dev
+RUN apt-get install -y python python-dev python-pip libssl-dev build-essential libffi-dev
 RUN pip install virtualenv
 
 
