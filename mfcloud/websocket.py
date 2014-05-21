@@ -95,20 +95,24 @@ class WebsocketProtocol(Protocol):
 
 class ZmqAwareWebSockJsFactory(Factory):
 
-    def __init__(self):
+    def __init__(self, zmq_endpoint, rpc_endpoint):
         self.subscribers = []
 
+        print zmq_endpoint
+
         self.zf2 = ZmqFactory()
-        self.e2 = ZmqEndpoint('connect', 'tcp://127.0.0.1:5555')
+        self.e2 = ZmqEndpoint('connect', zmq_endpoint)
         self.s2 = ZmqSubConnection(self.zf2, self.e2)
         self.s2.subscribe("")
         self.s2.gotMessage = self._on_message
 
-        self.proxy = Proxy('http://127.0.0.1:7080')
+        self.proxy = Proxy(rpc_endpoint)
 
         self.tid_map = {}
         self.subscribers = []
         self.reactor = reactor
+
+        logger.info('Started')
 
     def buildProtocol(self, addr):
         protocol = Factory.buildProtocol(self, addr)
@@ -161,6 +165,8 @@ def entry_point():
 
     parser.add_argument('--port', type=int, default='9911', help='port number')
     parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
+    parser.add_argument('--zmq-endpoint', type=str, default='tcp://127.0.0.1:5555', help='Zmq endpoint')
+    parser.add_argument('--rpc-endpoint', type=str, default='http://127.0.0.1:7080', help='Rpc endpoint')
 
     args = parser.parse_args()
 
@@ -174,8 +180,9 @@ def entry_point():
     root_logger.setLevel(logging.DEBUG)
     root_logger.debug('Logger initialized')
 
-    reactor.listenTCP(args.port, SockJSFactory(ZmqAwareWebSockJsFactory.forProtocol(WebsocketProtocol)),
-                      interface=args.interface)
+    reactor.listenTCP(args.port, SockJSFactory(ZmqAwareWebSockJsFactory.forProtocol(WebsocketProtocol,
+                    zmq_endpoint=args.zmq_endpoint, rpc_endpoint=args.rpc_endpoint)),
+                    interface=args.interface)
 
     reactor.run()
 
