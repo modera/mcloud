@@ -15,8 +15,10 @@ EXTRACT_DIR = '/path/'
 class ArchiveFile:
 
     # init filename
-    def __init__(self, filename):
+    def __init__(self, filename, path_extract):
         self.filename = filename
+        global EXTRACT_DIR
+        EXTRACT_DIR = path_extract
 
     # get type archive
     def type(self):
@@ -63,13 +65,8 @@ class ArchiveFile:
 
     # extract files
     def extract(self):
-        folder = datetime.datetime.now().isoformat()
-        path = '{0}{1}/'.format(EXTRACT_DIR, folder)
-        if not os.path.exists(path):
-            os.makedirs(path)
-
         try:
-            folder = datetime.datetime.now().isoformat()
+            folder = 'unzip'
             path = '{0}{1}/'.format(EXTRACT_DIR, folder)
             if not os.path.exists(path):
                 os.makedirs(path)

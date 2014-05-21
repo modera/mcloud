@@ -210,6 +210,17 @@ class TaskService():
         d.addCallback(done)
         return d
 
+    def task_deployment_new_app_zip(self, ticket_id, deployment_name, name, path):
+
+        d = self.deployment_controller.new_app(
+            deployment_name, name, {'path': path})
+
+        def done(app):
+            return not app is None
+
+        d.addCallback(done)
+        return d
+
     def task_deployment_new_app_source(self, ticket_id, deployment_name, name, source):
 
         d = self.deployment_controller.new_app(
