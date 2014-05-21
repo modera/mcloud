@@ -4,6 +4,7 @@ from datetime import timedelta
 from flask import make_response, current_app
 from functools import update_wrapper
 from mfcloud.archive import ArchiveFile
+import json
 
 app = Flask(__name__)
 
@@ -50,7 +51,7 @@ def crossdomain(origin=None, methods=None, headers=None,
     return decorator
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST', 'OPTIONS'])
 @crossdomain(origin='*')
 def upload_file():
     if request.method == 'POST':
@@ -58,15 +59,23 @@ def upload_file():
         register_id = request.form.get("register_id")
         path = os.path.dirname(os.path.abspath(__file__))
         folder = "{0}/archives/{1}/".format(path, register_id)
-        os.mkdir(folder)
-        path = "{0}/{1}".format(folder, f.filename)
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+        filename = f.filename
+        path = "{0}/{1}".format(folder, filename)
         f.save(path)
+
         try:
             archive = ArchiveFile(path, folder)
             result = archive.extract()
         except Exception, e:
             pass
-        return "{0}unzip".format(folder)
+
+        folder_archive = filename.split(".zip")
+        if os.path.isfile("{0}unzip/{1}/mfcloud.yml".format(folder, folder_archive[0])):
+            return json.dumps({"status": "ok", "path": "{0}unzip/{1}/".format(folder, folder_archive[0])})
+        else:
+            return json.dumps({"status": "{0}unzip/{1}/mfcloud.yml".format(folder, folder_archive[0]), "message": "Archive have not correct format"})
 
 if __name__ == '__main__':
     app.run(debug=True)
