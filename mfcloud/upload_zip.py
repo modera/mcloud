@@ -74,5 +74,9 @@ def upload_file():
         else:
             return json.dumps({"status": "{0}unzip/{1}/mfcloud.yml".format(folder, folder_archive[0]), "message": "Archive have not correct format"})
 
-if __name__ == '__main__':
+
+def entry_point():
     app.run(debug=True)
+
+if __name__ == '__main__':
+    entry_point()

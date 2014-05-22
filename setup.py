@@ -99,6 +99,7 @@ setup(
             'mfcloud-balancer = mfcloud.haproxy:entry_point',
             'mfcloud-dns = mfcloud.dns_resolver:entry_point',
             'mfcloud-websocket = mfcloud.websocket:entry_point',
+            'mfcloud-uploader = mfcloud.upload_zip:entry_point',
         ],
         # if you have a gui, use this
         # 'gui_scripts': [
