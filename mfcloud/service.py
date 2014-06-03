@@ -21,6 +21,7 @@ class Service(object):
         self.command = None
         self.env = None
         self.config = None
+        self.status_message = ''
         self._inspect_data = None
         self._inspected = False
 

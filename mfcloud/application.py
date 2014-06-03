@@ -15,7 +15,7 @@ class Application(object):
         self.config = config
         self.name = name
 
-    def load(self):
+    def load(self, need_details=False):
 
         if 'path' in self.config:
             yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'), app_name=self.name)
@@ -26,8 +26,39 @@ class Application(object):
 
         yaml_config.load()
 
+        def on_loaded(app_config):
+
+            is_running = True
+            status = 'RUNNING'
+
+            services = []
+            for service in app_config.get_services().values():
+                services.append({
+                    'name': service.name,
+                    'ip': service.ip(),
+                    'running': service.is_running()
+                })
+
+                if not service.is_running():
+                    is_running = False
+                    status = 'STOPPED'
+
+            return {
+                'name': self.name,
+                'config': self.config,
+                'services': services,
+                'running': is_running,
+                'status': status
+            }
+
+
+
         d = defer.DeferredList([service.inspect() for service in yaml_config.get_services().values()])
         d.addCallback(lambda *result: yaml_config)
+
+        if need_details:
+            d.addCallback(on_loaded)
+
         return d
 
 
@@ -72,7 +103,8 @@ class ApplicationController(object):
         d = self.redis.hgetall('mfcloud-apps')
 
         def ready(config):
-            return dict([(name, Application(json.loads(config), name=name)) for name, config in config.items()])
-        d.addCallback(ready)
+            return defer.gatherResults([(Application(json.loads(config), name=name)).load(need_details=True)
+                                        for name, config in config.items()], consumeErrors=True)
 
+        d.addCallback(ready)
         return d

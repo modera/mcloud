@@ -4,7 +4,7 @@ import sys
 from mfcloud.config import ConfigParseError
 import os
 import pprintpp
-from prettytable import PrettyTable
+from prettytable import PrettyTable, FRAME, ALL
 from texttable import Texttable
 from twisted.internet import defer, reactor
 from twisted.internet.error import ConnectionRefusedError
@@ -116,10 +116,26 @@ class ApiRpcClient(object):
 
         def on_result(data):
 
-            x = PrettyTable(["Application name", "Application path"])
-            for row in data:
-                x.add_row(row)
+            x = PrettyTable(["Application name", "status", "services"], hrules=ALL)
+            for app in data:
+
+                services = []
+                for service in app['services']:
+                     name = service['name']
+                     if name.endswith(app['name']):
+                         name = name[0:-len(app['name']) - 1]
+
+                     data = '%s (%s)' % (name, 'ON' if service['running'] else 'OFF')
+
+                     if service['ip']:
+                         data += ' ip: %s' % service['ip']
+
+                     services.append(data)
+
+                x.add_row([app['name'], (app['status'] if app['running'] else ''), '\n'.join(services)])
+
             print x
+
 
         self._remote_exec('list', on_result)
 

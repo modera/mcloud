@@ -78,17 +78,19 @@ def test_list_app_task():
 
     ac = flexmock()
 
+    ac.should_receive('list').and_return(defer.succeed(['foo', 'bar'])).once()
+
     def configure(binder):
         binder.bind(ApplicationController, ac)
 
     with inject_services(configure):
 
-        ac.should_receive('list').and_return(defer.succeed({'foo': Application({'path': 'some/path'})})).once()
+
 
         ts = TaskService()
 
         r = yield ts.task_list(123123)
-        assert r == [('foo', 'some/path')]
+        assert r == ['foo', 'bar']
 
 
 @pytest.inlineCallbacks

@@ -115,8 +115,10 @@ class YamlConfig(IConfig):
 
         if 'volumes' in config and len(config['volumes']):
             if path is None:
-                raise ConfigParseError('Service %s requested to attach volumes, but'
-                                       'yaml config was uploaded separately without source files attached.' % service)
+                service.status_message += '\nService %s requested to attach volumes, but ' \
+                                          'yaml config was uploaded separately ' \
+                                          'without source files attached.'
+                return
 
             for local_path, container_path in config['volumes'].items():
                 service.volumes.append({

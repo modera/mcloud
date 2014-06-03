@@ -9,7 +9,7 @@ from mfcloud.test_utils import real_docker
 from mfcloud.util import inject_services, txtimeout
 import os
 import pytest
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 import txredisapi
 
 
@@ -68,6 +68,8 @@ def test_app_controller():
     redis = yield txtimeout(txredisapi.Connection(dbid=2), 2, timeout)
     yield redis.flushdb()
 
+
+
     def configure(binder):
         binder.bind(txredisapi.Connection, redis)
 
@@ -94,12 +96,16 @@ def test_app_controller():
         assert r.name == 'boo'
         assert r.config['path'] == 'other/path'
 
+        mockapp = flexmock()
+        flexmock(Application).new_instances(mockapp)
+        mockapp.should_receive('load').with_args(need_details=True).and_return(defer.succeed({'foo': 'bar'}))
+
         r = yield controller.list()
 
-        assert isinstance(r, dict)
+        assert isinstance(r, list)
         assert len(r) == 2
-        for app in r.values():
-            assert isinstance(app, Application)
+        for app in r:
+            assert app == {'foo': 'bar'}
 
         yield controller.remove('foo')
 

@@ -1,3 +1,4 @@
+import argparse
 from flask import Flask, request
 import os
 from datetime import timedelta
@@ -76,7 +77,15 @@ def upload_file():
 
 
 def entry_point():
-    app.run(debug=True)
+
+    parser = argparse.ArgumentParser(description='Dns resolver')
+
+    parser.add_argument('--port', type=int, default=5000, help='port number')
+    parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
+
+    args = parser.parse_args()
+
+    app.run(debug=True, port=args.port, host=args.interface)
 
 if __name__ == '__main__':
     entry_point()

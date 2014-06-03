@@ -41,20 +41,7 @@ class Deployment(object):
             da = self.app_controller.get(app)
             def on_app_resolved(app_instance):
 
-                def on_loaded(app_config):
-                    services = []
-                    for service in app_config.get_services().values():
-                        services.append({
-                            'name': service.name,
-                            'ip': service.ip(),
-                            'running': service.is_running()
-                        })
-
-                    return {'name': app_instance.name, 'config': app_instance.config, 'services': services}
-
-                d = app_instance.load()
-                d.addCallback(on_loaded)
-                return d
+                return app_instance.load(need_details=True)
 
             def on_error(failure):
 

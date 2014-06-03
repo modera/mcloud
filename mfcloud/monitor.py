@@ -17,7 +17,7 @@ class DockerMonitor(object):
 
     def _listen(self, container_id):
         def on_log(log):
-            # logger.debug('log %s: %s' % (container_id, log))
+            log = log.encode("base64")
             return self.event_bus.fire_event('container-log', container_id=container_id, log=log)
 
         def done(result):

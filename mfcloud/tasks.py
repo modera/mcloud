@@ -44,20 +44,7 @@ class TaskService():
         return d
 
     def task_list(self, ticket_id):
-        d = self.app_controller.list()
-
-        def done(apps):
-            all = []
-            for name, app in apps.items():
-                if 'path' in app.config:
-                    path = app.config['path']
-                else:
-                    path = None
-                all.append((name, path))
-            return all
-
-        d.addCallback(done)
-        return d
+        return self.app_controller.list()
 
     def task_remove(self, ticket_id, name):
         d = self.app_controller.remove(name)
