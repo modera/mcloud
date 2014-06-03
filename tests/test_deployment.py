@@ -51,6 +51,8 @@ def test_load_data():
         d = Deployment(public_domain='foo.bar', name='baz', apps=['v1.baz', 'v2.baz'])
         config = yield d.load_data(skip_validation=True)
 
+        print config
+
         assert config == {
             'name': 'baz',
             'public_domain': 'foo.bar',
@@ -58,6 +60,8 @@ def test_load_data():
             'apps': [
                 {
                     'name': 'v1.baz',
+                    'running': False,
+                    'status': 'STOPPED',
                     'config': {
                         'source': 'srv: {image: bar}'
                     },
@@ -69,6 +73,8 @@ def test_load_data():
                 },
                 {
                     'name': 'v2.baz',
+                    'running': False,
+                    'status': 'STOPPED',
                     'config': {
                         'source': 'srv: {image: baz}'
                     },
