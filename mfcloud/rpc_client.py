@@ -125,7 +125,12 @@ class ApiRpcClient(object):
                      if name.endswith(app['name']):
                          name = name[0:-len(app['name']) - 1]
 
-                     data = '%s (%s)' % (name, 'ON' if service['running'] else 'OFF')
+                     if service['created']:
+                         service_status = 'ON' if service['running'] else 'OFF'
+                     else:
+                         service_status = 'NOT CREATED'
+
+                     data = '%s (%s)' % (name, service_status)
 
                      if service['ip']:
                          data += ' ip: %s' % service['ip']

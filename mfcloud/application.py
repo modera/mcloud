@@ -9,6 +9,8 @@ import txredisapi
 
 class Application(object):
 
+    dns_search_suffix = inject.attr('dns-search-suffix')
+
     def __init__(self, config, name=None):
         super(Application, self).__init__()
 
@@ -36,7 +38,9 @@ class Application(object):
                 services.append({
                     'name': service.name,
                     'ip': service.ip(),
-                    'running': service.is_running()
+                    'fullname': '%s.%s' % (service.name, self.dns_search_suffix),
+                    'running': service.is_running(),
+                    'created': service.is_created(),
                 })
 
                 if not service.is_running():

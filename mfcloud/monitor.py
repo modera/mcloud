@@ -1,6 +1,7 @@
 import json
 import logging
 import inject
+from mfcloud.application import ApplicationController
 from mfcloud.events import EventBus
 from mfcloud.txdocker import IDockerClient, NotFound
 from twisted.internet import reactor, defer
@@ -11,6 +12,7 @@ logger = logging.getLogger('mfcloud.monitor')
 class DockerMonitor(object):
     client = inject.attr(IDockerClient)
     event_bus = inject.attr(EventBus)
+    app_controller = inject.attr(ApplicationController)
 
     def __init__(self):
         self.listening = []
@@ -50,7 +52,14 @@ class DockerMonitor(object):
             container_info = [self.client.inspect(container['Id']) for container in containers]
 
             def send_out_event(containers):
-                return self.event_bus.fire_event('containers-updated', list=containers)
+
+                def on_apps_listed(app_data):
+                    self.event_bus.fire_event('containers-updated', list=containers, apps=app_data)
+
+                ad = self.app_controller.list()
+                ad.addCallback(on_apps_listed)
+
+                return ad
 
             d = defer.gatherResults(container_info, consumeErrors=True)
             d.addCallback(send_out_event)

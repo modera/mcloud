@@ -248,7 +248,7 @@ class DockerTwistedClient(object):
         if config is None:
             config = {}
 
-        r = self._post('containers/%s/start' % bytes(id), data=json.dumps(config))
+        r = self._post('containers/%s/start' % bytes(id), headers={'Content-Type': 'application/json'}, data=json.dumps(config))
 
         def done(result):
             return result.code == 204

@@ -15,18 +15,26 @@ class Resolver(client.Resolver):
 
     """
 
+    def __init__(self, resolv=None, servers=None, timeout=(1, 3, 11, 45), reactor=None, prefix=None):
+        client.Resolver.__init__(self, resolv, servers, timeout, reactor)
+
+        self.prefix = prefix
+
+
     def lookupAddress(self, name, timeout=None):
-        if name.endswith('.local'):
+        if name.endswith('.%s' % self.prefix):
 
             d = defer.Deferred()
 
-            print name
             result = self.server_factory.redis.hget("domain", name)
 
             def callback(value):
-                print value
+
                 a = dns.RRHeader(name=name, type=dns.A, ttl=10)
-                a.payload = dns.Record_A(value or '127.0.0.1', ttl=10)
+                address = value or '127.0.0.1'
+
+                logging.debug('Asked for %s -> Resolved to: %s' % (name, address))
+                a.payload = dns.Record_A(address, ttl=10)
                 d.callback(([a], [], []))
 
             result.addCallback(callback)
@@ -39,9 +47,9 @@ class DNSServerFactory(server.DNSServerFactory):
 
     redis = inject.attr(txredisapi.Connection)
 
-    def __init__(self, authorities=None, caches=None, clients=None, verbose=0):
+    def __init__(self, authorities=None, caches=None, clients=None, prefix=None, verbose=0):
 
-        resolver = Resolver(servers=[('8.8.8.8', 53)])
+        resolver = Resolver(servers=[('8.8.8.8', 53)], prefix=prefix)
         resolver.server_factory = self
 
         if not clients:
@@ -71,13 +79,25 @@ def entry_point():
     parser = argparse.ArgumentParser(description='Dns resolver')
 
     parser.add_argument('--port', type=int, default='53', help='port number')
+    parser.add_argument('--prefix', type=str, default='mfcloud.lh', help='Local domain prefix')
     parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
 
     args = parser.parse_args()
 
+
+    ns_line = 'nameserver %s' % args.interface
+
+    with open('/etc/resolv.conf', 'r') as f:
+        contents = f.read()
+        print contents
+
+    if not ns_line in contents:
+        with open('/etc/resolv.conf', 'w') as f:
+             f.write('%s\n%s' % (ns_line, contents))
+
     def run_server(redis):
         verbosity = 0
-        factory = DNSServerFactory(verbose=verbosity)
+        factory = DNSServerFactory(verbose=verbosity, prefix=args.prefix)
 
         protocol = dns.DNSDatagramProtocol(factory)
         factory.noisy = protocol.noisy = verbosity
@@ -97,6 +117,8 @@ def entry_point():
         reactor.stop()
 
     txtimeout(txredisapi.Connection(dbid=1), 3, timeout).addCallback(run_server)
+
+    root_logger.info('Listening on %s:%s' % (args.interface, args.port))
 
     reactor.run()
 

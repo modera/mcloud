@@ -1,11 +1,9 @@
 
 web:
-  image: dockerfile/nginx
+  image: orchardup/nginx
 
-another:
-
-  image: dockerfile/nginx
-
+  volumes:
+    public: /var/www
 
 
 

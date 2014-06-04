@@ -14,6 +14,9 @@ class Service(object):
 
     client = inject.attr(IDockerClient)
 
+    dns_server = inject.attr('dns-server')
+    dns_search_suffix = inject.attr('dns-search-suffix')
+
     def __init__(self, **kwargs):
         self.image_builder = None
         self.name = None
@@ -88,12 +91,15 @@ class Service(object):
             def start(*args):
                 logger.debug('[%s][%s] Starting service...' % (ticket_id, self.name))
 
-                config = {}
+                config = {
+                    "Dns": [self.dns_server],
+                    "DnsSearch": '%s.%s' % (self.name, self.dns_search_suffix)
+                }
 
-                if self.volumes and len(self.volumes):
-                    config['Volumes'] = dict([
-                        (x['remote'], x['local']) for x in self.volumes
-                    ])
+                #if self.volumes and len(self.volumes):
+                #    config['Binds'] = ['%s:%s' % (x['remote'], x['local']) for x in self.volumes]
+
+                config['Binds'] = ["/home/alex/dev/mfcloud/examples/static_site/public:/var/www"]
 
                 return self.client.start_container(id, ticket_id=ticket_id, config=config)
 
@@ -125,7 +131,7 @@ class Service(object):
     def _generate_config(self, image_name):
         config = {
             "Hostname": self.name,
-            "Image": image_name
+            "Image": image_name,
         }
 
         if self.volumes and len(self.volumes):

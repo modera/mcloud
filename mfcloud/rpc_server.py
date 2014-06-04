@@ -95,6 +95,8 @@ def entry_point():
     parser = argparse.ArgumentParser(description='Dns resolver')
 
     parser.add_argument('--port', type=int, default=7080, help='port number')
+    parser.add_argument('--dns-server', type=str, default='172.17.42.1', help='Dns server to use in containers')
+    parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
     parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
     parser.add_argument('--zmq-bind', type=str, default='tcp://127.0.0.1:5555', help='ip address')
 
@@ -112,6 +114,9 @@ def entry_point():
             binder.bind(txredisapi.Connection, redis)
             binder.bind(ZmqPubConnection, s)
             binder.bind(IDockerClient, DockerTwistedClient())
+
+            binder.bind('dns-server', args.dns_server)
+            binder.bind('dns-search-suffix', args.dns_search_suffix)
 
         # Configure a shared injector.
         inject.configure(my_config)

@@ -1,9 +1,11 @@
+
 import json
 import logging
 import sys
 import inject
 from mfcloud.util import txtimeout
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 import txredisapi
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
 
@@ -54,31 +56,39 @@ class HaproxyConfig(object):
 
     redis = inject.attr(txredisapi.Connection)
 
-    def __init__(self, path, template=None, internal_suffix='local'):
+    def __init__(self, path, template=None, internal_suffix='mfcloud.lh'):
         self.template = template
         self.path = path
         self.internal_suffix = internal_suffix
 
-    def dump(self, containers):
+
+
+    def dump(self, containers, apps_list):
 
         template = self.template
 
         if not template:
             template = Template(HAPROXY_TPL)
 
-        hosts = {}
+        print apps_list
 
-        # apps = []
+        apps = {}
+
         for container in containers:
             name_ = container['Name']
             if name_[0] == '/':
                 name_ = name_[1:]
 
             name_ = '.'.join([name_, self.internal_suffix])
+            apps[name_] = container['NetworkSettings']['IPAddress']
 
-            hosts[name_] = container['NetworkSettings']['IPAddress']
+        logging.info('Installing new app list: %s' % str(apps))
 
-        return self.redis.hmset('domain', hosts)
+        if len(apps) > 1:
+            return self.redis.hmset('domain', apps)
+        elif len(apps) == 1:
+            return self.redis.hset('domain', apps.keys()[0], apps.values()[0])
+
 
 
 
@@ -124,10 +134,8 @@ def entry_point():
 
         def on_message(message, tag):
             if tag == 'event-containers-updated':
-                config.dump(json.loads(message)['list'])
-
-
-        print args.endpoint
+                data = json.loads(message)
+                config.dump(data['list'], data['apps'])
 
         zf2 = ZmqFactory()
 
@@ -147,6 +155,8 @@ def entry_point():
         reactor.stop()
 
     txtimeout(txredisapi.Connection(dbid=1), 3, timeout).addCallback(run_server)
+
+
 
     reactor.run()
 
