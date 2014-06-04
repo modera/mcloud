@@ -46,7 +46,7 @@ class Service(object):
                 return None
             else:
                 return self.client.inspect(id)
-
+            
         d.addCallback(id_resolved)
 
         def save_inspect_data(data):
@@ -72,6 +72,12 @@ class Service(object):
             return None
 
         return self._inspect_data['NetworkSettings']['IPAddress']
+
+    def started_at(self):
+        if not self.is_running():
+            return None
+
+        return self._inspect_data['State']['StartedAt']
 
     def is_web(self):
         if not self.is_running():
