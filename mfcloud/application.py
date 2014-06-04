@@ -10,6 +10,7 @@ import txredisapi
 class Application(object):
 
     dns_search_suffix = inject.attr('dns-search-suffix')
+    host_ip = inject.attr('host_ip')
 
     def __init__(self, config, name=None):
         super(Application, self).__init__()
@@ -19,19 +20,33 @@ class Application(object):
 
     def load(self, need_details=False):
 
-        if 'path' in self.config:
-            yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'), app_name=self.name)
-        elif 'source' in self.config:
-            yaml_config = YamlConfig(source=self.config['source'], app_name=self.name)
-        else:
-            raise ConfigParseError('Can not load config.')
+        try:
+            if 'path' in self.config:
+                yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mfcloud.yml'), app_name=self.name)
+            elif 'source' in self.config:
+                yaml_config = YamlConfig(source=self.config['source'], app_name=self.name)
+            else:
+                raise ConfigParseError('Can not load config.')
 
-        yaml_config.load()
+            yaml_config.load()
+        except ValueError as e:
+            return defer.succeed({
+                'name': self.name,
+                'config': self.config,
+                'host_ip': self.host_ip,
+                'services': [],
+                'running': False,
+                'status': 'error',
+                'message': '%s When loading config: %s' % (e.message, self.config)
+            })
 
         def on_loaded(app_config):
 
             is_running = True
             status = 'RUNNING'
+
+            web_ip = None
+            web_service = None
 
             services = []
             for service in app_config.get_services().values():
@@ -39,9 +54,14 @@ class Application(object):
                     'name': service.name,
                     'ip': service.ip(),
                     'fullname': '%s.%s' % (service.name, self.dns_search_suffix),
+                    'is_web': service.is_web(),
                     'running': service.is_running(),
                     'created': service.is_created(),
                 })
+
+                if service.is_web():
+                    web_ip = service.ip()
+                    web_service = service.name
 
                 if not service.is_running():
                     is_running = False
@@ -49,6 +69,9 @@ class Application(object):
 
             return {
                 'name': self.name,
+                'fullname': '%s.%s' % (self.name, self.dns_search_suffix),
+                'web_ip': web_ip,
+                'web_service': web_service,
                 'config': self.config,
                 'services': services,
                 'running': is_running,
@@ -103,7 +126,7 @@ class ApplicationController(object):
 
         return d
 
-    def list(self):
+    def list(self, *args):
         d = self.redis.hgetall('mfcloud-apps')
 
         def ready(config):

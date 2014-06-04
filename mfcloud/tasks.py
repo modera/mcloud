@@ -31,6 +31,7 @@ class TaskService():
             return not app is None
 
         d.addCallback(done)
+        d.addCallback(self.app_controller.list)
         return d
 
     def task_init_source(self, ticket_id, name, source):
@@ -49,7 +50,7 @@ class TaskService():
     def task_remove(self, ticket_id, name):
         d = self.app_controller.remove(name)
 
-        # d.addCallback(done)
+        d.addCallback(self.app_controller.list)
         return d
 
     def task_status(self, ticket_id, name):
@@ -103,7 +104,9 @@ class TaskService():
                     logger.debug(
                         '[%s] Service %s is already running.' % (ticket_id, service.name))
 
-            return DeferredList(d)
+            deferred_list = DeferredList(d)
+            deferred_list.addCallback(self.app_controller.list)
+            return deferred_list
 
         d.addCallback(lambda app: app.load())
         d.addCallback(on_result)
@@ -136,6 +139,45 @@ class TaskService():
 
         d.addCallback(lambda app: app.load())
         d.addCallback(on_result)
+        d.addCallback(self.app_controller.list)
+        return d
+
+    def task_destroy(self, ticket_id, name):
+
+        logger.debug('[%s] Destroying application containers' % (ticket_id, ))
+
+        d = self.app_controller.get(name)
+
+        def on_result(config):
+            """
+            @type config: YamlConfig
+            """
+
+            logger.debug('[%s] Got response' % (ticket_id, ))
+
+            d = []
+            for service in config.get_services().values():
+                if service.is_created():
+                    if service.is_running():
+                        logger.debug(
+                            '[%s] Service %s container is running. Stopping and then destroying' % (ticket_id, service.name))
+                        service_stop = service.stop(ticket_id)
+                        service_stop.addCallback(lambda *_: service.destroy(ticket_id))
+                        d.append(service_stop)
+
+                    else:
+                        logger.debug(
+                            '[%s] Service %s container is created. Destroying' % (ticket_id, service.name))
+                        d.append(service.destroy(ticket_id))
+                else:
+                    logger.debug(
+                        '[%s] Service %s container is not yet created.' % (ticket_id, service.name))
+
+            return DeferredList(d)
+
+        d.addCallback(lambda app: app.load())
+        d.addCallback(on_result)
+        d.addCallback(self.app_controller.list)
         return d
 
     def task_inspect(self, ticket_id, name, service_name):

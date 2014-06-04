@@ -112,50 +112,58 @@ class ApiRpcClient(object):
 
         self._remote_exec('init', on_result, name, os.path.realpath(path))
 
+
+    def on_print_list_result(self, data):
+
+        x = PrettyTable(["Application name", "Web", "status", "services"], hrules=ALL)
+        for app in data:
+
+            services = []
+            for service in app['services']:
+                 name = service['name']
+                 if name.endswith(app['name']):
+                     name = name[0:-len(app['name']) - 1]
+
+                 if service['is_web']:
+                     name += '*'
+
+                 if service['created']:
+                     service_status = 'ON' if service['running'] else 'OFF'
+                 else:
+                     service_status = 'NOT CREATED'
+
+                 data = '%s (%s)' % (name, service_status)
+
+                 if service['ip']:
+                     data += ' ip: %s' % service['ip']
+
+                 services.append(data)
+
+            if app['running']:
+                app_status = app['status']
+                services_list = '\n'.join(services)
+            elif app['status'] == 'error':
+                app_status = 'ERROR'
+                services_list = app['message']
+            else:
+                app_status = ''
+                services_list = '\n'.join(services)
+
+            if app['web_service']:
+                web_service_ = app['web_service']
+                if web_service_.endswith(app['name']):
+                     web_service_ = web_service_[0:-len(app['name']) - 1]
+                web = '%s -> [%s]' % (app['fullname'], web_service_)
+            else:
+                web = ''
+
+            x.add_row([app['name'], web, app_status, services_list])
+
+        print x
+
     def list(self, **kwargs):
+        self._remote_exec('list', self.on_print_list_result)
 
-        def on_result(data):
-
-            x = PrettyTable(["Application name", "status", "services"], hrules=ALL)
-            for app in data:
-
-                services = []
-                for service in app['services']:
-                     name = service['name']
-                     if name.endswith(app['name']):
-                         name = name[0:-len(app['name']) - 1]
-
-                     if service['created']:
-                         service_status = 'ON' if service['running'] else 'OFF'
-                     else:
-                         service_status = 'NOT CREATED'
-
-                     data = '%s (%s)' % (name, service_status)
-
-                     if service['ip']:
-                         data += ' ip: %s' % service['ip']
-
-                     services.append(data)
-
-                x.add_row([app['name'], (app['status'] if app['running'] else ''), '\n'.join(services)])
-
-            print x
-
-
-        self._remote_exec('list', on_result)
-
-    def status(self, name, **kwargs):
-
-        def on_result(data):
-
-            print 'Services:'
-
-            x = PrettyTable(["Service name", "is created", "is running"])
-            for row in data:
-                x.add_row(row)
-            print x
-
-        self._remote_exec('status', on_result, name)
 
     def inspect(self, name, service, **kwargs):
 
@@ -184,29 +192,28 @@ class ApiRpcClient(object):
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
 
-        self._remote_exec('remove', on_result, name)
+        self._remote_exec('remove', self.on_print_list_result, name)
+
+    def destroy(self, name, **kwargs):
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        self._remote_exec('destroy', self.on_print_list_result, name)
 
     def start(self, name, **kwargs):
 
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
 
-        self._remote_exec('start', on_result, name)
+        self._remote_exec('start', self.on_print_list_result, name)
 
     def stop(self, name, **kwargs):
 
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
 
-        self._remote_exec('stop', on_result, name)
-
-
-    def list_deployments(self, **kwargs):
-
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('deployments', on_result)
+        self._remote_exec('stop', self.on_print_list_result, name)
 
 
 def populate_client_parser(subparsers):
@@ -236,8 +243,9 @@ def populate_client_parser(subparsers):
     cmd.add_argument('name', help='App name')
     cmd.set_defaults(func='stop')
 
-    cmd = subparsers.add_parser('list_deployments', help='Stop application')
-    cmd.set_defaults(func='list_deployments')
+    cmd = subparsers.add_parser('destroy', help='Destroy application containers')
+    cmd.add_argument('name', help='App name')
+    cmd.set_defaults(func='destroy')
 
     cmd = subparsers.add_parser('inspect', help='Inspect application service')
     cmd.add_argument('name', help='App name')

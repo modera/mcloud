@@ -73,6 +73,12 @@ class Service(object):
 
         return self._inspect_data['NetworkSettings']['IPAddress']
 
+    def is_web(self):
+        if not self.is_running():
+            return None
+
+        return u'80/tcp' in self._inspect_data['NetworkSettings']['Ports']
+
     def is_created(self):
         if not self.is_inspected():
             raise self.NotInspectedYet()
@@ -96,12 +102,14 @@ class Service(object):
                     "DnsSearch": '%s.%s' % (self.name, self.dns_search_suffix)
                 }
 
-                #if self.volumes and len(self.volumes):
-                #    config['Binds'] = ['%s:%s' % (x['remote'], x['local']) for x in self.volumes]
+                if self.volumes and len(self.volumes):
+                   config['Binds'] = ['%s:%s' % (x['remote'], x['local']) for x in self.volumes]
 
                 config['Binds'] = ["/home/alex/dev/mfcloud/examples/static_site/public:/var/www"]
 
-                return self.client.start_container(id, ticket_id=ticket_id, config=config)
+                dfc = self.client.find_container_by_name(self.name)
+                dfc.addCallback(self.client.start_container, ticket_id=ticket_id, config=config)
+                return dfc
 
             if not id:
                 logger.debug('[%s][%s] Service not created. Creating ...' % (ticket_id, self.name))

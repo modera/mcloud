@@ -80,7 +80,7 @@ def entry_point():
 
     parser.add_argument('--port', type=int, default='53', help='port number')
     parser.add_argument('--prefix', type=str, default='mfcloud.lh', help='Local domain prefix')
-    parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
+    parser.add_argument('--interface', type=str, default='172.17.42.1', help='ip address')
 
     args = parser.parse_args()
 

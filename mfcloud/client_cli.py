@@ -75,26 +75,6 @@ def main(argv):
     populate_client_parser(subparsers)
 
 
-    def exec_bash(**kwargs):
-        shell = os.environ.get('SHELL')
-        print('*' * 75)
-        print('Executing %s ... Hit Ctrl+d when you are done, to return mfcloud.' % shell)
-        print('*' * 75 + '\n')
-        os.system(shell)
-
-    cmd = subparsers.add_parser('sh', help='Fetch logs from containers')
-    cmd.set_defaults(func=exec_bash)
-
-    # # mfcloud use ubuntu@myserver.com
-    # use_cmd = subparsers.add_parser('use', help='Sets target hostname')
-    # use_cmd.add_argument('host', help='Hostname with username ex. user@some.server')
-    # use_cmd.set_defaults(func='use_host')
-    #
-    # # mfcloud app create myapp
-    # app_create_cmd = subparsers.add_parser('@', help='Executes remote command')
-    # app_create_cmd.add_argument('command', help='Name of application', nargs='*')
-    # app_create_cmd.set_defaults(func='remote')
-
     class foo(Cmd):
 
         intro = '''
@@ -125,6 +105,9 @@ Cloud that loves your data.
                 getattr(self.client, args.func)(**vars(args))
             else:
                 args.func(**vars(args))
+
+    if len(argv) == 1:
+        argv.append('list')
 
     foo().exec_argparse(argv[1:])
 

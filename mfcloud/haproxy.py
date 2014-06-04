@@ -74,13 +74,15 @@ class HaproxyConfig(object):
 
         apps = {}
 
-        for container in containers:
-            name_ = container['Name']
-            if name_[0] == '/':
-                name_ = name_[1:]
+        for app in apps_list:
+            if not app['running']:
+                continue
 
-            name_ = '.'.join([name_, self.internal_suffix])
-            apps[name_] = container['NetworkSettings']['IPAddress']
+            for service in app['services']:
+                apps[service['fullname']] = service['ip']
+
+            if app['web_service']:
+                apps[app['fullname']] = app['web_ip']
 
         logging.info('Installing new app list: %s' % str(apps))
 

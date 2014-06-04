@@ -188,11 +188,13 @@ class DockerTwistedClient(object):
 
     def create_container(self, config, name, ticket_id):
 
+        logger.debug('[%s] Create container "%s"', ticket_id, name)
+
         d = self._post('containers/create', params={'name': name}, headers={'Content-Type': 'application/json'}, data=json.dumps(config))
 
         def done(result):
             if result.code != 201:
-                return None
+                raise CommandFailed('Create command returned unexpected status: %s' % result.code)
             return txhttp.json_content(result)
 
         d.addCallback(done)
@@ -245,6 +247,9 @@ class DockerTwistedClient(object):
         return r
 
     def start_container(self, id, ticket_id, config=None):
+
+        logger.debug('[%s] Start container "%s"', ticket_id, id)
+
         if config is None:
             config = {}
 
