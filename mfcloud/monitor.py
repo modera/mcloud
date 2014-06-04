@@ -38,10 +38,11 @@ class DockerMonitor(object):
         return d
 
     def listen_logs(self, container):
-        if container['Id'] not in self.listening:
-            self.listening.append(container['Id'])
-            logger.debug('Start following logs from container %s.' % container['Id'])
-            reactor.callLater(0, self._listen, container['Id'])
+        pass
+        # if container['Id'] not in self.listening:
+        #     self.listening.append(container['Id'])
+        #     logger.debug('Start following logs from container %s.' % container['Id'])
+        #     reactor.callLater(0, self._listen, container['Id'])
 
     def update_container_list(self, *args):
         def _update(containers):

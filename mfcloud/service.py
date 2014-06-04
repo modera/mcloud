@@ -46,7 +46,7 @@ class Service(object):
                 return None
             else:
                 return self.client.inspect(id)
-            
+
         d.addCallback(id_resolved)
 
         def save_inspect_data(data):
