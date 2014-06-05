@@ -111,8 +111,6 @@ class Service(object):
                 if self.volumes and len(self.volumes):
                    config['Binds'] = ['%s:%s' % (x['remote'], x['local']) for x in self.volumes]
 
-                config['Binds'] = ["/home/alex/dev/mfcloud/examples/static_site/public:/var/www"]
-
                 dfc = self.client.find_container_by_name(self.name)
                 dfc.addCallback(self.client.start_container, ticket_id=ticket_id, config=config)
                 return dfc
@@ -148,10 +146,10 @@ class Service(object):
             "Image": image_name,
         }
 
-        if self.volumes and len(self.volumes):
-            config['Volumes'] = dict([
-                (x['remote'], {}) for x in self.volumes
-            ])
+        #if self.volumes and len(self.volumes):
+        #    config['Volumes'] = dict([
+        #        (x['remote'], {}) for x in self.volumes
+        #    ])
 
         return config
 

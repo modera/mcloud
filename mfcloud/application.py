@@ -153,7 +153,7 @@ class ApplicationController(object):
                 for name, config_raw in deps.items():
                     try:
                         dep = json.loads(config_raw)
-                        if dep['public_app']:
+                        if 'public_app' in dep and dep['public_app']:
                             pub_apps[dep['public_app']] = dep['public_domain']
                     except ValueError:
                         pass

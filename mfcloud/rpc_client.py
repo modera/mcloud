@@ -110,7 +110,7 @@ class ApiRpcClient(object):
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
 
-        self._remote_exec('init', on_result, name, os.path.realpath(path))
+        self._remote_exec('init', self.on_print_list_result, name, os.path.realpath(path))
 
 
     def on_print_list_result(self, data):
