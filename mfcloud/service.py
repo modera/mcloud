@@ -146,10 +146,10 @@ class Service(object):
             "Image": image_name,
         }
 
-        #if self.volumes and len(self.volumes):
-        #    config['Volumes'] = dict([
-        #        (x['remote'], {}) for x in self.volumes
-        #    ])
+        if self.volumes and len(self.volumes):
+            config['Volumes'] = dict([
+                (x['remote'], {}) for x in self.volumes
+            ])
 
         return config
 
