@@ -118,7 +118,7 @@ def entry_point():
 
             binder.bind('dns-server', args.dns_server)
             binder.bind('dns-search-suffix', args.dns_search_suffix)
-            binder.bind('host-ip', args.host_ip)
+            #binder.bind('host-ip', args.host_ip)
 
         # Configure a shared injector.
         inject.configure(my_config)

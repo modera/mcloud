@@ -11,7 +11,7 @@ import txredisapi
 class Application(object):
 
     dns_search_suffix = inject.attr('dns-search-suffix')
-    host_ip = inject.attr('host_ip')
+    #host_ip = inject.attr('host_ip')
 
     def __init__(self, config, name=None, public_url=None):
         super(Application, self).__init__()
@@ -35,7 +35,7 @@ class Application(object):
             return defer.succeed({
                 'name': self.name,
                 'config': self.config,
-                'host_ip': self.host_ip,
+                #'host_ip': self.host_ip,
                 'services': [],
                 'running': False,
                 'status': 'error',

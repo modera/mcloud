@@ -149,7 +149,7 @@ class ApiRpcClient(object):
                 app_status = ''
                 services_list = '\n'.join(services)
 
-            if app['web_service']:
+            if 'web_service' in app and app['web_service']:
                 web_service_ = app['web_service']
                 if web_service_.endswith(app['name']):
                      web_service_ = web_service_[0:-len(app['name']) - 1]

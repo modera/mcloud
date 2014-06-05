@@ -109,7 +109,10 @@ class Service(object):
                 }
 
                 if self.volumes and len(self.volumes):
-                   config['Binds'] = ['%s:%s' % (x['remote'], x['local']) for x in self.volumes]
+                   config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
+
+                #config['Binds'] = ["/home/alex/dev/mfcloud/examples/static_site1/public:/var/www"]
+
 
                 dfc = self.client.find_container_by_name(self.name)
                 dfc.addCallback(self.client.start_container, ticket_id=ticket_id, config=config)
