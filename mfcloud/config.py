@@ -62,7 +62,6 @@ class YamlConfig(IConfig):
     def load(self):
 
         try:
-            print(repr(self._file))
             if not self._file is None:
                 with open(self._file) as f:
                     cfg = yaml.load(f)
@@ -153,6 +152,7 @@ class YamlConfig(IConfig):
                 name = '%s.%s' % (name, app_name)
 
             s = Service()
+            s.app_name = self.app_name
             s.name = name
 
             self.process_image_build(s, service, path)

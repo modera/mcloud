@@ -20,6 +20,7 @@ class Service(object):
     def __init__(self, **kwargs):
         self.image_builder = None
         self.name = None
+        self.app_name = None
         self.volumes = None
         self.command = None
         self.env = None
@@ -83,6 +84,10 @@ class Service(object):
         if not self.is_running():
             return None
 
+        if not 'NetworkSettings' in self._inspect_data or not 'Ports' in self._inspect_data['NetworkSettings'] or \
+            not self._inspect_data['NetworkSettings']['Ports']:
+            return False
+
         return u'80/tcp' in self._inspect_data['NetworkSettings']['Ports']
 
     def is_created(self):
@@ -105,7 +110,7 @@ class Service(object):
 
                 config = {
                     "Dns": [self.dns_server],
-                    "DnsSearch": '%s.%s' % (self.name, self.dns_search_suffix)
+                    "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
                 }
 
                 if self.volumes and len(self.volumes):
