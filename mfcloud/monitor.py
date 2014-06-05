@@ -55,7 +55,7 @@ class DockerMonitor(object):
             def send_out_event(containers):
 
                 def on_apps_listed(app_data):
-                    self.event_bus.fire_event('containers-updated', list=containers, apps=app_data)
+                    self.event_bus.fire_event('containers-updated', apps=app_data)
 
                 ad = self.app_controller.list()
                 ad.addCallback(on_apps_listed)

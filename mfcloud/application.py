@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 import logging
 import inject
@@ -12,11 +13,12 @@ class Application(object):
     dns_search_suffix = inject.attr('dns-search-suffix')
     host_ip = inject.attr('host_ip')
 
-    def __init__(self, config, name=None):
+    def __init__(self, config, name=None, public_url=None):
         super(Application, self).__init__()
 
         self.config = config
         self.name = name
+        self.public_url = public_url
 
     def load(self, need_details=False):
 
@@ -73,6 +75,7 @@ class Application(object):
                 'fullname': '%s.%s' % (self.name, self.dns_search_suffix),
                 'web_ip': web_ip,
                 'web_service': web_service,
+                'public_url': self.public_url,
                 'config': self.config,
                 'services': services,
                 'running': is_running,
@@ -109,6 +112,17 @@ class ApplicationController(object):
 
         return d
 
+    def update(self, name, config):
+
+        d = self.redis.hget('mfcloud-apps', name)
+
+        def on_load(data):
+            data.update(config)
+            return self.redis.hset('mfcloud-apps', name, json.dumps(data))
+
+        d.addCallback(on_load)
+        return d
+
     def remove(self, name):
         return self.redis.hdel('mfcloud-apps', name)
 
@@ -131,8 +145,26 @@ class ApplicationController(object):
         d = self.redis.hgetall('mfcloud-apps')
 
         def ready(config):
-            return defer.gatherResults([(Application(json.loads(config), name=name)).load(need_details=True)
-                                        for name, config in config.items()], consumeErrors=True)
+
+            dd = self.redis.hgetall('mfcloud-deployments')
+
+            def dep_ready(deps):
+                pub_apps = {}
+                for name, config_raw in deps.items():
+                    try:
+                        dep = json.loads(config_raw)
+                        if dep['public_app']:
+                            pub_apps[dep['public_app']] = dep['public_domain']
+                    except ValueError:
+                        pass
+
+                return defer.gatherResults([(Application(json.loads(app_config), name=name, public_url=(pub_apps[name] if name in pub_apps else None))).load(need_details=True)
+                                        for name, app_config in config.items()], consumeErrors=True)
+
+            dd.addCallback(dep_ready)
+            return dd
+
+
 
         d.addCallback(ready)
         return d

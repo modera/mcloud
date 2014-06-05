@@ -4,6 +4,7 @@ import logging
 import sys
 import inject
 from mfcloud.util import txtimeout
+import os
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
@@ -63,14 +64,12 @@ class HaproxyConfig(object):
 
 
 
-    def dump(self, containers, apps_list):
+    def dump(self, apps_list):
 
         template = self.template
 
         if not template:
             template = Template(HAPROXY_TPL)
-
-        print apps_list
 
         apps = {}
 
@@ -84,35 +83,48 @@ class HaproxyConfig(object):
             if app['web_service']:
                 apps[app['fullname']] = app['web_ip']
 
+            if app['public_url']:
+                apps[app['public_url']] = app['web_ip']
+
         logging.info('Installing new app list: %s' % str(apps))
+
+
+        proxy_apps = []
+
+        for app in apps_list:
+            if not app['running']:
+                continue
+
+            domains = [app['fullname']]
+
+            if app['public_url']:
+                domains.append(app['public_url'])
+
+
+            proxy_apps.append({
+                'name': app['fullname'],
+                'domains': domains,
+                'backends': [{
+                     'name': 'backend_%s' % app['fullname'],
+                     'ip': app['web_ip'],
+                     'port': 80
+                 }]
+            })
+
+
+        template = Template(HAPROXY_TPL)
+
+        with open('/etc/haproxy/haproxy.cfg', 'w') as f:
+            f.write(template.render({'apps': proxy_apps}))
+
+        os.system('service haproxy reload')
+
 
         if len(apps) > 1:
             return self.redis.hmset('domain', apps)
         elif len(apps) == 1:
             return self.redis.hset('domain', apps.keys()[0], apps.values()[0])
 
-
-
-
-            # apps.append({
-            #     'name': re.sub('[^a-z0-9_]', '_', conf['domain']),
-            #     'domains': [conf['domain']],
-            #     'backends': [{
-            #                      'name': 'backend_%s' % i,
-            #                      'ip': x[0],
-            #                      'port': x[1]
-            #                  } for i, x in enumerate(conf['backends'])]
-            # })
-
-        #
-        #
-        #
-        # template = Template(HAPROXY_TPL)
-        #
-        # with open(path, 'w') as f:
-        #     f.write(template.render({'apps': apps}))
-        #
-        # os.system('service haproxy reload')
 
 def entry_point():
 
@@ -137,7 +149,7 @@ def entry_point():
         def on_message(message, tag):
             if tag == 'event-containers-updated':
                 data = json.loads(message)
-                config.dump(data['list'], data['apps'])
+                config.dump(data['apps'])
 
         zf2 = ZmqFactory()
 

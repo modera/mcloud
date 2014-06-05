@@ -127,13 +127,23 @@ class DeploymentController(object):
         app_full_name = '%s.%s' % (app_name, deployment_name)
 
         deployment.public_app = app_full_name
+
         yield self._persist_dployment(deployment)
+
+        app_data = yield self.app_controller.list()
+        self.eb.fire_event('containers-updated', apps=app_data)
+
+
 
     @inlineCallbacks
     def unpublish_app(self, deployment_name):
         deployment = yield self.get(deployment_name)
         deployment.public_app = None
+
         yield self._persist_dployment(deployment)
+
+        app_data = yield self.app_controller.list()
+        self.eb.fire_event('containers-updated', apps=app_data)
 
 
     @inlineCallbacks

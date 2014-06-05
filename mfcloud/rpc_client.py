@@ -157,6 +157,9 @@ class ApiRpcClient(object):
             else:
                 web = ''
 
+            if 'public_url' in app and app['public_url']:
+                web += '\n' + app['public_url']
+
             x.add_row([app['name'], web, app_status, services_list])
 
         print x
