@@ -52,11 +52,12 @@ def test_init_app_task_source():
     with inject_services(configure):
 
         ac.should_receive('create').with_args('foo', {'source': 'foo: bar'}).and_return(defer.succeed(flexmock())).once()
+        ac.should_receive('list').and_return(defer.succeed('result-of-list-operation'))
 
         ts = TaskService()
 
         r = yield ts.task_init_source(123123, 'foo', 'foo: bar')
-        assert r is True
+        assert r == 'result-of-list-operation'
 
 @pytest.inlineCallbacks
 def test_deployment_new_app_task_source():

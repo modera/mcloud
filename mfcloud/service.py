@@ -1,6 +1,8 @@
 import logging
 import inject
 from mfcloud.txdocker import IDockerClient
+from twisted.internet import defer
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 logger = logging.getLogger('mfcloud.application')
 
@@ -32,37 +34,27 @@ class Service(object):
         self.__dict__.update(kwargs)
         super(Service, self).__init__()
 
-
     def build_docker_config(self):
         pass
 
+
+    @inlineCallbacks
     def inspect(self):
 
-        d = self.client.find_container_by_name(self.name)
+        _id = yield self.client.find_container_by_name(self.name)
+        self._inspected = True
 
-        def id_resolved(id):
-            if not id:
-                self._inspect_data = {}
-                self._inspected = True
-                return None
-            else:
-                return self.client.inspect(id)
-
-        d.addCallback(id_resolved)
-
-        def save_inspect_data(data):
+        if not _id:
+            self._inspect_data = None
+        else:
+            data = yield self.client.inspect(_id)
             self._inspect_data = data
-            self._inspected = True
-            return data
 
-        d.addCallback(save_inspect_data)
-
-        return d
+        defer.returnValue(self._inspect_data)
 
     def is_running(self):
         if not self.is_inspected():
             raise self.NotInspectedYet()
-
         try:
             return self.is_created() and self._inspect_data['State']['Running']
         except KeyError:
@@ -96,59 +88,48 @@ class Service(object):
 
         return not self._inspect_data is None
 
+    @inlineCallbacks
     def start(self, ticket_id):
-
-        d = self.client.find_container_by_name(self.name)
+        id_ = yield self.client.find_container_by_name(self.name)
 
         logger.debug('[%s][%s] Starting service' % (ticket_id, self.name))
+        logger.debug('[%s][%s] Service resolve by name result: %s' % (ticket_id, self.name, id_))
 
-        def on_result(id):
-            logger.debug('[%s][%s] Service resolve by name result: %s' % (ticket_id, self.name, id))
+        # container is not created yet
+        if not id_:
+            logger.debug('[%s][%s] Service not created. Creating ...' % (ticket_id, self.name))
+            yield self.create(ticket_id)
+            id_ = yield self.client.find_container_by_name(self.name)
 
-            def start(*args):
-                logger.debug('[%s][%s] Starting service...' % (ticket_id, self.name))
+        logger.debug('[%s][%s] Starting service...' % (ticket_id, self.name))
 
-                config = {
-                    "Dns": [self.dns_server],
-                    "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
-                }
+        config = {
+            "Dns": [self.dns_server],
+            "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
+        }
 
-                if self.volumes and len(self.volumes):
-                   config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
+        if self.volumes and len(self.volumes):
+           config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
 
-                #config['Binds'] = ["/home/alex/dev/mfcloud/examples/static_site1/public:/var/www"]
+        #config['Binds'] = ["/home/alex/dev/mfcloud/examples/static_site1/public:/var/www"]
 
-                if not id:
-                    dfc = self.client.find_container_by_name(self.name)
-                    dfc.addCallback()
-                    return dfc
-                else:
-                    return self.client.start_container(id, ticket_id=ticket_id, config=config)
+        yield self.client.start_container(id_, ticket_id=ticket_id, config=config)
 
-            if not id:
-                logger.debug('[%s][%s] Service not created. Creating ...' % (ticket_id, self.name))
-                d = self.create(ticket_id)
-                d.addCallback(start, ticket_id)
-                return d
-            else:
-                return start()
+        # inspect and return result
+        ret = yield self.inspect()
+        defer.returnValue(ret)
 
-        d.addCallback(on_result)
-        d.addCallback(lambda *args: self.inspect())
 
-        return d
-
+    @inlineCallbacks
     def stop(self, ticket_id):
 
-        d = self.client.find_container_by_name(self.name)
+        id = yield self.client.find_container_by_name(self.name)
 
-        def on_result(id):
-            return self.client.stop_container(id, ticket_id=ticket_id)
+        yield self.client.stop_container(id, ticket_id=ticket_id)
 
-        d.addCallback(on_result)
-        d.addCallback(lambda *args: self.inspect())
+        ret = yield self.inspect()
+        defer.returnValue(ret)
 
-        return d
 
     def _generate_config(self, image_name):
         config = {
@@ -163,31 +144,25 @@ class Service(object):
 
         return config
 
+
+    @inlineCallbacks
     def create(self, ticket_id):
 
-        d = self.image_builder.build_image(ticket_id=ticket_id)
+        image_name = yield self.image_builder.build_image(ticket_id=ticket_id)
 
-        def image_ready(image_name):
-            config = self._generate_config(image_name)
+        config = self._generate_config(image_name)
+        yield self.client.create_container(config, self.name, ticket_id=ticket_id)
 
-            return self.client.create_container(config, self.name, ticket_id=ticket_id)
+        ret = yield self.inspect()
+        defer.returnValue(ret)
 
-        d.addCallback(image_ready)
-        d.addCallback(lambda *args: self.inspect())
-
-        return d
-
+    @inlineCallbacks
     def destroy(self, ticket_id):
+        id_ = yield self.client.find_container_by_name(self.name)
+        yield self.client.remove_container(id_, ticket_id=ticket_id)
 
-        d = self.client.find_container_by_name(self.name)
-
-        def on_result(id):
-            return self.client.remove_container(id, ticket_id=ticket_id)
-
-        d.addCallback(on_result)
-        d.addCallback(lambda *args: self.inspect())
-
-        return d
+        ret = yield self.inspect()
+        defer.returnValue(ret)
 
     def is_inspected(self):
         return self._inspected

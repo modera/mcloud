@@ -10,7 +10,6 @@ import txredisapi
 
 logger = logging.getLogger('mfcloud.tasks')
 
-
 class TaskService():
     app_controller = inject.attr(ApplicationController)
     deployment_controller = inject.attr(DeploymentController)
@@ -23,243 +22,213 @@ class TaskService():
     def task_help(self, ticket_id):
         pass
 
+    @inlineCallbacks
     def task_init(self, ticket_id, name, path):
 
-        d = self.app_controller.create(name, {'path': path})
+        yield self.app_controller.create(name, {'path': path})
 
-        def done(app):
-            return not app is None
+        ret = yield self.app_controller.list()
+        defer.returnValue(ret)
 
-        d.addCallback(done)
-        d.addCallback(self.app_controller.list)
-        return d
-
+    @inlineCallbacks
     def task_init_source(self, ticket_id, name, source):
 
-        d = self.app_controller.create(name, {'source': source})
+        yield self.app_controller.create(name, {'source': source})
 
-        def done(app):
-            return not app is None
-
-        d.addCallback(done)
-        return d
+        ret = yield self.app_controller.list()
+        defer.returnValue(ret)
 
     def task_list(self, ticket_id):
         return self.app_controller.list()
 
+    @inlineCallbacks
     def task_remove(self, ticket_id, name):
-        d = self.app_controller.remove(name)
+        yield self.app_controller.remove(name)
 
-        d.addCallback(self.app_controller.list)
-        return d
+        ret = yield self.app_controller.list()
+        defer.returnValue(ret)
 
+
+    @inlineCallbacks
     def task_status(self, ticket_id, name):
-        d = self.app_controller.get(name)
+        app = yield self.app_controller.get(name)
+        config = yield app.load()
 
-        def on_result(config):
+        """
+        @type config: YamlConfig
+        """
+
+        data = []
+        for service in config.get_services().values():
             """
-            @type config: YamlConfig
+            @type service: Service
             """
 
-            data = []
-            for service in config.get_services().values():
-                """
-                @type service: Service
-                """
+            assert service.is_inspected()
 
-                assert service.is_inspected()
+            data.append([
+                service.name,
+                service.is_running(),
+                service.is_running()
+            ])
 
-                data.append([
-                    service.name,
-                    service.is_running(),
-                    service.is_running()
-                ])
+        defer.returnValue(data)
 
-            return data
 
-        d.addCallback(lambda app: app.load())
-        d.addCallback(on_result)
-        return d
-
+    @inlineCallbacks
     def task_start(self, ticket_id, name):
 
         logger.debug('[%s] Starting application' % (ticket_id, ))
 
-        d = self.app_controller.get(name)
+        app = yield self.app_controller.get(name)
+        config = yield app.load()
 
-        def on_result(config):
-            """
-            @type config: YamlConfig
-            """
+        """
+        @type config: YamlConfig
+        """
 
-            logger.debug('[%s] Got response' % (ticket_id, ))
+        logger.debug('[%s] Got response' % (ticket_id, ))
 
-            d = []
-            for service in config.get_services().values():
-                if not service.is_running():
-                    logger.debug(
-                        '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
-                    d.append(service.start(ticket_id))
-                else:
-                    logger.debug(
-                        '[%s] Service %s is already running.' % (ticket_id, service.name))
+        d = []
+        for service in config.get_services().values():
+            if not service.is_running():
+                logger.debug(
+                    '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
+                d.append(service.start(ticket_id))
+            else:
+                logger.debug(
+                    '[%s] Service %s is already running.' % (ticket_id, service.name))
 
-            deferred_list = DeferredList(d)
-            deferred_list.addCallback(self.app_controller.list)
-            return deferred_list
+        yield defer.gatherResults(d)
 
-        d.addCallback(lambda app: app.load())
-        d.addCallback(on_result)
-        return d
+        ret = yield self.app_controller.list()
+        defer.returnValue(ret)
 
+    @inlineCallbacks
     def task_stop(self, ticket_id, name):
 
         logger.debug('[%s] Stoping application' % (ticket_id, ))
 
-        d = self.app_controller.get(name)
+        app = yield self.app_controller.get(name)
+        config = yield app.load()
 
-        def on_result(config):
-            """
-            @type config: YamlConfig
-            """
+        """
+        @type config: YamlConfig
+        """
 
-            logger.debug('[%s] Got response' % (ticket_id, ))
+        logger.debug('[%s] Got response' % (ticket_id, ))
 
-            d = []
-            for service in config.get_services().values():
-                if service.is_running():
-                    logger.debug(
-                        '[%s] Service %s is running. Stoping' % (ticket_id, service.name))
-                    d.append(service.stop(ticket_id))
-                else:
-                    logger.debug(
-                        '[%s] Service %s is already stopped.' % (ticket_id, service.name))
+        d = []
+        for service in config.get_services().values():
+            if service.is_running():
+                logger.debug(
+                    '[%s] Service %s is running. Stoping' % (ticket_id, service.name))
+                d.append(service.stop(ticket_id))
+            else:
+                logger.debug(
+                    '[%s] Service %s is already stopped.' % (ticket_id, service.name))
 
-            return DeferredList(d)
+        yield defer.gatherResults(d)
 
-        d.addCallback(lambda app: app.load())
-        d.addCallback(on_result)
-        d.addCallback(self.app_controller.list)
-        return d
+        ret = yield self.app_controller.list()
+        defer.returnValue(ret)
 
+    @inlineCallbacks
     def task_destroy(self, ticket_id, name):
 
         logger.debug('[%s] Destroying application containers' % (ticket_id, ))
 
-        d = self.app_controller.get(name)
+        app = yield self.app_controller.get(name)
+        config = yield app.load()
 
-        def on_result(config):
-            """
-            @type config: YamlConfig
-            """
+        """
+        @type config: YamlConfig
+        """
 
-            logger.debug('[%s] Got response' % (ticket_id, ))
+        logger.debug('[%s] Got response' % (ticket_id, ))
 
-            d = []
-            for service in config.get_services().values():
-                if service.is_created():
-                    if service.is_running():
-                        logger.debug(
-                            '[%s] Service %s container is running. Stopping and then destroying' % (ticket_id, service.name))
-                        service_stop = service.stop(ticket_id)
-                        service_stop.addCallback(lambda *_: service.destroy(ticket_id))
-                        d.append(service_stop)
+        d = []
+        for service in config.get_services().values():
+            if service.is_created():
+                if service.is_running():
+                    logger.debug(
+                        '[%s] Service %s container is running. Stopping and then destroying' % (ticket_id, service.name))
+                    service_stop = service.stop(ticket_id)
+                    service_stop.addCallback(lambda *_: service.destroy(ticket_id))
+                    d.append(service_stop)
 
-                    else:
-                        logger.debug(
-                            '[%s] Service %s container is created. Destroying' % (ticket_id, service.name))
-                        d.append(service.destroy(ticket_id))
                 else:
                     logger.debug(
-                        '[%s] Service %s container is not yet created.' % (ticket_id, service.name))
+                        '[%s] Service %s container is created. Destroying' % (ticket_id, service.name))
+                    d.append(service.destroy(ticket_id))
+            else:
+                logger.debug(
+                    '[%s] Service %s container is not yet created.' % (ticket_id, service.name))
 
-            return DeferredList(d)
+        yield defer.gatherResults(d)
 
-        d.addCallback(lambda app: app.load())
-        d.addCallback(on_result)
-        d.addCallback(self.app_controller.list)
-        return d
+        ret = yield self.app_controller.list()
+        defer.returnValue(ret)
 
+
+    @inlineCallbacks
     def task_inspect(self, ticket_id, name, service_name):
 
         logger.debug('[%s] Inspecting application service %s' %
                      (ticket_id, service_name))
 
-        d = self.app_controller.get(name)
+        app = yield self.app_controller.get(name)
+        config = yield app.load()
 
-        def on_result(config):
-            """
-            @type config: YamlConfig
-            """
-            logger.debug('[%s] Got response' % (ticket_id, ))
+        """
+        @type config: YamlConfig
+        """
+        logger.debug('[%s] Got response' % (ticket_id, ))
 
-            service = config.get_service(service_name)
-            if not service.is_running():
-                return 'Not running'
+        service = config.get_service(service_name)
+        if not service.is_running():
+            defer.returnValue('Not running')
+        else:
+            if not service.is_inspected():
+                ret = yield service.inspect()
+                defer.returnValue(ret)
             else:
-                if not service.is_inspected():
-                    return service.inspect()
-                else:
-                    return service._inspect_data
+                defer.returnValue(service._inspect_data)
 
-        d.addCallback(lambda app: app.load())
-        d.addCallback(on_result)
-        return d
 
+    @inlineCallbacks
     def task_deployments(self, ticket_id):
-        d = self.deployment_controller.list()
+        deployments = yield self.deployment_controller.list()
 
-        def done(deployments):
-            deployment_list = []
+        deployment_list = []
 
-            for deployment in deployments:
-                deployment_list.append(deployment.load_data())
+        for deployment in deployments:
+            deployment_list.append(deployment.load_data())
 
-            return defer.gatherResults(deployment_list, consumeErrors=True)
+        ret = yield defer.gatherResults(deployment_list, consumeErrors=True)
+        defer.returnValue(ret)
 
-        d.addCallback(done)
-        return d
-
+    @inlineCallbacks
     def task_deployment_details(self, ticket_id, name):
-        d = self.deployment_controller.get(name)
+        deployment = yield self.deployment_controller.get(name)
 
-        def done(deployment):
-            return deployment.load_data()
+        ret = yield deployment.load_data()
+        defer.returnValue(ret)
 
-        d.addCallback(done)
-        return d
-
+    @inlineCallbacks
     def task_deployment_create(self, ticket_id, name, public_domain):
+        deployment = yield self.deployment_controller.create(name, public_domain)
+        defer.returnValue(not deployment is None)
 
-        d = self.deployment_controller.create(name, public_domain)
-
-        def done(deployment):
-            return not deployment is None
-
-        d.addCallback(done)
-        return d
-
+    @inlineCallbacks
     def task_deployment_new_app_zip(self, ticket_id, deployment_name, name, path):
+        app = yield self.deployment_controller.new_app(deployment_name, name, {'path': path})
+        defer.returnValue(not app is None)
 
-        d = self.deployment_controller.new_app(
-            deployment_name, name, {'path': path})
-
-        def done(app):
-            return not app is None
-
-        d.addCallback(done)
-        return d
-
+    @inlineCallbacks
     def task_deployment_new_app_source(self, ticket_id, deployment_name, name, source):
-
-        d = self.deployment_controller.new_app(
-            deployment_name, name, {'source': source})
-
-        def done(app):
-            return not app is None
-
-        d.addCallback(done)
-        return d
+        app = yield self.deployment_controller.new_app(deployment_name, name, {'source': source})
+        defer.returnValue(not app is None)
 
     def task_deployment_publish_app(self, ticket_id, deployment_name, app_name):
         return self.deployment_controller.publish_app(deployment_name, app_name)
@@ -267,15 +236,10 @@ class TaskService():
     def task_deployment_unpublish_app(self, ticket_id, deployment_name):
         return self.deployment_controller.unpublish_app(deployment_name)
 
+    @inlineCallbacks
     def task_deployment_remove(self, ticket_id, name):
-
-        d = self.deployment_controller.remove(name)
-
-        def done(deployment):
-            return not deployment is None
-
-        d.addCallback(done)
-        return d
+        deployment = yield self.deployment_controller.remove(name)
+        defer.returnValue(deployment is None)
 
     #
     # def task_deployment_details(self, ticket_id, name):

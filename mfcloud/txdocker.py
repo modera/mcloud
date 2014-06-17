@@ -8,7 +8,7 @@ from mfcloud.util import Interface
 import re
 import treq
 from twisted.internet import defer
-from twisted.internet.defer import CancelledError
+from twisted.internet.defer import CancelledError, inlineCallbacks
 from twisted.web._newclient import ResponseFailed
 from txzmq import ZmqPubConnection
 
@@ -19,7 +19,7 @@ class IDockerClient(Interface):
 
 
 def json_response(result):
-        return txhttp.json_content(result)
+    return txhttp.json_content(result)
 
 
 class CommandFailed(Exception):
@@ -231,21 +231,12 @@ class DockerTwistedClient(object):
         r.addCallback(self.collect_json_or_none)
         return r
 
+    @inlineCallbacks
     def remove_container(self, id, ticket_id):
-        r = self._delete('containers/%s' % bytes(id))
+        result = yield self._delete('containers/%s' % bytes(id))
+        defer.returnValue(result.code == 204)
 
-        def done(result):
-            return result.code == 204
-
-        r.addCallback(done)
-        #
-        # def error(r):
-        #     return False
-        #
-        # r.addErrback(error)
-
-        return r
-
+    @inlineCallbacks
     def start_container(self, id, ticket_id, config=None):
 
         logger.debug('[%s] Start container "%s"', ticket_id, id)
@@ -253,50 +244,21 @@ class DockerTwistedClient(object):
         if config is None:
             config = {}
 
-        r = self._post('containers/%s/start' % bytes(id), headers={'Content-Type': 'application/json'}, data=json.dumps(config))
+        result = yield self._post('containers/%s/start' % bytes(id), headers={'Content-Type': 'application/json'}, data=json.dumps(config))
+        defer.returnValue(result.code == 204)
 
-        def done(result):
-            return result.code == 204
-
-        r.addCallback(done)
-        #
-        # def error(r):
-        #     return False
-        #
-        # r.addErrback(error)
-
-        return r
-
+    @inlineCallbacks
     def stop_container(self, id, ticket_id):
-        r = self._post('containers/%s/stop' % bytes(id))
+        result = yield self._post('containers/%s/stop' % bytes(id))
+        defer.returnValue(result.code == 204)
 
-        def done(result):
-            return result.code == 204
-
-        r.addCallback(done)
-
-        # def error(r):
-        #     return False
-        #
-        # r.addErrback(error)
-
-        return r
-
+    @inlineCallbacks
     def find_container_by_name(self, name):
-        r = self._get('containers/json?all=1')
+        result = yield self._get('containers/json?all=1')
+        response = yield txhttp.json_content(result)
 
-        def on_response(response):
-            for ct in response:
-                if ('/%s' % name) in ct['Names']:
-                    return ct['Id']
-            return None
+        for ct in response:
+            if ('/%s' % name) in ct['Names']:
+                defer.returnValue(ct['Id'])
 
-        r.addCallback(txhttp.json_content)
-        r.addCallback(on_response)
-
-        # def error(r):
-        #     return None
-        #
-        # r.addErrback(error)
-
-        return r
+        defer.returnValue(None)

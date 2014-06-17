@@ -31,6 +31,7 @@ class Deployment(object):
         }
 
 
+    @inlineCallbacks
     def load_data(self, *args, **kwargs):
 
         deployment = self.config
@@ -40,13 +41,9 @@ class Deployment(object):
 
             da = self.app_controller.get(app)
             def on_app_resolved(app_instance):
-
                 return app_instance.load(need_details=True)
 
             def on_error(failure):
-
-                print failure
-
                 failure.trap(AppDoesNotExist, ConfigParseError)
                 return None
 
@@ -55,15 +52,10 @@ class Deployment(object):
 
             apps.append(da)
 
-        d = defer.gatherResults(apps, consumeErrors=True)
+        app_data = yield defer.gatherResults(apps, consumeErrors=True)
 
-        def apps_received(app_data):
-            deployment['apps'] = [app for app in app_data if not app is None]
-            return deployment
-
-        d.addCallback(apps_received)
-
-        return d
+        deployment['apps'] = [app for app in app_data if not app is None]
+        defer.returnValue(deployment)
 
 
 class DeploymentDoesNotExist(Exception):
@@ -80,45 +72,36 @@ class DeploymentController(object):
     @type app_controller: ApplicationController
     """
 
+
+    @inlineCallbacks
     def create(self, name, domain):
         deployment = Deployment(name=name, public_domain=domain)
-        d = self._persist_dployment(deployment)
 
-        def on_ready(data):
-            self.eb.fire_event('new-deployment', **data)
-            return deployment
+        yield self._persist_dployment(deployment)
+        data = yield deployment.load_data()
 
-        d.addCallback(deployment.load_data)
-        d.addCallback(on_ready)
-
-        return d
+        self.eb.fire_event('new-deployment', **data)
+        defer.returnValue(deployment)
 
     def remove(self, name):
         self.eb.fire_event('remove-deployment', name=name)
         return self.redis.hdel('mfcloud-deployments', name)
 
+
+    @inlineCallbacks
     def get(self, name):
 
-        d = self.redis.hget('mfcloud-deployments', name)
+        config = yield self.redis.hget('mfcloud-deployments', name)
 
-        def ready(config):
-            if not config:
-                raise DeploymentDoesNotExist('Deployment with name "%s" do not exist' % name)
-            else:
-                return Deployment(**json.loads(config))
+        if not config:
+            raise DeploymentDoesNotExist('Deployment with name "%s" do not exist' % name)
+        else:
+            defer.returnValue(Deployment(**json.loads(config)))
 
-        d.addCallback(ready)
-
-        return d
-
+    @inlineCallbacks
     def list(self):
-        d = self.redis.hgetall('mfcloud-deployments')
-
-        def ready(config):
-            return [Deployment(**json.loads(config)) for name, config in config.items()]
-        d.addCallback(ready)
-
-        return d
+        config = yield self.redis.hgetall('mfcloud-deployments')
+        defer.returnValue([Deployment(**json.loads(config)) for name, config in config.items()])
 
     @inlineCallbacks
     def publish_app(self, deployment_name, app_name):

@@ -10,6 +10,7 @@ from twisted.internet import reactor, defer
 
 logger = logging.getLogger('mfcloud.application')
 
+
 class IContainerBuilder(Interface):
     pass
 
@@ -32,24 +33,20 @@ class PrebuiltImageBuilder(IImageBuilder):
 
         self.image = image
 
+    @defer.inlineCallbacks
     def build_image(self, ticket_id):
 
         logger.debug('[%s] Building image "%s".', ticket_id, self.image)
 
-        def on_ready(images):
-            if not images:
-                logger.debug('[%s] Image is not there. Pulling "%s" ...', ticket_id, self.image)
-                d_pull = self.client.pull(self.image, ticket_id)
-                d_pull.addCallback(lambda *args: self.image)
-                return d_pull
-            else:
-                logger.debug('[%s] Image "%s" is ready to use.', ticket_id, self.image)
-                return self.image
+        images = yield self.client.images(name=self.image)
+        if not images:
+            logger.debug('[%s] Image is not there. Pulling "%s" ...', ticket_id, self.image)
 
-        d = self.client.images(name=self.image)
-        d.addCallback(on_ready)
+            # pull the image
+            yield self.client.pull(self.image, ticket_id)
 
-        return d
+        logger.debug('[%s] Image "%s" is ready to use.', ticket_id, self.image)
+        defer.returnValue(self.image)
 
 
 class DockerfileImageBuilder(IImageBuilder):
@@ -74,16 +71,11 @@ class DockerfileImageBuilder(IImageBuilder):
         reactor.callLater(0, archive)
         return d
 
+    @defer.inlineCallbacks
     def build_image(self, ticket_id):
-
-        d = self.create_archive()
-
-        def on_archive_ready(archive):
-            return self.client.build_image(archive, ticket_id=ticket_id)
-
-        d.addCallback(on_archive_ready)
-
-        return d
+        archive = yield self.create_archive()
+        ret = yield self.client.build_image(archive, ticket_id=ticket_id)
+        defer.returnValue(ret)
 
 
 class ContainerBuider(IContainerBuilder):
