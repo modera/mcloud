@@ -118,10 +118,12 @@ class Service(object):
 
                 #config['Binds'] = ["/home/alex/dev/mfcloud/examples/static_site1/public:/var/www"]
 
-
-                dfc = self.client.find_container_by_name(self.name)
-                dfc.addCallback(self.client.start_container, ticket_id=ticket_id, config=config)
-                return dfc
+                if not id:
+                    dfc = self.client.find_container_by_name(self.name)
+                    dfc.addCallback()
+                    return dfc
+                else:
+                    return self.client.start_container(id, ticket_id=ticket_id, config=config)
 
             if not id:
                 logger.debug('[%s][%s] Service not created. Creating ...' % (ticket_id, self.name))

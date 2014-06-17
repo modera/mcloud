@@ -13,6 +13,17 @@ def inject_services(configurator):
     yield
     inject.clear()
 
+@contextmanager
+def injector(bind_config):
+
+    def configurator(binder):
+        for key, val in bind_config.items():
+            binder.bind(key, val)
+
+    inject.clear_and_configure(configurator)
+    yield
+    inject.clear()
+
 
 def txtimeout(deferred, timeout, fail):
     delayedCall = reactor.callLater(timeout, fail)

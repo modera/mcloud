@@ -41,6 +41,7 @@ def test_load_data():
     def configure(binder):
         binder.bind(ApplicationController, ac)
         binder.bind(IDockerClient, docker)
+        binder.bind('dns-search-suffix', 'foo.lh')
 
     with inject_services(configure):
 
@@ -53,39 +54,11 @@ def test_load_data():
 
         print config
 
-        assert config == {
-            'name': 'baz',
-            'public_domain': 'foo.bar',
-            'public_app': None,
-            'apps': [
-                {
-                    'name': 'v1.baz',
-                    'running': False,
-                    'status': 'STOPPED',
-                    'config': {
-                        'source': 'srv: {image: bar}'
-                    },
-                    'services':[{
-                        'ip': None,
-                        'name': 'srv.v1.baz',
-                        'running': False
-                    }]
-                },
-                {
-                    'name': 'v2.baz',
-                    'running': False,
-                    'status': 'STOPPED',
-                    'config': {
-                        'source': 'srv: {image: baz}'
-                    },
-                    'services': [{
-                            'ip': None,
-                            'name': 'srv.v2.baz',
-                            'running': False
-                    }]
-                }
-            ]
-        }
+        assert config['name'] == 'baz'
+        assert config['public_domain'] == 'foo.bar'
+        assert config['public_app'] == None
+
+        assert len(config['apps']) == 2
 
 
 @pytest.inlineCallbacks
@@ -192,7 +165,7 @@ def test_deployment_controller_publish_app():
     with inject_services(configure):
         controller = DeploymentController()
 
-        eb.should_receive('fire_event').once()
+        eb.should_receive('fire_event').times(3)
         yield controller.create('foo', None)
 
         r = yield controller.get('foo')

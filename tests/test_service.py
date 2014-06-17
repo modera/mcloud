@@ -1,3 +1,5 @@
+from mfcloud.txdocker import IDockerClient, DockerTwistedClient
+from mfcloud.util import injector
 import os
 from flexmock import flexmock
 from mfcloud.config import YamlConfig
@@ -127,48 +129,49 @@ def test_create():
 @pytest.inlineCallbacks
 def test_start():
 
-    s = Service()
-    s.name = 'my_service'
-    flexmock(s)
+    with injector({'dns-server': 'local.dns', 'dns-search-suffix': 'local'}):
 
-    s.client = flexmock()
+        s = Service()
+        s.name = 'my_service'
+        flexmock(s)
 
-    s.client.should_receive('find_container_by_name').with_args('my_service').once().and_return(defer.succeed('123abc'))
-    s.client.should_receive('start_container').with_args('123abc', ticket_id=123123, config={}).once().and_return(defer.succeed('boo'))
-    s.should_receive('inspect').with_args().once().and_return(defer.succeed('baz'))
+        s.client = flexmock()
 
-    r = yield s.start(ticket_id=123123)
+        s.client.should_receive('find_container_by_name').with_args('my_service').once().and_return(defer.succeed('123abc'))
+        s.client.should_receive('start_container').with_args('123abc', ticket_id=123123, config={'DnsSearch': 'None.local', 'Dns': ['local.dns']}).once().and_return(defer.succeed('boo'))
+        s.should_receive('inspect').with_args().once().and_return(defer.succeed('baz'))
 
-    assert r == 'baz'
+        r = yield s.start(ticket_id=123123)
+
+        assert r == 'baz'
 
 
 @pytest.inlineCallbacks
 def test_start_volumes():
 
-    s = Service()
-    s.name = 'my_service'
-    s.volumes = [
-        {'local': '/base/path/foo1', 'remote': '/bar1'},
-        {'local': '/base/path/foo2', 'remote': '/bar2'},
-        {'local': '/base/path/foo3', 'remote': '/bar3'}
-    ]
-    flexmock(s)
+    with injector({'dns-server': 'local.dns', 'dns-search-suffix': 'local'}):
+        s = Service()
+        s.name = 'my_service'
+        s.volumes = [
+            {'local': '/base/path/foo1', 'remote': '/bar1'},
+            {'local': '/base/path/foo2', 'remote': '/bar2'},
+            {'local': '/base/path/foo3', 'remote': '/bar3'}
+        ]
+        flexmock(s)
 
-    s.client = flexmock()
+        s.client = flexmock()
 
-    s.client.should_receive('find_container_by_name').with_args('my_service').once().and_return(defer.succeed('123abc'))
-    s.client.should_receive('start_container').with_args('123abc', ticket_id=123123, config={
-        "Volumes": {
-            '/bar1': '/base/path/foo1',
-            '/bar2': '/base/path/foo2',
-            '/bar3': '/base/path/foo3'
-        }
-    }).once().and_return(defer.succeed('boo'))
-    s.should_receive('inspect').with_args().once().and_return(defer.succeed('baz'))
+        s.client.should_receive('find_container_by_name').with_args('my_service').once().and_return(defer.succeed('123abc'))
+        s.client.should_receive('start_container').with_args('123abc', ticket_id=123123, config={
+            "Binds": ['/base/path/foo1:/bar1', '/base/path/foo2:/bar2', '/base/path/foo3:/bar3'],
+            'DnsSearch': 'None.local',
+            'Dns': ['local.dns']
+        }).once().and_return(defer.succeed('boo'))
+        s.should_receive('inspect').with_args().once().and_return(defer.succeed('baz'))
 
-    r = yield s.start(ticket_id=123123)
+        r = yield s.start(ticket_id=123123)
 
-    assert r == 'baz'
+        assert r == 'baz'
 
 
 def test_generate_config():
@@ -205,7 +208,7 @@ def test_generate_config_volumes():
 @pytest.inlineCallbacks
 def test_service_api():
 
-    with real_docker():
+    with injector({'dns-server': 'local.dns', 'dns-search-suffix': 'local', IDockerClient: DockerTwistedClient()}):
 
         name = 'test.foo'
 

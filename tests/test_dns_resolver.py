@@ -18,7 +18,7 @@ def test_resolve_unknown_domain():
 
 @pytest.inlineCallbacks
 def test_resolve_unknown_domain_local():
-    resolver = Resolver(servers=[('8.8.8.8', 53)])
+    resolver = Resolver(servers=[('8.8.8.8', 53)], prefix='local')
 
     flexmock(resolver)
     resolver.should_receive('_lookup').never()
@@ -38,7 +38,7 @@ def test_resolve_unknown_domain_local():
 
 @pytest.inlineCallbacks
 def test_resolve_unknown_domain_local_unknown():
-    resolver = Resolver(servers=[('8.8.8.8', 53)])
+    resolver = Resolver(servers=[('8.8.8.8', 53)], prefix='local')
 
     flexmock(resolver)
     resolver.should_receive('_lookup').never()

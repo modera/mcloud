@@ -2,7 +2,7 @@ from flexmock import flexmock
 from mfcloud.application import ApplicationController, Application
 from mfcloud.deployment import DeploymentController, Deployment
 from mfcloud.tasks import TaskService
-from mfcloud.util import inject_services
+from mfcloud.util import inject_services, injector
 import pytest
 from twisted.internet import defer
 import txredisapi
@@ -10,13 +10,15 @@ import txredisapi
 
 def test_tasks_are_registered():
 
-    tasks = {}
-    rpc_server = flexmock(tasks=tasks)
+    with injector({}):
 
-    ts = TaskService()
-    ts.register(rpc_server)
+        tasks = {}
+        rpc_server = flexmock(tasks=tasks)
 
-    assert tasks['help'] == ts.task_help
+        ts = TaskService()
+        ts.register(rpc_server)
+
+        assert tasks['help'] == ts.task_help
 
 
 
@@ -31,11 +33,12 @@ def test_init_app_task():
     with inject_services(configure):
 
         ac.should_receive('create').with_args('foo', {'path': 'some/path'}).and_return(defer.succeed(flexmock()))
+        ac.should_receive('list').and_return(defer.succeed('result-of-list-operation'))
 
         ts = TaskService()
 
         r = yield ts.task_init(123123, 'foo', 'some/path')
-        assert r is True
+        assert r == 'result-of-list-operation'
 
 
 @pytest.inlineCallbacks
