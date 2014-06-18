@@ -69,7 +69,7 @@ setup(
     install_requires=[
         'jinja2',
         'texttable',
-        'flask',
+        'Flask',
         'Flask-API',
         'twisted',
         'txredisapi',
