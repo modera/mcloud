@@ -24,6 +24,8 @@ class Service(object):
         self.name = None
         self.app_name = None
         self.volumes = None
+        self.volumes_from = None
+        self.ports = None
         self.command = None
         self.env = None
         self.config = None
@@ -65,6 +67,18 @@ class Service(object):
             return None
 
         return self._inspect_data['NetworkSettings']['IPAddress']
+
+    def public_ports(self):
+        if not self.is_running():
+            return None
+
+        return self._inspect_data['NetworkSettings']['Ports']
+
+    def attached_volumes(self):
+        if not self.is_running():
+            return None
+
+        return self._inspect_data['Volumes'].keys()
 
     def started_at(self):
         if not self.is_running():
@@ -108,8 +122,16 @@ class Service(object):
             "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
         }
 
+        if self.volumes_from:
+            config['VolumesFrom'] = self.volumes_from
+
+        if self.ports:
+            config['PortBindings'] = dict([(port, [{}]) for port in self.ports])
+
         if self.volumes and len(self.volumes):
            config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
+
+        print config
 
         #config['Binds'] = ["/home/alex/dev/mfcloud/examples/static_site1/public:/var/www"]
 
@@ -130,12 +152,14 @@ class Service(object):
         ret = yield self.inspect()
         defer.returnValue(ret)
 
-
     def _generate_config(self, image_name):
         config = {
             "Hostname": self.name,
             "Image": image_name,
         }
+
+        if self.ports:
+            config['ExposedPorts'] = dict([(port, {}) for port in self.ports])
 
         if self.volumes and len(self.volumes):
             config['Volumes'] = dict([

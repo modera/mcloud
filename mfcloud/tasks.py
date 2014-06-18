@@ -104,6 +104,34 @@ class TaskService():
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
 
+
+    @inlineCallbacks
+    def task_push(self, ticket_id, source, destination):
+
+        #app = yield self.app_controller.get(name)
+        #config = yield app.load()
+        #
+        #"""
+        #@type config: YamlConfig
+        #"""
+
+        ret = None
+
+        #d = []
+        #for service in config.get_services().values():
+        #    if not service.is_running():
+        #        logger.debug(
+        #            '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
+        #        d.append(service.start(ticket_id))
+        #    else:
+        #        logger.debug(
+        #            '[%s] Service %s is already running.' % (ticket_id, service.name))
+        #
+        #yield defer.gatherResults(d)
+        #
+        #ret = yield self.app_controller.list()
+        defer.returnValue(ret)
+
     @inlineCallbacks
     def task_stop(self, ticket_id, name):
 

@@ -66,6 +66,8 @@ class Application(object):
             services.append({
                 'name': service.name,
                 'ip': service.ip(),
+                'ports': service.public_ports(),
+                'volumes': service.attached_volumes(),
                 'started_at': service.started_at(),
                 'fullname': '%s.%s' % (service.name, self.dns_search_suffix),
                 'is_web': service.is_web(),

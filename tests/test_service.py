@@ -173,6 +173,54 @@ def test_start_volumes():
 
         assert r == 'baz'
 
+@pytest.inlineCallbacks
+def test_start_volumes_from():
+
+    with injector({'dns-server': 'local.dns', 'dns-search-suffix': 'local'}):
+        s = Service()
+        s.name = 'my_service'
+        s.volumes_from = ['foo', 'bar']
+
+        flexmock(s)
+
+        s.client = flexmock()
+
+        s.client.should_receive('find_container_by_name').with_args('my_service').once().and_return(defer.succeed('123abc'))
+        s.client.should_receive('start_container').with_args('123abc', ticket_id=123123, config={
+            "VolumesFrom": ['foo', 'bar'],
+            'DnsSearch': 'None.local',
+            'Dns': ['local.dns']
+        }).once().and_return(defer.succeed('boo'))
+        s.should_receive('inspect').with_args().once().and_return(defer.succeed('baz'))
+
+        r = yield s.start(ticket_id=123123)
+
+        assert r == 'baz'
+
+@pytest.inlineCallbacks
+def test_start_ports():
+
+    with injector({'dns-server': 'local.dns', 'dns-search-suffix': 'local'}):
+        s = Service()
+        s.name = 'my_service'
+        s.ports = ['22']
+
+        flexmock(s)
+
+        s.client = flexmock()
+
+        s.client.should_receive('find_container_by_name').with_args('my_service').once().and_return(defer.succeed('123abc'))
+        s.client.should_receive('start_container').with_args('123abc', ticket_id=123123, config={
+            "PortBindings": ['22'],
+            'DnsSearch': 'None.local',
+            'Dns': ['local.dns']
+        }).once().and_return(defer.succeed('boo'))
+        s.should_receive('inspect').with_args().once().and_return(defer.succeed('baz'))
+
+        r = yield s.start(ticket_id=123123)
+
+        assert r == 'baz'
+
 
 def test_generate_config():
 

@@ -15,7 +15,7 @@ logger = logging.getLogger('mfcloud.client')
 
 class ApiRpcClient(object):
 
-    def __init__(self, host):
+    def __init__(self, host='0.0.0.0'):
         super(ApiRpcClient, self).__init__()
 
         self.host = host
@@ -97,7 +97,6 @@ class ApiRpcClient(object):
 
                 elif 'status' in data:
                     sys.stdout.write('\n%s' % (data['status']))
-
                 else:
                     if isinstance(data, basestring):
                         sys.stdout.write(data)
@@ -120,26 +119,49 @@ class ApiRpcClient(object):
         x = PrettyTable(["Application name", "Web", "status", "services"], hrules=ALL)
         for app in data:
 
+            volume_services = {}
+
+            for service in app['services']:
+                if service['name'].startswith('_volumes_') and service['running']:
+                    name = service['name']
+                    if name.endswith(app['name']):
+                        name = name[0:-len(app['name']) - 1]
+                    name = name[9:]
+                    print service
+                    volume_services[name] = '%s' % (
+                        #service['ports']['22/tcp'][0]['HostIp'],
+                        service['ports']['22/tcp'][0]['HostPort'],
+                    )
+
             services = []
             for service in app['services']:
-                 name = service['name']
-                 if name.endswith(app['name']):
-                     name = name[0:-len(app['name']) - 1]
+                if service['name'].startswith('_volumes_'):
+                    continue
 
-                 if service['is_web']:
-                     name += '*'
+                name = service['name']
+                if name.endswith(app['name']):
+                    name = name[0:-len(app['name']) - 1]
 
-                 if service['created']:
-                     service_status = 'ON' if service['running'] else 'OFF'
-                 else:
-                     service_status = 'NOT CREATED'
+                if service['created']:
+                    service_status = 'ON' if service['running'] else 'OFF'
+                else:
+                    service_status = 'NOT CREATED'
 
-                 data = '%s (%s)' % (name, service_status)
+                if service['is_web']:
+                    mark = '*'
+                else:
+                    mark = ''
 
-                 if service['ip']:
-                     data += ' ip: %s' % service['ip']
+                data = '%s%s (%s)' % (name, mark, service_status)
 
-                 services.append(data)
+                if service['ip']:
+                    data += ' ip: %s' % service['ip']
+
+                if name in volume_services:
+                    data += ' vol: %s' % volume_services[name]
+                    data += ' (%s)' % ', '.join(service['volumes'])
+
+                services.append(data)
 
             if app['running']:
                 app_status = app['status']
@@ -213,6 +235,13 @@ class ApiRpcClient(object):
 
         self._remote_exec('start', self.on_print_list_result, name)
 
+    def push(self, name, **kwargs):
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        self._remote_exec('start', self.on_print_list_result, name)
+
     def stop(self, name, **kwargs):
 
         def on_result(data):
@@ -236,13 +265,14 @@ def populate_client_parser(subparsers):
     cmd.add_argument('name', help='App name')
     cmd.set_defaults(func='remove')
 
-    cmd = subparsers.add_parser('status', help='Remove application')
-    cmd.add_argument('name', help='App name')
-    cmd.set_defaults(func='status')
-
     cmd = subparsers.add_parser('start', help='Start application')
     cmd.add_argument('name', help='App name')
     cmd.set_defaults(func='start')
+
+    cmd = subparsers.add_parser('push', help='Push volume')
+    cmd.add_argument('source', help='Push source')
+    cmd.add_argument('destination', help='Push destination')
+    cmd.set_defaults(func='push')
 
     cmd = subparsers.add_parser('stop', help='Stop application')
     cmd.add_argument('name', help='App name')
@@ -264,35 +294,6 @@ def populate_client_parser(subparsers):
     # fig_cmd.add_argument('--app-name', help='App name')
     # fig_cmd.add_argument('fig_cmd', help='Fig command to execeute')
     # fig_cmd.set_defaults(func=func=fig_main)
-
-
-    # cmd = subparsers.add_parser('start', help='Run services as daemons')
-    # cmd.add_argument('services', help='Service names', nargs='*')
-    # cmd.add_argument('--no-logs', dest='logs', action='store_false', default=True, help='No logs')
-    # cmd.add_argument('--rebuild', action='store_true', default=False, help='Rebuild container')
-    # cmd.set_defaults(func='start')
-
-    # cmd = subparsers.add_parser('run', help='Run command on a service')
-    # cmd.add_argument('service', help='Service name')
-    # cmd.add_argument('command', help='Command to run')
-    # cmd.add_argument('--no-tty', dest='disable_tty', action='store_true', default=False, help='No tty')
-    # cmd.set_defaults(func='run')
-    #
-    # cmd = subparsers.add_parser('stop', help='Stop services')
-    # cmd.add_argument('services', help='Service names', nargs='*')
-    # cmd.set_defaults(func='stop')
-    #
-    # cmd = subparsers.add_parser('destroy', help='Destory services and containers')
-    # cmd.add_argument('services', help='Service names', nargs='*')
-    # cmd.set_defaults(func='destroy')
-    #
-    # cmd = subparsers.add_parser('rebuild', help='Destory services and containers')
-    # cmd.add_argument('services', help='Service names', nargs='*')
-    # cmd.set_defaults(func='rebuild')
-    #
-    # cmd = subparsers.add_parser('logs', help='Fetch logs from containers')
-    # cmd.add_argument('services', help='Service names', nargs='*')
-    # cmd.set_defaults(func='logs')
 
 
     # 'PS1=(.env)\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\u@\h:\w\$'

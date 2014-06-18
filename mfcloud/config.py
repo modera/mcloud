@@ -160,3 +160,13 @@ class YamlConfig(IConfig):
             self.process_command_build(s, service, path)
 
             self.services[name] = s
+
+            if s.volumes:
+                volume_service_name = '_volumes_%s' % name
+                volume_service = Service(
+                    volumes_from=name,
+                    name=volume_service_name,
+                    ports=['22/tcp'],
+                    image_builder=PrebuiltImageBuilder('ribozz/rsync')
+                )
+                self.services[volume_service_name] = volume_service
