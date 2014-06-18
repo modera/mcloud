@@ -69,7 +69,6 @@ def test_app_controller():
     yield redis.flushdb()
 
 
-
     def configure(binder):
         binder.bind(txredisapi.Connection, redis)
 
@@ -78,8 +77,6 @@ def test_app_controller():
 
         with pytest.raises(AppDoesNotExist):
             yield controller.get('foo')
-
-
 
         r = yield controller.create('foo', {'path': 'some/path'}, skip_validation=True)
         assert isinstance(r, Application)

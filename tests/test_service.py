@@ -203,7 +203,7 @@ def test_start_ports():
     with injector({'dns-server': 'local.dns', 'dns-search-suffix': 'local'}):
         s = Service()
         s.name = 'my_service'
-        s.ports = ['22']
+        s.ports = ['22/tcp']
 
         flexmock(s)
 
@@ -211,7 +211,7 @@ def test_start_ports():
 
         s.client.should_receive('find_container_by_name').with_args('my_service').once().and_return(defer.succeed('123abc'))
         s.client.should_receive('start_container').with_args('123abc', ticket_id=123123, config={
-            "PortBindings": ['22'],
+            "PortBindings": {'22/tcp': [{}]},
             'DnsSearch': 'None.local',
             'Dns': ['local.dns']
         }).once().and_return(defer.succeed('boo'))
