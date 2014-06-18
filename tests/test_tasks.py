@@ -98,6 +98,24 @@ def test_list_app_task():
 
 
 @pytest.inlineCallbacks
+def test_push_task():
+
+    ac = flexmock()
+
+    ac.should_receive('list').and_return(defer.succeed(['foo', 'bar'])).once()
+
+    def configure(binder):
+        binder.bind(ApplicationController, ac)
+
+    with inject_services(configure):
+
+        ts = TaskService()
+
+        r = yield ts.task_list(123123)
+        assert r == ['foo', 'bar']
+
+
+@pytest.inlineCallbacks
 def test_register_file():
 
     rc = yield txredisapi.Connection(dbid=2)

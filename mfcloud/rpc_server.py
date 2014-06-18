@@ -2,6 +2,8 @@ import json
 import logging
 import sys
 import inject
+from mfcloud.dns_resolver import listen_dns, dump_resolv_conf
+from mfcloud.haproxy import listen_events
 from mfcloud.monitor import DockerMonitor
 from mfcloud.tasks import TaskService
 from mfcloud.txdocker import IDockerClient, DockerTwistedClient
@@ -95,7 +97,10 @@ def entry_point():
     parser = argparse.ArgumentParser(description='Dns resolver')
 
     parser.add_argument('--port', type=int, default=7080, help='port number')
-    parser.add_argument('--dns-server', type=str, default='172.17.42.1', help='Dns server to use in containers')
+    parser.add_argument('--haproxy', default=False, action='store_true', help='Update haproxy config')
+    # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
+    # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
+    parser.add_argument('--dns-server-ip', type=str, default='172.17.42.1', help='Dns server to use in containers')
     parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
     parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
     parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
@@ -103,7 +108,18 @@ def entry_point():
 
     args = parser.parse_args()
 
-    print args
+    rpc_interface = args.interface
+    rpc_port = args.port
+    dns_server_ip = args.dns_server_ip
+    dns_prefix = args.dns_search_suffix
+
+    def listen_rpc():
+        tasks = TaskService()
+        api = ApiRpcServer()
+        tasks.register(api)
+        monitor = DockerMonitor()
+        monitor.start()
+        reactor.listenTCP(rpc_port, server.Site(api), interface=rpc_interface)
 
     def run_server(redis):
 
@@ -116,22 +132,22 @@ def entry_point():
             binder.bind(ZmqPubConnection, s)
             binder.bind(IDockerClient, DockerTwistedClient())
 
-            binder.bind('dns-server', args.dns_server)
-            binder.bind('dns-search-suffix', args.dns_search_suffix)
+            binder.bind('dns-server', dns_server_ip)
+            binder.bind('dns-search-suffix', dns_prefix)
             #binder.bind('host-ip', args.host_ip)
 
         # Configure a shared injector.
         inject.configure(my_config)
 
-        tasks = TaskService()
+        # rpc
+        listen_rpc()
 
-        api = ApiRpcServer()
-        tasks.register(api)
+        # dns
+        dump_resolv_conf(dns_server_ip)
+        listen_dns(dns_prefix, dns_server_ip, 53)
 
-        monitor = DockerMonitor()
-        monitor.start()
-
-        reactor.listenTCP(args.port, server.Site(api), interface=args.interface)
+        # events
+        listen_events(zf, args.zmq_bind, args.haproxy)
 
     def timeout():
         print('Can not connect to redis!')

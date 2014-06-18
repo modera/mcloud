@@ -53,24 +53,11 @@ backend {{ app.name }}_cluster
 from jinja2 import Environment as JinjaEnv, StrictUndefined, Template
 
 
-class HaproxyConfig(object):
+class DnsConfig(object):
 
     redis = inject.attr(txredisapi.Connection)
 
-    def __init__(self, path, template=None, internal_suffix='mfcloud.lh'):
-        self.template = template
-        self.path = path
-        self.internal_suffix = internal_suffix
-
-
-
     def dump(self, apps_list):
-
-        template = self.template
-
-        if not template:
-            template = Template(HAPROXY_TPL)
-
         apps = {}
 
         for app in apps_list:
@@ -88,6 +75,24 @@ class HaproxyConfig(object):
 
         logging.info('Installing new app list: %s' % str(apps))
 
+        if len(apps) > 1:
+            return self.redis.hmset('domain', apps)
+        elif len(apps) == 1:
+            return self.redis.hset('domain', apps.keys()[0], apps.values()[0])
+
+
+class HaproxyConfig(object):
+
+    def __init__(self, path, template=None, internal_suffix='mfcloud.lh'):
+        self.template = template
+        self.path = path
+
+    def dump(self, apps_list):
+
+        template = self.template
+
+        if not template:
+            template = Template(HAPROXY_TPL)
 
         proxy_apps = []
 
@@ -111,20 +116,28 @@ class HaproxyConfig(object):
                  }]
             })
 
-
-        template = Template(HAPROXY_TPL)
-
         with open('/etc/haproxy/haproxy.cfg', 'w') as f:
             f.write(template.render({'apps': proxy_apps}))
 
         os.system('service haproxy reload')
 
 
-        if len(apps) > 1:
-            return self.redis.hmset('domain', apps)
-        elif len(apps) == 1:
-            return self.redis.hset('domain', apps.keys()[0], apps.values()[0])
+def listen_events(zf2, endpoint, need_haproxy=False):
+    proxy_config = HaproxyConfig(path='/etc/haproxy/haproxy.cfg')
+    dns_config = DnsConfig()
 
+    def on_message(message, tag):
+        if tag == 'event-containers-updated':
+            data = json.loads(message)
+            dns_config.dump(data['apps'])
+
+            if need_haproxy:
+                proxy_config.dump(data['apps'])
+
+    for endpoint in endpoint:
+        subscribe_con = ZmqSubConnection(zf2, ZmqEndpoint('connect', endpoint))
+        subscribe_con.subscribe("")
+        subscribe_con.gotMessage = on_message
 
 def entry_point():
 
@@ -143,20 +156,11 @@ def entry_point():
     parser.add_argument('--endpoint', type=str, default=['tcp://127.0.0.1:5555'], nargs='+', help='ip address')
     args = parser.parse_args()
 
+
+
     def run_server(redis):
-        config = HaproxyConfig(path='/etc/haproxy/haproxy.cfg')
-
-        def on_message(message, tag):
-            if tag == 'event-containers-updated':
-                data = json.loads(message)
-                config.dump(data['apps'])
-
         zf2 = ZmqFactory()
-
-        for endpoint in args.endpoint:
-            subscribe_con = ZmqSubConnection(zf2, ZmqEndpoint('connect', endpoint))
-            subscribe_con.subscribe("")
-            subscribe_con.gotMessage = on_message
+        listen_events(zf2, args.endpoint)
 
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)

@@ -63,6 +63,26 @@ class DNSServerFactory(server.DNSServerFactory):
     def stopFactory(self):
         self.redis.disconnect()
 
+
+def dump_resolv_conf(dns_server_ip):
+    ns_line = 'nameserver %s' % dns_server_ip
+    with open('/etc/resolv.conf', 'r') as f:
+        contents = f.read()
+        print contents
+    if not ns_line in contents:
+        with open('/etc/resolv.conf', 'w') as f:
+            f.write('%s\n%s' % (ns_line, contents))
+
+
+def listen_dns(dns_prefix, dns_server_ip, dns_port):
+    verbosity = 0
+    factory = DNSServerFactory(verbose=verbosity, prefix=dns_prefix)
+    protocol = dns.DNSDatagramProtocol(factory)
+    factory.noisy = protocol.noisy = verbosity
+
+    reactor.listenUDP(dns_port, protocol, interface=dns_server_ip)
+    reactor.listenTCP(dns_port, factory, interface=dns_server_ip)
+
 def entry_point():
 
     console_handler = logging.StreamHandler(stream=sys.stderr)
@@ -84,23 +104,11 @@ def entry_point():
 
     args = parser.parse_args()
 
-
-    ns_line = 'nameserver %s' % args.interface
-
-    with open('/etc/resolv.conf', 'r') as f:
-        contents = f.read()
-        print contents
-
-    if not ns_line in contents:
-        with open('/etc/resolv.conf', 'w') as f:
-             f.write('%s\n%s' % (ns_line, contents))
+    dns_server_ip = args.interface
+    dns_prefix = args.prefix
+    dns_port = args.port
 
     def run_server(redis):
-        verbosity = 0
-        factory = DNSServerFactory(verbose=verbosity, prefix=args.prefix)
-
-        protocol = dns.DNSDatagramProtocol(factory)
-        factory.noisy = protocol.noisy = verbosity
 
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
@@ -108,8 +116,8 @@ def entry_point():
         # Configure a shared injector.
         inject.configure(my_config)
 
-        reactor.listenUDP(args.port, protocol, interface=args.interface)
-        reactor.listenTCP(args.port, factory, interface=args.interface)
+        dump_resolv_conf(dns_server_ip)
+        listen_dns(dns_prefix, dns_server_ip, dns_port)
 
 
     def timeout():
@@ -118,7 +126,7 @@ def entry_point():
 
     txtimeout(txredisapi.Connection(dbid=1), 3, timeout).addCallback(run_server)
 
-    root_logger.info('Listening on %s:%s' % (args.interface, args.port))
+    root_logger.info('Listening on %s:%s' % (dns_server_ip, args.port))
 
     reactor.run()
 
