@@ -235,12 +235,12 @@ class ApiRpcClient(object):
 
         self._remote_exec('start', self.on_print_list_result, name)
 
-    def push(self, name, **kwargs):
-
+    def push(self, source, destination, **kwargs):
+        
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
 
-        self._remote_exec('start', self.on_print_list_result, name)
+            self._remote_exec('push', self.on_print_list_result, source, destination)
 
     def stop(self, name, **kwargs):
 

@@ -134,10 +134,10 @@ def listen_events(zf2, endpoint, need_haproxy=False):
             if need_haproxy:
                 proxy_config.dump(data['apps'])
 
-    for endpoint in endpoint:
-        subscribe_con = ZmqSubConnection(zf2, ZmqEndpoint('connect', endpoint))
-        subscribe_con.subscribe("")
-        subscribe_con.gotMessage = on_message
+    subscribe_con = ZmqSubConnection(zf2, ZmqEndpoint('connect', endpoint))
+    subscribe_con.subscribe("")
+    subscribe_con.gotMessage = on_message
+
 
 def entry_point():
 
