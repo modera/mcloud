@@ -99,7 +99,7 @@ def entry_point():
     parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
     parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
     parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
-    parser.add_argument('--zmq-bind', type=str, default='tcp://127.0.0.1:5555', help='ip address')
+    parser.add_argument('--zmq-bind', type=str, default='tcp://0.0.0.0:5555', help='ip address')
 
     args = parser.parse_args()
 
