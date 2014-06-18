@@ -1,12 +1,11 @@
 import json
 import logging
 import sys
-from mfcloud.config import ConfigParseError
 import os
 import pprintpp
-from prettytable import PrettyTable, FRAME, ALL
+from prettytable import PrettyTable, ALL
 from texttable import Texttable
-from twisted.internet import defer, reactor
+from twisted.internet import reactor
 from twisted.internet.error import ConnectionRefusedError
 from twisted.web.xmlrpc import Proxy
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
@@ -16,13 +15,16 @@ logger = logging.getLogger('mfcloud.client')
 
 class ApiRpcClient(object):
 
-    def __init__(self):
+    def __init__(self, host):
         super(ApiRpcClient, self).__init__()
+
+        self.host = host
 
         self.init_zmq()
 
         self.ticket = {}
-        self.proxy = Proxy('http://127.0.0.1:7080')
+
+        self.proxy = Proxy('http://%s:7080' % host)
 
         self.reactor = reactor
 
@@ -31,7 +33,7 @@ class ApiRpcClient(object):
 
     def init_zmq(self):
         zf2 = ZmqFactory()
-        e2 = ZmqEndpoint('connect', 'tcp://127.0.0.1:5555')
+        e2 = ZmqEndpoint('connect', 'tcp://%s:5555' % self.host)
         s2 = ZmqSubConnection(zf2, e2)
         s2.subscribe("")
         s2.gotMessage = self._on_message
@@ -313,4 +315,103 @@ def populate_client_parser(subparsers):
     # cmd.set_defaults(func='status')
 
 
+import argparse
+from cmd import Cmd
 
+from mfcloud import metadata
+
+
+log = logging.getLogger(__name__)
+
+def format_epilog():
+    """Program entry point.
+
+    :param argv: command-line arguments
+    :type argv: :class:`list`
+    """
+    author_strings = []
+    for name, email in zip(metadata.authors, metadata.emails):
+        author_strings.append('Author: {0} <{1}>'.format(name, email))
+    epilog = '''
+{project} {version}
+
+{authors}
+URL: <{url}>
+'''.format(
+        project=metadata.project,
+        version=metadata.version,
+        authors='\n'.join(author_strings),
+        url=metadata.url)
+    return epilog
+
+
+def main(argv):
+
+    console_handler = logging.StreamHandler(stream=sys.stderr)
+    console_handler.setFormatter(logging.Formatter())
+    console_handler.setLevel(logging.DEBUG)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(console_handler)
+    root_logger.setLevel(logging.INFO)
+    root_logger.debug('Logger initialized')
+
+
+    logging.getLogger("requests").propagate = False
+
+    arg_parser = argparse.ArgumentParser(
+        prog=argv[0],
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=metadata.description,
+        epilog=format_epilog(),
+        add_help=False
+    )
+
+    arg_parser.add_argument('-e', '--env', help='Environment to use', default='dev')
+    arg_parser.add_argument('-h', '--host', help='Host to use', default='127.0.0.1')
+
+    arg_parser.add_argument(
+        '-V', '--version',
+        action='version',
+        version='{0} {1}'.format(metadata.project, metadata.version))
+
+    subparsers = arg_parser.add_subparsers()
+
+    populate_client_parser(subparsers)
+
+
+
+
+    args = arg_parser.parse_args()
+
+    args.argv0 = argv[0]
+
+    client = ApiRpcClient(host=args.host)
+
+    if isinstance(args.func, str):
+        getattr(client, args.func)(**vars(args))
+    else:
+        args.func(**vars(args))
+
+
+
+
+# intro = '''
+#            __      _                 _
+# _ __ ___  / _| ___| | ___  _   _  __| |
+#| '_ ` _ \| |_ / __| |/ _ \| | | |/ _` |
+#| | | | | |  _| (__| | (_) | |_| | (_| |
+#|_| |_| |_|_|  \___|_|\___/ \__,_|\__,_|
+#
+#Cloud that loves your data.
+#
+#'''
+
+def entry_point():
+    """Zero-argument entry point for use with setuptools/distribute."""
+    raise SystemExit(main(sys.argv))
+
+
+if __name__ == '__main__':
+    entry_point()

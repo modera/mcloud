@@ -94,7 +94,7 @@ setup(
     zip_safe=False,  # don't use eggs
     entry_points={
         'console_scripts': [
-            'mfcloud = mfcloud.client_cli:entry_point',
+            'mfcloud = mfcloud.rpc_client:entry_point',
             'mfcloud-rpc-server = mfcloud.rpc_server:entry_point',
             'mfcloud-balancer = mfcloud.haproxy:entry_point',
             'mfcloud-dns = mfcloud.dns_resolver:entry_point',

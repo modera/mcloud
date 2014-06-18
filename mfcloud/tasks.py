@@ -241,6 +241,11 @@ class TaskService():
         deployment = yield self.deployment_controller.remove(name)
         defer.returnValue(deployment is None)
 
+    #@inlineCallbacks
+    #def task_deployment_attach_volumes(self, ticket_id, deployment_name, name):
+    #    app = yield self.deployment_controller.new_app(deployment_name, name, {'path': path})
+    #    defer.returnValue(not app is None)
+
     #
     # def task_deployment_details(self, ticket_id, name):
     #    d = self.deployment_controller.get(name)
