@@ -76,6 +76,7 @@ setup(
         'inject',
         'voluptuous',
         'pprintpp',
+        'prettytable',
         'docker-py',
         'treq',
         'txZMQ',
