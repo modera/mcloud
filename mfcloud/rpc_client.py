@@ -1,6 +1,8 @@
 import json
 import logging
 import sys
+import time
+import uuid
 import re
 import os
 import pprintpp
@@ -109,6 +111,30 @@ class ApiRpcClient(object):
                 print(message)
 
     def init(self, name, path, **kwargs):
+
+        if self.host != '127.0.0.1':
+
+            if not path.endswith('/'):
+                path += '/'
+
+            if not 'user' in kwargs or kwargs['user'] is None:
+                raise ValueError('Please, specify remote user')
+
+            user = kwargs['user']
+
+            remote_path = '/home/%(user)s/mfcloud/%(id)s' % {
+                'user': user,
+                'id': uuid.uuid1()
+            }
+            command = 'rsync -v -r %(local)s %(user)s@%(remote)s:%(path)s' % {
+                'local': path,
+                'user': user,
+                'path': remote_path,
+                'remote': self.host,
+            }
+            os.system(command)
+
+            path = remote_path
 
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
@@ -273,7 +299,7 @@ class ApiRpcClient(object):
         source = yield self.resolve_volume_port(source)
         destination = yield self.resolve_volume_port(destination)
 
-        command = "rsync -r %(local_path)s %(remote_path)s" % {
+        command = "rsync -v -r %(local_path)s %(remote_path)s" % {
             'local_path': source,
             'remote_path': destination,
         }
@@ -293,6 +319,7 @@ def populate_client_parser(subparsers):
 
     cmd = subparsers.add_parser('init', help='Creates a new application')
     cmd.add_argument('name', help='App name')
+    cmd.add_argument('--user', default=None, help='Remote username')
     cmd.add_argument('path', help='Path', nargs='?', default='.')
     cmd.set_defaults(func='init')
 
