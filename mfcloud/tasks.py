@@ -106,31 +106,21 @@ class TaskService():
 
 
     @inlineCallbacks
-    def task_push(self, ticket_id, source, destination):
+    def task_push(self, ticket_id, app_name, service_name, volume):
 
-        #app = yield self.app_controller.get(name)
-        #config = yield app.load()
-        #
-        #"""
-        #@type config: YamlConfig
-        #"""
+        app = yield self.app_controller.get(app_name)
+        config = yield app.load()
 
-        ret = None
+        name = '_volumes_%s.%s' % (service_name, app_name)
 
-        #d = []
-        #for service in config.get_services().values():
-        #    if not service.is_running():
-        #        logger.debug(
-        #            '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
-        #        d.append(service.start(ticket_id))
-        #    else:
-        #        logger.debug(
-        #            '[%s] Service %s is already running.' % (ticket_id, service.name))
-        #
-        #yield defer.gatherResults(d)
-        #
-        #ret = yield self.app_controller.list()
-        defer.returnValue(ret)
+        service = config.get_services()[name]
+
+        """
+        @type service: mfcloud.service.Service
+        """
+        port = service.public_ports()['22/tcp'][0]['HostPort']
+
+        defer.returnValue(port)
 
     @inlineCallbacks
     def task_stop(self, ticket_id, name):

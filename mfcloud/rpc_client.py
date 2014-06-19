@@ -1,11 +1,13 @@
 import json
 import logging
 import sys
+import re
 import os
 import pprintpp
 from prettytable import PrettyTable, ALL
 from texttable import Texttable
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet.error import ConnectionRefusedError
 from twisted.web.xmlrpc import Proxy
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
@@ -124,8 +126,8 @@ class ApiRpcClient(object):
             for service in app['services']:
                 if service['name'].startswith('_volumes_') and service['running']:
                     name = service['name']
-                    if name.endswith(app['name']):
-                        name = name[0:-len(app['name']) - 1]
+                    #if name.endswith(app['name']):
+                    #    name = name[0:-len(app['name']) - 1]
                     name = name[9:]
                     print service
                     volume_services[name] = '%s' % (
@@ -139,8 +141,8 @@ class ApiRpcClient(object):
                     continue
 
                 name = service['name']
-                if name.endswith(app['name']):
-                    name = name[0:-len(app['name']) - 1]
+                #if name.endswith(app['name']):
+                #    name = name[0:-len(app['name']) - 1]
 
                 if service['created']:
                     service_status = 'ON' if service['running'] else 'OFF'
@@ -235,12 +237,48 @@ class ApiRpcClient(object):
 
         self._remote_exec('start', self.on_print_list_result, name)
 
-    def push(self, source, destination, **kwargs):
-        
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
 
-            self._remote_exec('push', self.on_print_list_result, source, destination)
+    def resolve_volume_port(self, destination):
+
+        match = re.match('^([a-z0-9]+)\.([a-z0-9]+):(.*)$', destination)
+        if not match:
+            if not destination.endswith('/'):
+                destination += '/'
+            return defer.succeed(destination)
+
+        d = defer.Deferred()
+        service, app, volume = match.group(1), match.group(2), match.group(3)
+
+        if not volume.endswith('/'):
+            volume += '/'
+
+        def on_result(volume_port):
+
+            destination = "-e 'ssh -p %(port)s' root@%(host)s:%(volume)s" % {
+                'port': volume_port,
+                'host': self.host,
+                'volume': volume
+            }
+
+            d.callback(destination)
+
+        self._remote_exec('push', on_result, app, service, volume)
+
+        return d
+
+
+    @inlineCallbacks
+    def push(self, source, destination, **kwargs):
+
+        source = yield self.resolve_volume_port(source)
+        destination = yield self.resolve_volume_port(destination)
+
+        command = "rsync -r %(local_path)s %(remote_path)s" % {
+            'local_path': source,
+            'remote_path': destination,
+        }
+
+        os.system(command)
 
     def stop(self, name, **kwargs):
 

@@ -126,7 +126,10 @@ def listen_events(zf2, endpoint, need_haproxy=False):
     proxy_config = HaproxyConfig(path='/etc/haproxy/haproxy.cfg')
     dns_config = DnsConfig()
 
+    logging.info('Start listening on container updates.')
+
     def on_message(message, tag):
+        print('event boooo!')
         if tag == 'event-containers-updated':
             data = json.loads(message)
             dns_config.dump(data['apps'])
