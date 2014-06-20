@@ -132,6 +132,7 @@ class ApiRpcClient(object):
                 'path': remote_path,
                 'remote': self.host,
             }
+            print command
             os.system(command)
 
             path = remote_path
@@ -187,7 +188,8 @@ class ApiRpcClient(object):
 
                 if name in volume_services:
                     data += ' vol: %s' % volume_services[name]
-                    data += ' (%s)' % ', '.join(service['volumes'])
+                    if service['volumes']:
+                        data += ' (%s)' % ', '.join(service['volumes'])
 
                 services.append(data)
 
@@ -303,6 +305,8 @@ class ApiRpcClient(object):
             'local_path': source,
             'remote_path': destination,
         }
+
+        print command
 
         os.system(command)
 
