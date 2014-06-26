@@ -15,6 +15,13 @@ Features
  * Fast rollbacks, easy backups
 
 
+.. toctree::
+  :maxdepth: 3
+
+
+  install
+  yml
+  dev
 
 .. image:: _static/mfcloud.png
 

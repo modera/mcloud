@@ -69,8 +69,6 @@ setup(
     install_requires=[
         'jinja2',
         'texttable',
-        'Flask',
-        'Flask-API',
         'twisted',
         'txredisapi',
         'inject',
@@ -82,9 +80,7 @@ setup(
         'txZMQ',
         'pyOpenSSL',
         'PyYAML',
-        'pyunpack',
-        'txsockjs',
-        'Werkzeug'
+        'txsockjs'
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
     tests_require=[
@@ -107,4 +103,11 @@ setup(
         #     'mfcloud_gui = mfcloud.gui:entry_point'
         # ]
     }
+
+    # extras
+    # 'Werkzeug'
+    # 'Flask',
+    # 'Flask-API',
+    # 'pyunpack',s
+
 )
