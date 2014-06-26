@@ -15,37 +15,7 @@ Features:
 .. image:: docs/source/_static/mfcloud.png
 
 
-Requirements
---------------
-
-Linux (boot2docker will be supported a bit later)
-Docker > 1.0.0
-Redis server
-
-Installation
+Documentation
 -------------
 
-Install docker: http://docs.docker.io/en/latest/installation/
-
-Make sure you can run docker containers::
-
-    sudo docker run -i -t ubuntu echo -e "OK";
-
-
-Install packages::
-
-    sudo apt-get install python-pip python-dev
-    sudo pip install mfcloud
-
-Run mfcloud server::
-
-    sudo mflcoud-rpc-server
-
-Test that mfcloud is working::
-
-    $ mfcloud list
-
-    +-----+---------+-------+
-    | App | Version | State |
-    +-----+---------+-------+
-    +-----+---------+-------+
+http://mfcloud.readthedocs.org/

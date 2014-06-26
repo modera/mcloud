@@ -9,7 +9,12 @@ package names and file-system paths, process is same on all operating systems.
 Prerequisites
 ===============
 
-Uodate package cache::
+Install docker and make sure it's working::
+
+    sudo docker run -i -t ubuntu echo -e "OK";
+
+
+Update package cache::
 
     sudo apt-get update
 
