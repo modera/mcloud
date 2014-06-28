@@ -190,6 +190,8 @@ class DockerTwistedClient(object):
 
         logger.debug('[%s] Create container "%s"', ticket_id, name)
 
+        #print json.dumps(config)
+
         d = self._post('containers/create', params={'name': name}, headers={'Content-Type': 'application/json'}, data=json.dumps(config))
 
         def done(result):

@@ -5,7 +5,7 @@ import sys
 import inject
 from mfcloud.util import txtimeout
 import os
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
@@ -57,15 +57,15 @@ class DnsConfig(object):
 
     redis = inject.attr(txredisapi.Connection)
 
+
+    @inlineCallbacks
     def dump(self, apps_list):
         apps = {}
 
         for app in apps_list:
-            if not app['running']:
-                continue
-
             for service in app['services']:
-                apps[service['fullname']] = service['ip']
+                if service['running']:
+                    apps[service['fullname']] = service['ip']
 
             if app['web_service']:
                 apps[app['fullname']] = app['web_ip']
@@ -75,10 +75,12 @@ class DnsConfig(object):
 
         logging.info('Installing new app list: %s' % str(apps))
 
+        yield self.redis.delete('domain')
+
         if len(apps) > 1:
-            return self.redis.hmset('domain', apps)
+            yield self.redis.hmset('domain', apps)
         elif len(apps) == 1:
-            return self.redis.hset('domain', apps.keys()[0], apps.values()[0])
+            yield self.redis.hset('domain', apps.keys()[0], apps.values()[0])
 
 
 class HaproxyConfig(object):

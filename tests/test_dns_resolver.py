@@ -52,6 +52,4 @@ def test_resolve_unknown_domain_local_unknown():
     # resolve unknown domain
     result = yield resolver.lookupAddress('boo.local')
 
-    assert isinstance(result[0][0], dns.RRHeader)
-    assert isinstance(result[0][0].payload, dns.Record_A)
-    assert result[0][0].payload.dottedQuad() == '127.0.0.1'
+    assert result[0] == []

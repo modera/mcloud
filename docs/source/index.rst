@@ -20,6 +20,7 @@ Features
 
 
   install
+  usage
   yml
   dev
 

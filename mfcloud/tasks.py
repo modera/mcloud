@@ -74,6 +74,18 @@ class TaskService():
 
         defer.returnValue(data)
 
+    def sleep(self, sec):
+        d = defer.Deferred()
+        reactor.callLater(sec, d.callback, None)
+        return d
+
+
+    @inlineCallbacks
+    def task_dns(self, ticket_id):
+        data = yield self.redis.hgetall('domain')
+
+        defer.returnValue(data)
+
 
     @inlineCallbacks
     def task_start(self, ticket_id, name):
@@ -89,17 +101,14 @@ class TaskService():
 
         logger.debug('[%s] Got response' % (ticket_id, ))
 
-        d = []
         for service in config.get_services().values():
             if not service.is_running():
                 logger.debug(
                     '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
-                d.append(service.start(ticket_id))
+                yield service.start(ticket_id)
             else:
                 logger.debug(
                     '[%s] Service %s is already running.' % (ticket_id, service.name))
-
-        yield defer.gatherResults(d)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
@@ -171,9 +180,8 @@ class TaskService():
                 if service.is_running():
                     logger.debug(
                         '[%s] Service %s container is running. Stopping and then destroying' % (ticket_id, service.name))
-                    service_stop = service.stop(ticket_id)
-                    service_stop.addCallback(lambda *_: service.destroy(ticket_id))
-                    d.append(service_stop)
+                    yield service.stop(ticket_id)
+                    d.append(service.destroy(ticket_id))
 
                 else:
                     logger.debug(

@@ -24,18 +24,29 @@ class Resolver(client.Resolver):
     def lookupAddress(self, name, timeout=None):
         if name.endswith('.%s' % self.prefix):
 
+            if name == '%s.%s' % ('_dns', self.prefix):
+                value = '127.0.1.7'
+                a = dns.RRHeader(name=name, type=dns.A, ttl=10)
+
+                logging.debug('Asked for %s -> Resolved to: %s' % (name, value))
+                a.payload = dns.Record_A(value, ttl=10)
+
+                return defer.succeed(([a], [], []))
+
             d = defer.Deferred()
 
             result = self.server_factory.redis.hget("domain", name)
 
             def callback(value):
 
-                a = dns.RRHeader(name=name, type=dns.A, ttl=10)
-                address = value or '127.0.0.1'
+                if not value:
+                    d.callback(([], [], []))
+                else:
+                    a = dns.RRHeader(name=name, type=dns.A, ttl=10)
 
-                logging.debug('Asked for %s -> Resolved to: %s' % (name, address))
-                a.payload = dns.Record_A(address, ttl=10)
-                d.callback(([a], [], []))
+                    logging.debug('Asked for %s -> Resolved to: %s' % (name, value))
+                    a.payload = dns.Record_A(value, ttl=10)
+                    d.callback(([a], [], []))
 
             result.addCallback(callback)
 
@@ -116,7 +127,7 @@ def entry_point():
         # Configure a shared injector.
         inject.configure(my_config)
 
-        dump_resolv_conf(dns_server_ip)
+        #dump_resolv_conf(dns_server_ip)
         listen_dns(dns_prefix, dns_server_ip, dns_port)
 
 

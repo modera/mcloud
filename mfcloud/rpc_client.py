@@ -17,6 +17,7 @@ from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
 
 logger = logging.getLogger('mfcloud.client')
 
+
 class ApiRpcClient(object):
 
     def __init__(self, host='0.0.0.0'):
@@ -56,7 +57,8 @@ class ApiRpcClient(object):
         def failed(failure):
 
             if failure.type == ConnectionRefusedError:
-                print('\nConnection failure. Server is not started? \n\nRun "mfcloud service start"\n')
+                print('\nConnection failure. Server is not started? \n\nRefer to documentation at '
+                      'http://mfcloud.readthedocs.org/ for instructions how to start the server.\n')
             else:
                 print('Failed to execute the task: %s' % failure.getErrorMessage())
             self.reactor.stop()
@@ -156,7 +158,6 @@ class ApiRpcClient(object):
                     #if name.endswith(app['name']):
                     #    name = name[0:-len(app['name']) - 1]
                     name = name[9:]
-                    print service
                     volume_services[name] = '%s' % (
                         #service['ports']['22/tcp'][0]['HostIp'],
                         service['ports']['22/tcp'][0]['HostPort'],
@@ -243,6 +244,24 @@ class ApiRpcClient(object):
                 print table.draw() + "\\n"
 
         self._remote_exec('inspect', on_result, name, service)
+
+
+    def dns(self, **kwargs):
+
+        def on_result(data):
+
+            table = Texttable(max_width=120)
+            table.set_cols_dtype(['t',  'a'])
+            #table.set_cols_width([20,  100])
+
+            rows = [["Name", "Value"]]
+            for name, val in data.items():
+                rows.append([name, val])
+
+            table.add_rows(rows)
+            print table.draw() + "\\n"
+
+        self._remote_exec('dns', on_result)
 
     def remove(self, name, **kwargs):
 
@@ -355,6 +374,9 @@ def populate_client_parser(subparsers):
     cmd.add_argument('name', help='App name')
     cmd.add_argument('service', help='Service name')
     cmd.set_defaults(func='inspect')
+
+    cmd = subparsers.add_parser('dns', help='List dns records')
+    cmd.set_defaults(func='dns')
 
 
     # # # mfcloud use ubuntu@myserver.com

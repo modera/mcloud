@@ -252,6 +252,18 @@ def test_generate_config_volumes():
         }
     }
 
+def test_generate_config_env():
+
+    s = Service()
+    s.name = 'my_service'
+    s.env = {'FOO': 'bar', 'BAZ': 'foo'}
+
+    assert s._generate_config('foo') == {
+        "Hostname": 'my_service',
+        "Image": 'foo',
+        "Env": ['FOO=bar', 'BAZ=foo']
+    }
+
 
 @pytest.inlineCallbacks
 def test_service_api():

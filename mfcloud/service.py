@@ -158,6 +158,9 @@ class Service(object):
             "Image": image_name,
         }
 
+        if self.env:
+            config['Env'] = ['%s=%s' % x for x in self.env.items()]
+
         if self.ports:
             config['ExposedPorts'] = dict([(port, {}) for port in self.ports])
 

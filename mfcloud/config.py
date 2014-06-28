@@ -158,6 +158,7 @@ class YamlConfig(IConfig):
             self.process_image_build(s, service, path)
             self.process_volumes_build(s, service, path)
             self.process_command_build(s, service, path)
+            self.process_env_build(s, service, path)
 
             self.services[name] = s
 
