@@ -1,0 +1,17 @@
+
+web:
+    build: .mfcloud/nginx
+    volumes:
+        static: /var/www
+
+redis:
+    image: redis
+
+app:
+    build: .mfcloud/app
+    volumes:
+        .: /var/app
+
+
+
+

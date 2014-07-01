@@ -1,0 +1,10 @@
+
+web:
+    image: orchardup/nginx
+
+    volumes:
+      public: /var/www
+
+
+
+

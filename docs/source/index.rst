@@ -21,6 +21,7 @@ Features
 
   install
   usage
+  examples
   yml
   dev
 

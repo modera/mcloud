@@ -43,6 +43,7 @@ class TaskService():
 
     @inlineCallbacks
     def task_remove(self, ticket_id, name):
+        yield self.task_destroy(ticket_id, name)
         yield self.app_controller.remove(name)
 
         ret = yield self.app_controller.list()
