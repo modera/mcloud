@@ -12,11 +12,14 @@ from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.error import ConnectionRefusedError
 from twisted.web.xmlrpc import Proxy
-from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
+from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection, ZmqEndpointType
+
+from time import sleep
+import zmq
+from zmq.utils import monitor
 
 
 logger = logging.getLogger('mfcloud.client')
-
 
 class ApiRpcClient(object):
 
@@ -37,11 +40,20 @@ class ApiRpcClient(object):
         pass
 
     def init_zmq(self):
-        zf2 = ZmqFactory()
+        self.factory = ZmqFactory()
         e2 = ZmqEndpoint('connect', 'tcp://%s:5555' % self.host)
-        s2 = ZmqSubConnection(zf2, e2)
-        s2.subscribe("")
-        s2.gotMessage = self._on_message
+        client = ZmqSubConnection(self.factory, e2)
+        client.gotMessage = self._on_message
+        client.subscribe('')
+
+        monitor_socket = client.socket.get_monitor_socket()
+
+        while True:
+            logger.debug('Waiting for zmq connect')
+            event = monitor.recv_monitor_message(monitor_socket)
+            if event['event'] == zmq.EVENT_CONNECTED:
+                sleep(0.2)
+                return
 
     def _remote_exec(self, task_name, on_result, *args):
 

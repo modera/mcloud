@@ -174,7 +174,13 @@ Check that API is up::
 Updating mflcoud
 ============================================
 
-    $ /opt/mfcloud/bin/pip install -U mfcloud
+Update is easy::
+
+    $ sudo /opt/mfcloud/bin/pip install -U mfcloud
+
+And restart service::
+
+    $ sudo service mfcloud restart
 
 Uninstalling mflcoud
 ============================================
