@@ -88,7 +88,7 @@ Running mfcloud-server with upstart
 
 Create file /etc/init/mfcloud.conf with follwing contents::
 
-    exec /opt/mfcloud/bin/mfcloud-rpc-servers
+    exec /opt/mfcloud/bin/mfcloud-rpc-server >> /var/log/mfcloud.log 2>&1
 
 Start mfcloud service::
 
@@ -170,6 +170,11 @@ Check that API is up::
     | Application name |           Web           |  status |                       services                      |
     +------------------+-------------------------+---------+-----------------------------------------------------+
 
+
+Updating mflcoud
+============================================
+
+    $ /opt/mfcloud/bin/pip install -U mfcloud
 
 Uninstalling mflcoud
 ============================================
