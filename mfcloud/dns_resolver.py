@@ -127,7 +127,7 @@ def entry_point():
         # Configure a shared injector.
         inject.configure(my_config)
 
-        #dump_resolv_conf(dns_server_ip)
+        dump_resolv_conf(dns_server_ip)
         listen_dns(dns_prefix, dns_server_ip, dns_port)
 
 

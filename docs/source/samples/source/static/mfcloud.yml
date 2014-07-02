@@ -1,9 +1,9 @@
 
 web:
-    image: orchardup/nginx
+    image: nginx
 
     volumes:
-      public: /var/www
+        public: /usr/local/nginx/html
 
 
 

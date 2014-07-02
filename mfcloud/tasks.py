@@ -87,6 +87,20 @@ class TaskService():
 
         defer.returnValue(data)
 
+    @inlineCallbacks
+    def task_restart(self, ticket_id, name):
+        yield self.task_stop(ticket_id, name)
+        ret = yield self.task_start(ticket_id, name)
+
+        defer.returnValue(ret)
+
+    @inlineCallbacks
+    def task_rebuild(self, ticket_id, name):
+        yield self.task_destroy(ticket_id, name)
+        ret = yield self.task_start(ticket_id, name)
+
+        defer.returnValue(ret)
+
 
     @inlineCallbacks
     def task_start(self, ticket_id, name):

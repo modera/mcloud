@@ -149,9 +149,13 @@ Then start haproxy service::
     $ sudo service haproxy start
 
 Also you need to add *--haproxy* option to the mfcloud-rpc-server command.
-To do this, edit /etc/init/mfcloud and add this option to the end::
+To do this, edit /etc/init/mfcloud.conf and add this option to the end::
 
-    exec /opt/mfcloud/bin/mfcloud-rpc-server --haproxy
+    exec /opt/mfcloud/bin/mfcloud-rpc-server --haproxy  >> /var/log/mfcloud.log 2>&1
+
+And finally restart mfcloud::
+
+    $ service mfcloud restart
 
 .. note::
 

@@ -296,6 +296,20 @@ class ApiRpcClient(object):
 
         self._remote_exec('start', self.on_print_list_result, name)
 
+    def restart(self, name, **kwargs):
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        self._remote_exec('restart', self.on_print_list_result, name)
+
+    def rebuild(self, name, **kwargs):
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        self._remote_exec('rebuild', self.on_print_list_result, name)
+
 
     def resolve_volume_port(self, destination):
 
@@ -368,6 +382,14 @@ def populate_client_parser(subparsers):
     cmd = subparsers.add_parser('start', help='Start application')
     cmd.add_argument('name', help='App name')
     cmd.set_defaults(func='start')
+
+    cmd = subparsers.add_parser('restart', help='Start application')
+    cmd.add_argument('name', help='App name')
+    cmd.set_defaults(func='restart')
+
+    cmd = subparsers.add_parser('rebuild', help='Start application')
+    cmd.add_argument('name', help='App name')
+    cmd.set_defaults(func='rebuild')
 
     cmd = subparsers.add_parser('push', help='Push volume')
     cmd.add_argument('source', help='Push source')
@@ -459,7 +481,6 @@ def main(argv):
     root_logger.addHandler(console_handler)
     root_logger.setLevel(logging.INFO)
     root_logger.debug('Logger initialized')
-
 
     logging.getLogger("requests").propagate = False
 
