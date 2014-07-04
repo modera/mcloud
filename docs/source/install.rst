@@ -6,8 +6,32 @@ Installation
 Instructions are given for Ubuntu linux, but except some details, like
 package names and file-system paths, process is same on all operating systems.
 
-Prerequisites
-===============
+Preparing operating system
+============================
+
+To run mfcloud you need linux operating system with docker installed.
+boot2docker is not supported, but it's easy to install mfcloud inside virtualbox
+same way as boot2docker does.
+
+There is two options:
+
+- you are working on linux machine: install mfcloud right on your machine
+- you are working on mac/windows/other OS: install mfcloud inside virtualbox and map project directories, through nfs/smb
+
+Follow configuration manual of your OS:
+
+.. toctree::
+  :maxdepth: 3
+
+  install/macos
+  install/ubuntu
+
+At the end you will get same ubuntu machine and you can easily follow further steps of this manual.
+If you are working on other linux distributions, adapt commands and package names accordingly.
+
+
+Mfcloud installation
+==========================
 
 Install docker and make sure it's working::
 
@@ -97,6 +121,7 @@ Running mfcloud-server with upstart
 
 Create file /etc/init/mfcloud.conf with follwing contents::
 
+    start on startup
     exec /opt/mfcloud/bin/mfcloud-rpc-server >> /var/log/mfcloud.log 2>&1
 
 Start mfcloud service::
