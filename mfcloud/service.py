@@ -68,6 +68,12 @@ class Service(object):
 
         return self._inspect_data['NetworkSettings']['IPAddress']
 
+    def image(self):
+        if not self.is_created():
+            return None
+
+        return self._inspect_data['Image']
+
     def public_ports(self):
         if not self.is_running():
             return None

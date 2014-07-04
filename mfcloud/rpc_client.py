@@ -48,12 +48,21 @@ class ApiRpcClient(object):
 
         monitor_socket = client.socket.get_monitor_socket()
 
+        start = time.time()
+
         while True:
             logger.debug('Waiting for zmq connect')
             event = monitor.recv_monitor_message(monitor_socket)
             if event['event'] == zmq.EVENT_CONNECTED:
                 sleep(0.2)
                 return
+
+            if time.time() - start > 5:
+                print('\nZmq stream connection failure. Server is not started? \n\nRefer to documentation at '
+                      'http://mfcloud.readthedocs.org/ for instructions how to start the server.\n')
+
+                raise SystemExit(1)
+
 
     def _remote_exec(self, task_name, on_result, *args):
 
@@ -355,6 +364,20 @@ class ApiRpcClient(object):
 
         os.system(command)
 
+    def run(self, app, service, command, **kwargs):
+
+        def on_result(result):
+
+            os.system("docker run -i -t --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
+                'container': '%s.%s' % (service, app),
+                'image': result['image'],
+                'dns-server': result['dns-server'],
+                'dns-suffix': '%s.%s' % (app, result['dns-suffix']),
+                'command': command
+            })
+
+        self._remote_exec('run', on_result, app, service)
+
     def stop(self, name, **kwargs):
 
         def on_result(data):
@@ -395,6 +418,12 @@ def populate_client_parser(subparsers):
     cmd.add_argument('source', help='Push source')
     cmd.add_argument('destination', help='Push destination')
     cmd.set_defaults(func='push')
+
+    cmd = subparsers.add_parser('run', help='Execute command')
+    cmd.add_argument('app', help='Application name')
+    cmd.add_argument('service', help='Service name')
+    cmd.add_argument('command', help='Command to execute')
+    cmd.set_defaults(func='run')
 
     cmd = subparsers.add_parser('stop', help='Stop application')
     cmd.add_argument('name', help='App name')

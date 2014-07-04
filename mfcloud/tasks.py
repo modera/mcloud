@@ -4,6 +4,7 @@ import inject
 from mfcloud.application import ApplicationController, Application, AppDoesNotExist
 from mfcloud.config import ConfigParseError
 from mfcloud.deployment import DeploymentController
+from mfcloud.events import EventBus
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 import txredisapi
@@ -14,6 +15,9 @@ class TaskService():
     app_controller = inject.attr(ApplicationController)
     deployment_controller = inject.attr(DeploymentController)
     redis = inject.attr(txredisapi.Connection)
+    event_bus = inject.attr(EventBus)
+    dns_server = inject.attr('dns-server')
+    dns_search_suffix = inject.attr('dns-search-suffix')
 
     """
     @type app_controller: ApplicationController
@@ -116,6 +120,18 @@ class TaskService():
 
         logger.debug('[%s] Got response' % (ticket_id, ))
 
+        updated = False
+        for service in config.get_services().values():
+            if not service.is_created():
+                logger.debug(
+                    '[%s] Service %s is not created. Creating' % (ticket_id, service.name))
+                yield service.create(ticket_id)
+                updated = True
+
+        if updated:
+            app_data = yield self.app_controller.list()
+            self.event_bus.fire_event('containers-updated', apps=app_data)
+
         for service in config.get_services().values():
             if not service.is_running():
                 logger.debug(
@@ -145,6 +161,22 @@ class TaskService():
         port = service.public_ports()['22/tcp'][0]['HostPort']
 
         defer.returnValue(port)
+
+    @inlineCallbacks
+    def task_run(self, ticket_id, app_name, service_name):
+
+        app = yield self.app_controller.get(app_name)
+        config = yield app.load()
+
+        service_name = '%s.%s' % (service_name, app_name)
+
+        service = config.get_services()[service_name]
+
+        defer.returnValue({
+            'image': service.image(),
+            'dns-server': self.dns_server,
+            'dns-suffix': self.dns_search_suffix,
+        })
 
     @inlineCallbacks
     def task_stop(self, ticket_id, name):

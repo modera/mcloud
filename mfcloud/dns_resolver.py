@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import inject
 from mfcloud.util import txtimeout
@@ -76,13 +77,14 @@ class DNSServerFactory(server.DNSServerFactory):
 
 
 def dump_resolv_conf(dns_server_ip):
-    ns_line = 'nameserver %s' % dns_server_ip
-    with open('/etc/resolv.conf', 'r') as f:
-        contents = f.read()
-        print contents
-    if not ns_line in contents:
-        with open('/etc/resolv.conf', 'w') as f:
-            f.write('%s\n%s' % (ns_line, contents))
+    if os.path.exists('/etc/resolv.conf'):
+        ns_line = 'nameserver %s' % dns_server_ip
+        with open('/etc/resolv.conf', 'r') as f:
+            contents = f.read()
+            print contents
+        if not ns_line in contents:
+            with open('/etc/resolv.conf', 'w') as f:
+                f.write('%s\n%s' % (ns_line, contents))
 
 
 def listen_dns(dns_prefix, dns_server_ip, dns_port):

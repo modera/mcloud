@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+import netifaces
 import inject
 from mfcloud.dns_resolver import listen_dns, dump_resolv_conf
 from mfcloud.haproxy import listen_events
@@ -101,7 +102,7 @@ def entry_point():
     # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
     # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
     parser.add_argument('--docker-uri', type=str, default='unix://var/run/docker.sock/', help='Docker connection uri')
-    parser.add_argument('--dns-server-ip', type=str, default='172.17.42.1', help='Dns server to use in containers')
+    parser.add_argument('--dns-server-ip', type=str, default=None, help='Dns server to use in containers')
     parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
     parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
     parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
@@ -114,6 +115,18 @@ def entry_point():
     dns_server_ip = args.dns_server_ip
     dns_prefix = args.dns_search_suffix
     docker_uri = args.docker_uri
+
+
+    # detect dns server ip
+    if not dns_server_ip:
+        try:
+            dns_server_ip = netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
+            print('Docker0 ip is: %s assigning dns there' % dns_server_ip)
+        except KeyError:
+            dns_server_ip = '172.17.42.1'
+            print('Can not find docker0 ip. Setting default %s' % dns_server_ip)
+    else:
+        print('Using provided ip for dns: %s' % dns_server_ip)
 
     def listen_rpc():
         tasks = TaskService()
