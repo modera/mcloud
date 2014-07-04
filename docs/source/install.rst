@@ -55,7 +55,16 @@ Required packages::
     If you want to use docker command without sudo as we do in this document, you should
     add you user to docker group. For, example:
 
-    $ sudo usermod -G docker -a john.doe
+    $ sudo usermod -G docker -a `whoami`
+
+    Then usually it's enough to login/logout into your terminal,
+    but in some cases system restart maybe needed.
+
+    To test, type (without sudo):
+
+    $ docker ps
+
+    If, you see no errors, then it works.s
 
 
 
