@@ -100,6 +100,7 @@ def entry_point():
     parser.add_argument('--haproxy', default=False, action='store_true', help='Update haproxy config')
     # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
     # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
+    parser.add_argument('--docker-uri', type=str, default='unix://var/run/docker.sock/', help='Docker connection uri')
     parser.add_argument('--dns-server-ip', type=str, default='172.17.42.1', help='Dns server to use in containers')
     parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
     parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
@@ -112,6 +113,7 @@ def entry_point():
     rpc_port = args.port
     dns_server_ip = args.dns_server_ip
     dns_prefix = args.dns_search_suffix
+    docker_uri = args.docker_uri
 
     def listen_rpc():
         tasks = TaskService()
@@ -133,6 +135,7 @@ def entry_point():
             binder.bind(IDockerClient, DockerTwistedClient())
 
             binder.bind('dns-server', dns_server_ip)
+            binder.bind('docker-uri', docker_uri)
             binder.bind('dns-search-suffix', dns_prefix)
             #binder.bind('host-ip', args.host_ip)
 

@@ -36,19 +36,17 @@ class DockerConnectionFailed(Exception):
 class DockerTwistedClient(object):
 
     message_publisher = inject.attr(ZmqPubConnection)
+    docker_uri = inject.attr('docker-uri')
 
     def __init__(self, url=None):
         super(DockerTwistedClient, self).__init__()
 
-        if url is None:
-            url = os.environ.get('DOCKER_API_URL', 'unix://var/run/docker.sock/')
-
-
-        self.url = url + '/'
 
     def _request(self, url, method=txhttp.get, **kwargs):
 
-        url_ = '%s%s' % (self.url, url)
+        url = '/%s' % url
+
+        url_ = '%s%s' % (self.docker_uri, url)
         d = method(url_, **kwargs)
 
         def error(failure):
