@@ -67,10 +67,10 @@ class DnsConfig(object):
                 if service['running']:
                     apps[service['fullname']] = service['ip']
 
-            if app['web_service']:
+            if 'web_service' in app and app['web_service']:
                 apps[app['fullname']] = app['web_ip']
 
-            if app['public_url']:
+            if 'public_url' in app and app['public_url']:
                 apps[app['public_url']] = app['web_ip']
 
         logging.info('Installing new app list: %s' % str(apps))

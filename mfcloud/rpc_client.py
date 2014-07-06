@@ -500,6 +500,25 @@ URL: <{url}>
     return epilog
 
 
+def get_argparser():
+    arg_parser = argparse.ArgumentParser(
+        prog='mfcloud',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=metadata.description,
+        epilog=format_epilog(),
+        add_help=False
+    )
+    arg_parser.add_argument('-e', '--env', help='Environment to use', default='dev')
+    arg_parser.add_argument('-h', '--host', help='Host to use', default='127.0.0.1')
+    arg_parser.add_argument(
+        '-V', '--version',
+        action='version',
+        version='{0} {1}'.format(metadata.project, metadata.version))
+    subparsers = arg_parser.add_subparsers()
+    populate_client_parser(subparsers)
+    return arg_parser
+
+
 def main(argv):
 
     console_handler = logging.StreamHandler(stream=sys.stderr)
@@ -513,26 +532,7 @@ def main(argv):
 
     logging.getLogger("requests").propagate = False
 
-    arg_parser = argparse.ArgumentParser(
-        prog=argv[0],
-
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=metadata.description,
-        epilog=format_epilog(),
-        add_help=False
-    )
-
-    arg_parser.add_argument('-e', '--env', help='Environment to use', default='dev')
-    arg_parser.add_argument('-h', '--host', help='Host to use', default='127.0.0.1')
-
-    arg_parser.add_argument(
-        '-V', '--version',
-        action='version',
-        version='{0} {1}'.format(metadata.project, metadata.version))
-
-    subparsers = arg_parser.add_subparsers()
-
-    populate_client_parser(subparsers)
+    arg_parser = get_argparser()
 
 
 

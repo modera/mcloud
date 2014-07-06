@@ -82,6 +82,23 @@ class ApiRpcServer(xmlrpc.XMLRPC):
         return d
 
 
+def get_argparser():
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Dns resolver')
+    parser.add_argument('--port', type=int, default=7080, help='port number')
+    parser.add_argument('--haproxy', default=False, action='store_true', help='Update haproxy config')
+    # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
+    # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
+    parser.add_argument('--docker-uri', type=str, default='unix://var/run/docker.sock/', help='Docker connection uri')
+    parser.add_argument('--dns-server-ip', type=str, default=None, help='Dns server to use in containers')
+    parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
+    parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
+    parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
+    parser.add_argument('--zmq-bind', type=str, default='tcp://0.0.0.0:5555', help='ip address')
+    return parser
+
+
 def entry_point():
 
     console_handler = logging.StreamHandler(stream=sys.stderr)
@@ -93,20 +110,9 @@ def entry_point():
     root_logger.setLevel(logging.DEBUG)
     root_logger.debug('Logger initialized')
 
-    import argparse
 
-    parser = argparse.ArgumentParser(description='Dns resolver')
 
-    parser.add_argument('--port', type=int, default=7080, help='port number')
-    parser.add_argument('--haproxy', default=False, action='store_true', help='Update haproxy config')
-    # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
-    # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
-    parser.add_argument('--docker-uri', type=str, default='unix://var/run/docker.sock/', help='Docker connection uri')
-    parser.add_argument('--dns-server-ip', type=str, default=None, help='Dns server to use in containers')
-    parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
-    parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
-    parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
-    parser.add_argument('--zmq-bind', type=str, default='tcp://0.0.0.0:5555', help='ip address')
+    parser = get_argparser()
 
     args = parser.parse_args()
 

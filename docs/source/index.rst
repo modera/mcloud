@@ -22,6 +22,7 @@ Features
   install
   usage
   examples
+  cli
   yml
   dev
 

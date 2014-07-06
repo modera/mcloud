@@ -7,4 +7,5 @@ Examples
   :maxdepth: 3
 
 
-  samples/static
+  tutor/static
+  tutor/flask-redis
