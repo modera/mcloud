@@ -364,7 +364,9 @@ class ApiRpcClient(object):
 
         os.system(command)
 
-    def run(self, app, service, command, **kwargs):
+    def run(self, service, command='bash', **kwargs):
+
+        service, app = service.split('.')
 
         def on_result(result):
 
@@ -420,9 +422,8 @@ def populate_client_parser(subparsers):
     cmd.set_defaults(func='push')
 
     cmd = subparsers.add_parser('run', help='Execute command')
-    cmd.add_argument('app', help='Application name')
     cmd.add_argument('service', help='Service name')
-    cmd.add_argument('command', help='Command to execute')
+    cmd.add_argument('command', help='Command to execute', default='bash', nargs='?')
     cmd.set_defaults(func='run')
 
     cmd = subparsers.add_parser('stop', help='Stop application')
