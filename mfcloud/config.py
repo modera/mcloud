@@ -1,3 +1,4 @@
+from logging import info
 from abc import abstractmethod
 from mfcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
 from mfcloud.util import Interface
@@ -162,12 +163,22 @@ class YamlConfig(IConfig):
 
             self.services[name] = s
 
-            if s.volumes:
-                volume_service_name = '_volumes_%s' % name
-                volume_service = Service(
-                    volumes_from=name,
-                    name=volume_service_name,
-                    ports=['22/tcp'],
-                    image_builder=PrebuiltImageBuilder('ribozz/rsync')
-                )
-                self.services[volume_service_name] = volume_service
+            volume_service_name = '_volumes_%s' % name
+
+            volumes = None
+
+            keys_path = os.path.join(path, '.mfcloud/keys.txt')
+            if os.path.exists(keys_path):
+                volumes = [{
+                    'local': keys_path,
+                    'remote': '/root/.ssh/authorized_keys'
+                }]
+
+            volume_service = Service(
+                volumes_from=name,
+                volumes=volumes,
+                name=volume_service_name,
+                ports=['22/tcp'],
+                image_builder=PrebuiltImageBuilder('ribozz/rsync')
+            )
+            self.services[volume_service_name] = volume_service

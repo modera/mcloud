@@ -322,6 +322,8 @@ class ApiRpcClient(object):
 
     def resolve_volume_port(self, destination):
 
+        print destination
+
         match = re.match('^([a-z0-9]+)\.([a-z0-9]+):(.*)$', destination)
         if not match:
             if not destination.endswith('/'):
@@ -330,6 +332,8 @@ class ApiRpcClient(object):
 
         d = defer.Deferred()
         service, app, volume = match.group(1), match.group(2), match.group(3)
+
+        print (service, app, volume)
 
         if not volume.endswith('/'):
             volume += '/'
