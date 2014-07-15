@@ -3,22 +3,24 @@ import logging
 import sys
 import inject
 from mfcloud.dns_resolver import listen_dns, dump_resolv_conf
-from mfcloud.haproxy import listen_events
-from mfcloud.monitor import DockerMonitor
+from mfcloud.events import EventBus
+from mfcloud.plugins.dns import DnsPlugin
+from mfcloud.plugins.haproxy import HaproxyPlugin
+from mfcloud.plugins.monitor import DockerMonitorPlugin
 from mfcloud.tasks import TaskService
 from mfcloud.txdocker import IDockerClient, DockerTwistedClient
 from mfcloud.util import txtimeout
 from twisted.internet import defer, reactor
+from twisted.internet.defer import inlineCallbacks
 from twisted.web import xmlrpc, server
 import txredisapi
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqPubConnection
 
 
-logger = logging.getLogger('mfcloud.server')
 
 class ApiRpcServer(xmlrpc.XMLRPC):
     redis = inject.attr(txredisapi.Connection)
-    zmq = inject.attr(ZmqPubConnection)
+    eb = inject.attr(EventBus)
 
     def __init__(self, allowNone=False, useDateTime=False):
         xmlrpc.XMLRPC.__init__(self, allowNone, useDateTime)
@@ -26,7 +28,7 @@ class ApiRpcServer(xmlrpc.XMLRPC):
         self.tasks = {}
 
     def task_completed(self, result, ticket_id):
-        self.zmq.publish(json.dumps(result), 'task-completed-%s' % ticket_id)
+        self.eb.fire_event('task.completed.%s' % ticket_id, json.dumps(result))
 
         #print 'Result is %s' % result
         return defer.DeferredList([
@@ -37,7 +39,8 @@ class ApiRpcServer(xmlrpc.XMLRPC):
     def task_failed(self, error, ticket_id):
         print 'Failure: <%s> %s' % (error.type, error.getErrorMessage())
         print error.printTraceback()
-        self.zmq.publish("Failed: <%s> %s" % (error.type, error.getErrorMessage()), 'task-failed-%s' % ticket_id)
+
+        self.eb.fire_event('task.failed.%s' % ticket_id, "Failed: <%s> %s" % (error.type, error.getErrorMessage()))
 
     def xmlrpc_task_start(self, task_name, *args, **kwargs):
         """
@@ -84,7 +87,7 @@ class ApiRpcServer(xmlrpc.XMLRPC):
 def entry_point():
 
     console_handler = logging.StreamHandler(stream=sys.stderr)
-    console_handler.setFormatter(logging.Formatter())
+    console_handler.setFormatter(logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(name)s] %(message)s'))
     console_handler.setLevel(logging.DEBUG)
 
     root_logger = logging.getLogger()
@@ -117,37 +120,54 @@ def entry_point():
         tasks = TaskService()
         api = ApiRpcServer()
         tasks.register(api)
-        monitor = DockerMonitor()
-        monitor.start()
         reactor.listenTCP(rpc_port, server.Site(api), interface=rpc_interface)
 
+    @inlineCallbacks
     def run_server(redis):
+        root_logger.debug('Running server')
 
-        zf = ZmqFactory()
-        e = ZmqEndpoint('bind', args.zmq_bind)
-        s = ZmqPubConnection(zf, e)
+        eb = EventBus(redis)
+        root_logger.debug('Connecting event bus')
+        yield eb.connect()
+
+        root_logger.debug('Configuring injector.')
 
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
-            binder.bind(ZmqPubConnection, s)
+            binder.bind(EventBus, eb)
             binder.bind(IDockerClient, DockerTwistedClient())
 
             binder.bind('dns-server', dns_server_ip)
             binder.bind('dns-search-suffix', dns_prefix)
-            #binder.bind('host-ip', args.host_ip)
 
         # Configure a shared injector.
         inject.configure(my_config)
 
+        root_logger.debug('Starting rpc listener')
+
         # rpc
         listen_rpc()
 
+        root_logger.debug('Dumping resolv conf')
+
         # dns
         dump_resolv_conf(dns_server_ip)
+
+        root_logger.debug('Listen dns')
         listen_dns(dns_prefix, dns_server_ip, 53)
 
-        # events
-        listen_events(zf, args.zmq_bind, args.haproxy)
+        root_logger.debug('Dns plugin')
+        DnsPlugin()
+
+
+        if args.haproxy:
+            root_logger.debug('Haproxy plugin')
+            HaproxyPlugin()
+
+        root_logger.debug('Monitor plugin')
+        DockerMonitorPlugin()
+
+        root_logger.debug('Started.')
 
     def timeout():
         print('Can not connect to redis!')

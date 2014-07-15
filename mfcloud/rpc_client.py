@@ -3,6 +3,7 @@ import logging
 import sys
 import time
 import uuid
+import inject
 import re
 import os
 import pprintpp
@@ -15,8 +16,15 @@ from twisted.web.xmlrpc import Proxy
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
 
 
-logger = logging.getLogger('mfcloud.client')
+console_handler = logging.StreamHandler(stream=sys.stderr)
 
+console_handler.setFormatter(logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(name)s] %(message)s'))
+console_handler.setLevel(logging.DEBUG)
+
+logger = logging.getLogger('mfcloud.client')
+logger.addHandler(console_handler)
+logger.setLevel(logging.DEBUG)
+logger.debug('Logger initialized')
 
 class ApiRpcClient(object):
 
@@ -439,15 +447,6 @@ URL: <{url}>
 
 def main(argv):
 
-    console_handler = logging.StreamHandler(stream=sys.stderr)
-    console_handler.setFormatter(logging.Formatter())
-    console_handler.setLevel(logging.DEBUG)
-
-    root_logger = logging.getLogger()
-    root_logger.addHandler(console_handler)
-    root_logger.setLevel(logging.INFO)
-    root_logger.debug('Logger initialized')
-
 
     logging.getLogger("requests").propagate = False
 
@@ -471,8 +470,6 @@ def main(argv):
     subparsers = arg_parser.add_subparsers()
 
     populate_client_parser(subparsers)
-
-
 
 
     args = arg_parser.parse_args()

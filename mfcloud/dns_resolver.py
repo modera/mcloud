@@ -79,7 +79,6 @@ def dump_resolv_conf(dns_server_ip):
     ns_line = 'nameserver %s' % dns_server_ip
     with open('/etc/resolv.conf', 'r') as f:
         contents = f.read()
-        print contents
     if not ns_line in contents:
         with open('/etc/resolv.conf', 'w') as f:
             f.write('%s\n%s' % (ns_line, contents))

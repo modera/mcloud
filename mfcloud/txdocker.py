@@ -180,7 +180,6 @@ class DockerTwistedClient(object):
         r.addBoth(on_result)
         return r
 
-
     def events(self, on_event):
         r = self._get('events', response_handler=None)
         r.addCallback(txhttp.collect, on_event)
