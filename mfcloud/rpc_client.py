@@ -145,11 +145,12 @@ class ApiRpcClient(object):
 
             user = kwargs['user']
 
-            remote_path = '/home/%(user)s/mfcloud/%(id)s' % {
+            remote_path = '/%(prefix)s%(user)s/mfcloud/%(id)s' % {
+                'prefix': 'home/' if not user == 'root' else '',
                 'user': user,
                 'id': uuid.uuid1()
             }
-            command = 'rsync -v -r %(local)s %(user)s@%(remote)s:%(path)s' % {
+            command = 'rsync -v --rsync-path="mkdir -p %(path)s && rsync" -r %(local)s %(user)s@%(remote)s:%(path)s' % {
                 'local': path,
                 'user': user,
                 'path': remote_path,
@@ -218,6 +219,7 @@ class ApiRpcClient(object):
             if app['running']:
                 app_status = app['status']
                 services_list = '\n'.join(services)
+
             elif app['status'] == 'error':
                 app_status = 'ERROR'
                 services_list = app['message']
@@ -225,16 +227,21 @@ class ApiRpcClient(object):
                 app_status = ''
                 services_list = '\n'.join(services)
 
-            if 'web_service' in app and app['web_service']:
-                web_service_ = app['web_service']
-                if web_service_.endswith(app['name']):
-                     web_service_ = web_service_[0:-len(app['name']) - 1]
+
+            if app['status'] != 'error':
+                web_service_ = 'No web'
+                if 'web_service' in app and app['web_service']:
+                    web_service_ = app['web_service']
+                    if web_service_.endswith(app['name']):
+                        web_service_ = web_service_[0:-len(app['name']) - 1]
+
                 web = '%s -> [%s]' % (app['fullname'], web_service_)
+
+                if 'public_urls' in app and app['public_urls']:
+                    for url in app['public_urls']:
+                        web += '\n' + '%s -> [%s]' % (url, web_service_)
             else:
                 web = ''
-
-            if 'public_url' in app and app['public_url']:
-                web += '\n' + app['public_url']
 
             x.add_row([app['name'], web, app_status, services_list])
 
@@ -304,6 +311,20 @@ class ApiRpcClient(object):
             print 'result: %s' % pprintpp.pformat(data)
 
         self._remote_exec('start', self.on_print_list_result, name)
+
+    def publish(self, domain, app, **kwargs):
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        self._remote_exec('publish', self.on_print_list_result, domain, app)
+
+    def unpublish(self, domain, **kwargs):
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        self._remote_exec('unpublish', self.on_print_list_result, domain)
 
     def restart(self, name, **kwargs):
 
@@ -424,6 +445,16 @@ def populate_client_parser(subparsers):
     cmd.add_argument('source', help='Push source')
     cmd.add_argument('destination', help='Push destination')
     cmd.set_defaults(func='push')
+
+    cmd = subparsers.add_parser('publish', help='Publish an application')
+    cmd.add_argument('domain', help='Domain to publish')
+    cmd.add_argument('app', help='Application name')
+    # cmd.add_argument('--ssl', default=False, action='store_true', help='Ssl protocol')
+    cmd.set_defaults(func='publish')
+
+    cmd = subparsers.add_parser('unpublish', help='Unpublish an application')
+    cmd.add_argument('domain', help='Domain to unpublish')
+    cmd.set_defaults(func='unpublish')
 
     cmd = subparsers.add_parser('run', help='Execute command')
     cmd.add_argument('service', help='Service name')

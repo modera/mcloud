@@ -70,8 +70,9 @@ class DnsConfig(object):
             if 'web_service' in app and app['web_service']:
                 apps[app['fullname']] = app['web_ip']
 
-            if 'public_url' in app and app['public_url']:
-                apps[app['public_url']] = app['web_ip']
+            if 'public_urls' in app and app['public_urls']:
+                for url in app['public_urls']:
+                    apps[url] = app['web_ip']
 
         logging.info('Installing new app list: %s' % str(apps))
 
@@ -85,7 +86,7 @@ class DnsConfig(object):
 
 class HaproxyConfig(object):
 
-    def __init__(self, path, template=None, internal_suffix='mfcloud.lh'):
+    def __init__(self, path, template=None):
         self.template = template
         self.path = path
 
@@ -99,14 +100,15 @@ class HaproxyConfig(object):
         proxy_apps = []
 
         for app in apps_list:
+            logging.debug(str(app))
+
             if not app['running']:
                 continue
 
             domains = [app['fullname']]
 
-            if app['public_url']:
-                domains.append(app['public_url'])
-
+            if 'public_urls' in app and app['public_urls']:
+                domains += app['public_urls']
 
             proxy_apps.append({
                 'name': app['fullname'],
@@ -117,6 +119,8 @@ class HaproxyConfig(object):
                      'port': 80
                  }]
             })
+
+        logging.info('Installing new balancer domains: %s' % str(proxy_apps))
 
         with open('/etc/haproxy/haproxy.cfg', 'w') as f:
             f.write(template.render({'apps': proxy_apps}))

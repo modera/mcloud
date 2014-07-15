@@ -1,0 +1,31 @@
+#!/bin/bash
+
+apt-get update && apt-get install -y python-pip redis-server python-dev python-virtualenv libffi-dev libssl-dev haproxy
+mkdir /opt
+virtualenv /opt/mfcloud
+/opt/mfcloud/bin/pip install mfcloud
+ln -s /opt/mfcloud/bin/mfcloud* /usr/local/bin/
+ln -s /opt/mfcloud/bin/pip /usr/local/bin/mfcloud-pip
+
+cat << EOF > /etc/init/mfcloud.conf
+description "mflcoud service"
+author "Me"
+start on filesystem and started docker
+stop on runlevel [!2345]
+respawn
+
+script
+  exec /opt/mfcloud/bin/mfcloud-rpc-server --haproxy  >> /var/log/mfcloud.log 2>&1
+end script
+
+
+pre-start script
+# Date format same as (new Date()).toISOString() for consistency
+echo "[`date -u +%Y-%m-%dT%T.%3NZ`] (sys) Starting" >> /var/log/mfcloud.log
+end script
+
+pre-stop script
+echo "[`date -u +%Y-%m-%dT%T.%3NZ`] (sys) Stopping" >> /var/log/mfcloud.log
+end script
+
+EOF

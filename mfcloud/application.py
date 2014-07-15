@@ -14,12 +14,12 @@ class Application(object):
     dns_search_suffix = inject.attr('dns-search-suffix')
     #host_ip = inject.attr('host_ip')
 
-    def __init__(self, config, name=None, public_url=None):
+    def __init__(self, config, name=None, public_urls=None):
         super(Application, self).__init__()
 
         self.config = config
         self.name = name
-        self.public_url = public_url
+        self.public_urls = public_urls or []
 
     @defer.inlineCallbacks
     def load(self, need_details=False):
@@ -88,7 +88,7 @@ class Application(object):
             'fullname': '%s.%s' % (self.name, self.dns_search_suffix),
             'web_ip': web_ip,
             'web_service': web_service,
-            'public_url': self.public_url,
+            'public_urls': self.public_urls,
             'config': self.config,
             'services': services,
             'running': is_running,
@@ -154,7 +154,9 @@ class ApplicationController(object):
             try:
                 dep = json.loads(config_raw)
                 if 'public_app' in dep and dep['public_app']:
-                    pub_apps[dep['public_app']] = dep['public_domain']
+                    if not dep['public_app'] in pub_apps:
+                        pub_apps[dep['public_app']] = []
+                    pub_apps[dep['public_app']].append(dep['name'])
             except ValueError:
                 pass
 
@@ -165,14 +167,13 @@ class ApplicationController(object):
         all_apps = []
         for name, app_config in config.items():
             try:
-                public_url = pub_apps[name]
+                public_urls = pub_apps[name]
             except KeyError:
-                public_url = None
+                public_urls = None
 
-            app = Application(json.loads(app_config), name=name, public_url=public_url)
+            app = Application(json.loads(app_config), name=name, public_urls=public_urls)
             all_apps.append(app.load(need_details=True))
 
         results = yield defer.gatherResults(all_apps, consumeErrors=True)
 
         defer.returnValue(results)
-

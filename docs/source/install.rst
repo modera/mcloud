@@ -64,7 +64,10 @@ Required packages::
 
     $ docker ps
 
-    If, you see no errors, then it works.s
+    If, you see no errors, then it works.
+
+    *NB!* This is DANGEROUS settings in production. Adding user to docker group
+    basically means you give root priveleges to this user.
 
 
 
@@ -125,13 +128,19 @@ Make sure it's running::
 
 
 
-Running mfcloud-server with upstart
-************************************
+Running mfcloud-server with upstart (recommended)
+***************************************************
 
 Create file /etc/init/mfcloud.conf with follwing contents::
 
-    start on startup
-    exec /opt/mfcloud/bin/mfcloud-rpc-server >> /var/log/mfcloud.log 2>&1
+    description "Mfcloud server"
+    author "Modera"
+    start on filesystem and started docker
+    stop on runlevel [!2345]
+    respawn
+    script
+      /opt/mfcloud/bin/mfcloud-rpc-server >> /var/log/mfcloud.log 2>&1
+    end script
 
 Start mfcloud service::
 
@@ -265,5 +274,3 @@ Uninstalling mflcoud
 - Remove mfcloud commands: sudo rm /usr/local/bin/mfcloud*
 - Remove mfcloud home: sudo rm -rf /opt/mfcloud
 - Remove mflcoud-dns
-
-

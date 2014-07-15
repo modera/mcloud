@@ -280,39 +280,40 @@ class TaskService():
 
         ret = yield defer.gatherResults(deployment_list, consumeErrors=True)
         defer.returnValue(ret)
+    #
+    # @inlineCallbacks
+    # def task_deployment_create(self, ticket_id, public_domain):
+    #     deployment = yield self.deployment_controller.create(public_domain)
+    #     defer.returnValue(not deployment is None)
+    #
+    # @inlineCallbacks
+    # def task_deployment_new_app_zip(self, ticket_id, deployment_name, name, path):
+    #     app = yield self.deployment_controller.new_app(deployment_name, name, {'path': path})
+    #     defer.returnValue(not app is None)
+    #
+    # @inlineCallbacks
+    # def task_deployment_new_app_source(self, ticket_id, deployment_name, name, source):
+    #     app = yield self.deployment_controller.new_app(deployment_name, name, {'source': source})
+    #     defer.returnValue(not app is None)
 
     @inlineCallbacks
-    def task_deployment_details(self, ticket_id, name):
-        deployment = yield self.deployment_controller.get(name)
+    def task_publish(self, ticket_id, deployment_name, app_name):
+        yield self.deployment_controller.publish_app(deployment_name, app_name)
 
-        ret = yield deployment.load_data()
+        ret = yield self.app_controller.list()
         defer.returnValue(ret)
 
     @inlineCallbacks
-    def task_deployment_create(self, ticket_id, name, public_domain):
-        deployment = yield self.deployment_controller.create(name, public_domain)
-        defer.returnValue(not deployment is None)
+    def task_unpublish(self, ticket_id, deployment_name):
+        yield self.deployment_controller.unpublish_app(deployment_name)
 
-    @inlineCallbacks
-    def task_deployment_new_app_zip(self, ticket_id, deployment_name, name, path):
-        app = yield self.deployment_controller.new_app(deployment_name, name, {'path': path})
-        defer.returnValue(not app is None)
+        ret = yield self.app_controller.list()
+        defer.returnValue(ret)
 
-    @inlineCallbacks
-    def task_deployment_new_app_source(self, ticket_id, deployment_name, name, source):
-        app = yield self.deployment_controller.new_app(deployment_name, name, {'source': source})
-        defer.returnValue(not app is None)
-
-    def task_deployment_publish_app(self, ticket_id, deployment_name, app_name):
-        return self.deployment_controller.publish_app(deployment_name, app_name)
-
-    def task_deployment_unpublish_app(self, ticket_id, deployment_name):
-        return self.deployment_controller.unpublish_app(deployment_name)
-
-    @inlineCallbacks
-    def task_deployment_remove(self, ticket_id, name):
-        deployment = yield self.deployment_controller.remove(name)
-        defer.returnValue(deployment is None)
+    # @inlineCallbacks
+    # def task_deployment_remove(self, ticket_id, name):
+    #     deployment = yield self.deployment_controller.remove(name)
+    #     defer.returnValue(deployment is None)
 
     #@inlineCallbacks
     #def task_deployment_attach_volumes(self, ticket_id, deployment_name, name):
