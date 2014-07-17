@@ -1,34 +1,28 @@
 import sys
 from twisted.internet import reactor, defer
 from twisted.internet.endpoints import TCP4ClientEndpoint
-from twisted.internet.protocol import Protocol, Factory, BaseProtocol
-from twisted.web.server import Site
-from txsockjs.factory import SockJSFactory
+from twisted.internet.protocol import Protocol
 from twisted.python import log
-from txsockjs.websockets import _WebSocketsFactory
+
+from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
+from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketClientFactory
 
 
-class ServerProtocol(Protocol):
-    def connectionMade(self):
-        self.transport.write('oo!')
+class WebsocketServerProtocol(WebSocketServerProtocol):
+    def __init__(self):
+        pass
 
-    def dataReceived(self, data):
-        log.msg('Server received data: %s' % data)
-        self.server.on_message(data)
+    def onConnect(self, request):
+        pass
 
+    def onOpen(self):
+        self.factory.server.clients.append(self)
 
-class ServerFactory(SockJSFactory):
-    def __init__(self, server, options=None):
-        factory = Factory.forProtocol(ServerProtocol)
-        SockJSFactory.__init__(self, factory, options)
+    def onMessage(self, payload, isBinary):
+        self.factory.server.on_message(payload, isBinary)
 
-        self.server = server
-
-    def buildProtocol(self, addr):
-        protocol = SockJSFactory.buildProtocol(self, addr)
-        protocol.server = self.server
-        self.server.clients.append(protocol)
-        return protocol
+    def onClose(self, wasClean, code, reason):
+        pass
 
 
 class Server(object):
@@ -37,74 +31,77 @@ class Server(object):
         self.port = port
         self.clients = []
 
-    def on_message(self, message):
+    def on_message(self, payload, isBinary):
         pass
+
+    def shutdown(self):
+        for protocol in self.clients:
+            protocol.sendClose()
 
     def register_task(self, name, callback):
         self.tasks['name'] = callback
 
     def bind(self):
-        reactor.listenTCP(self.port, ServerFactory(self))
+        factory = WebSocketServerFactory("ws://localhost:%s" % self.port, debug=False)
+        factory.server = self
+        factory.protocol = WebsocketServerProtocol
+
+        reactor.listenTCP(self.port, factory)
 
 
-class ClientProtocol(Protocol):
-    def connectionMade(self):
-        log.msg('Client connected!')
-        self.transport.write('bazbaz')
+class WebsocketClientProtocol(WebSocketClientProtocol):
+    def __init__(self):
+        pass
 
-    def dataReceived(self, data):
-        log.msg('Client received data: ' % data)
-
-
-from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketClientFactory
-
-
-class MyClientProtocol(WebSocketClientProtocol):
     client = None
 
     def onConnect(self, response):
-        print("Server connected: {0}".format(response.peer))
+        pass
 
     def onOpen(self):
-        print("WebSocket connection open.")
+        self.client.protocol = self
+        self.client.onc.callback(True)
 
-        self.sendMessage(u"Hello, world!".encode('utf8'))
-        self.sendMessage(b"\x00\x01\x03\x04", isBinary=True)
+        #self.sendMessage(u"Hello, world!".encode('utf8'))
+        #self.sendMessage(b"\x00\x01\x03\x04", isBinary=True)
 
     def onMessage(self, payload, isBinary):
-        if isBinary:
-            print("Binary message received: {0} bytes".format(len(payload)))
-        else:
-            print("Text message received: {0}".format(payload.decode('utf8')))
+        #if isBinary:
+        #    print("Binary message received: {0} bytes".format(len(payload)))
+        #else:
+        #    print("Text message received: {0}".format(payload.decode('utf8')))
 
         self.client.on_message(payload)
 
     def onClose(self, wasClean, code, reason):
-        print("WebSocket connection closed: {0}".format(reason))
+        pass
 
 
 class Client(object):
     def __init__(self, port=7080):
         self.port = port
+        self.onc = None
+        self.protocol = None
 
     def send(self, data):
-        self.protocol.sendMessage(data)
+        return self.protocol.sendMessage(data)
+
+    def shutdown(self):
+        self.protocol.sendClose()
 
     def on_message(self, data):
         pass
 
-    def on_conneced(self, protocol):
-        self.protocol = protocol
-
     def connect(self):
-        factory = WebSocketClientFactory("ws://localhost:%s/websocket" % self.port, debug=False)
-        factory.protocol = MyClientProtocol
+        factory = WebSocketClientFactory("ws://localhost:%s" % self.port, debug=False)
+        factory.protocol = WebsocketClientProtocol
         factory.protocol.client = self
 
         point = TCP4ClientEndpoint(reactor, "localhost", self.port)
-        d = point.connect(factory)
-        d.addCallback(self.on_conneced)
-        return d
+        point.connect(factory)
+
+        self.onc = defer.Deferred()
+        return self.onc
 
 
 class Task(object):
