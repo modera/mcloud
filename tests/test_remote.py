@@ -1,4 +1,5 @@
 import sys
+from flexmock import flexmock
 import inject
 
 import pytest
@@ -22,7 +23,7 @@ class MockServer(Server):
 class MockClient(Client):
     message = None
 
-    def on_message(self, message, isBinary=False):
+    def on_message(self, cleint, message, isBinary=False):
         self.message = message
 
 
@@ -67,57 +68,56 @@ def test_exchange():
     yield sleep(0.1)
 
 
+def test_handlers():
 
-@pytest.inlineCallbacks
-def test_tasks():
-    inject.clear()
+    server = Server()
+    server.on_message()
 
-    rc = yield redis.Connection(dbid=2)
-    yield rc.flushdb()
+#
+# @pytest.inlineCallbacks
+# def test_tasks():
+#     inject.clear()
+#
+#     rc = yield redis.Connection(dbid=2)
+#     yield rc.flushdb()
+#
+#     task_defered = defer.Deferred()
+#
+#     task = flexmock()
+#     task.should_receive('foo').with_args(int, 'baz').once().and_return(task_defered)
+#
+#     server = Server(port=9998)
+#     server.register_task(task, 'foo')
+#     server.bind()
+#
+#     client = Client(port=9998)
+#
+#     task = Task('foo')
+#     yield client.call(task, 'baz')
+#
+#     yield sleep(0.1)
 
-    d = defer.Deferred()
-    d.task_id = None
-    d.args = None
 
-    def _task(task_id, *args):
-        d.task_id = task_id
-        d.args = args
-
-    server = Server(port=9998)
-    server.register_task('foo', _task)
-    server.bind()
-
-
-    client = Client(port=9998)
-
-    task = Task('foo', 'baz')
-
-    yield client.call(task)
-
-    yield sleep(0.1)
-
-    assert d.args == ['baz']
-
-    assert task.task_id > 0
-    assert task.data == []
-    assert task.completed == False
-
-    yield server.send_data(task.task_id, 'nami-nami')
-
-    yield sleep(0.1)
-
-    assert task.data == ['nami-nami']
-    assert task.completed == False
-
-    yield d.callback('this is respnse')
-
-    yield sleep(0.1)
-
-    assert task.data == ['nami-nami']
-    assert task.completed == True
-    assert task.response == 'this is respnse'
-
-    client.shutdown()
-    server.shutdown()
-
-    yield sleep(0.1)
+    # assert task.task_id > 0
+    # assert task.data == []
+    # assert task.completed == False
+    #
+    # yield server.send_data(task.task_id, 'nami-nami')
+    #
+    # yield sleep(0.1)
+    #
+    # assert task.data == ['nami-nami']
+    # assert task.completed == False
+    #
+    # yield d.callback('this is respnse')
+    #
+    # yield sleep(0.1)
+    #
+    # assert task.data == ['nami-nami']
+    # assert task.completed == True
+    # assert task.response == 'this is respnse'
+    #
+    # client.shutdown()
+    # server.shutdown()
+    #
+    # yield sleep(0.1)

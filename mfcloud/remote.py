@@ -1,14 +1,18 @@
+import json
 import sys
+import inject
+from mfcloud.events import EventBus
+from mfcloud.websocket import MdcloudWebsocketClientProtocol, MdcloudWebsocketServerProtocol
 from twisted.internet import reactor, defer
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet.endpoints import TCP4ClientEndpoint
-from twisted.internet.protocol import Protocol
-from twisted.python import log
 
-from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
-from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketClientFactory
+from autobahn.twisted.websocket import WebSocketServerFactory
+from autobahn.twisted.websocket import WebSocketClientFactory
+import txredisapi
 
 
-class WebsocketServerProtocol(WebSocketServerProtocol):
+class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
     def __init__(self):
         pass
 
@@ -16,40 +20,72 @@ class WebsocketServerProtocol(WebSocketServerProtocol):
         pass
 
     def onOpen(self):
-        self.factory.server.clients.append(self)
+        self.factory.server.on_client_connect(self)
+
+    def onClose(self):
+        self.factory.server.on_client_disconnect(self)
 
     def onMessage(self, payload, isBinary):
         self.factory.server.on_message(payload, isBinary)
 
-    def onClose(self, wasClean, code, reason):
-        pass
-
 
 class Server(object):
+    redis = inject.attr(txredisapi.Connection)
+    eb = inject.attr(EventBus)
+
     def __init__(self, port=7080):
         self.tasks = {}
         self.port = port
         self.clients = []
 
-    def on_message(self, payload, isBinary):
-        pass
+        self.request_map = {}
+
+    @inlineCallbacks
+    def on_message(self, payload, is_binary):
+        """
+        Method is called when new message arrives from client
+        """
+        yield self.redis.incr('mfcloud-ticket-id')
+
+    def on_client_connect(self, client):
+        """
+        Method is called when new client is here
+        """
+        self.clients.append(client)
+
+    def on_client_disconnect(self, client):
+        """
+        Method is called when client disconnects
+        """
+        self.clients.remove(client)
 
     def shutdown(self):
+        """
+        Terminate all client sessions
+        """
         for protocol in self.clients:
             protocol.sendClose()
 
+        self.clients = []
+
     def register_task(self, name, callback):
-        self.tasks['name'] = callback
+        """
+        Add new task to task list
+        """
+        self.tasks[name] = callback
 
     def bind(self):
+        """
+        Start listening on the port specified
+        """
         factory = WebSocketServerFactory("ws://localhost:%s" % self.port, debug=False)
         factory.server = self
-        factory.protocol = WebsocketServerProtocol
+        factory.protocol = MdcloudWebsocketServerProtocol
 
         reactor.listenTCP(self.port, factory)
 
 
-class WebsocketClientProtocol(WebSocketClientProtocol):
+class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):
     def __init__(self):
         pass
 
@@ -62,19 +98,20 @@ class WebsocketClientProtocol(WebSocketClientProtocol):
         self.client.protocol = self
         self.client.onc.callback(True)
 
-        #self.sendMessage(u"Hello, world!".encode('utf8'))
-        #self.sendMessage(b"\x00\x01\x03\x04", isBinary=True)
+    def onMessage(self, payload, is_binary):
+        """
+        is_binary affects method of message encoding:
 
-    def onMessage(self, payload, isBinary):
-        #if isBinary:
-        #    print("Binary message received: {0} bytes".format(len(payload)))
-        #else:
-        #    print("Text message received: {0}".format(payload.decode('utf8')))
-
+        if is_binary:
+            print("Binary message received: {0} bytes".format(len(payload)))
+        else:
+            print("Text message received: {0}".format(payload.decode('utf8')))
+        """
         self.client.on_message(payload)
 
     def onClose(self, wasClean, code, reason):
         pass
+
 
 
 class Client(object):
@@ -82,6 +119,7 @@ class Client(object):
         self.port = port
         self.onc = None
         self.protocol = None
+        self.request_id = 0
 
     def send(self, data):
         return self.protocol.sendMessage(data)
@@ -94,7 +132,7 @@ class Client(object):
 
     def connect(self):
         factory = WebSocketClientFactory("ws://localhost:%s" % self.port, debug=False)
-        factory.protocol = WebsocketClientProtocol
+        factory.protocol = MdcloudWebsocketClientProtocol
         factory.protocol.client = self
 
         point = TCP4ClientEndpoint(reactor, "localhost", self.port)
@@ -103,13 +141,24 @@ class Client(object):
         self.onc = defer.Deferred()
         return self.onc
 
+    def call(self, task, *args):
+        self.request_id += 1
+
+        msg = {
+            'id': self.request_id,
+            'task': task,
+            'args': args,
+        }
+        data = 'task:%s' % json.dumps(msg)
+
+        return self.send(data)
+
 
 class Task(object):
-    def __init__(self, name, *args):
+    def __init__(self, name):
         super(Task, self).__init__()
 
-    def connect(self):
-        pass
+        self.name = name
 
 
 if __name__ == '__main__':

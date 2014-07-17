@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketServerProtocol
 from twisted.internet import reactor
 from twisted.internet.error import ConnectionRefusedError
 from twisted.internet.protocol import Protocol, Factory
