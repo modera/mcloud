@@ -1,5 +1,7 @@
 import inspect
 import logging
+from autobahn.twisted import wamp
+from autobahn.twisted.wamp import ApplicationSession
 import inject
 from mfcloud.application import ApplicationController, Application, AppDoesNotExist
 from mfcloud.config import ConfigParseError
@@ -10,7 +12,9 @@ import txredisapi
 
 logger = logging.getLogger('mfcloud.tasks')
 
-class TaskService():
+
+class TaskService(ApplicationSession):
+
     app_controller = inject.attr(ApplicationController)
     deployment_controller = inject.attr(DeploymentController)
     redis = inject.attr(txredisapi.Connection)
@@ -38,7 +42,7 @@ class TaskService():
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
 
-    def task_list(self, ticket_id):
+    def task_list(self):
         return self.app_controller.list()
 
     @inlineCallbacks
@@ -267,6 +271,9 @@ class TaskService():
         deployment = yield self.deployment_controller.remove(name)
         defer.returnValue(deployment is None)
 
+    def task_register_file(self, ticket_id):
+        return self.redis.incr('file_register_id')
+
     #@inlineCallbacks
     #def task_deployment_attach_volumes(self, ticket_id, deployment_name, name):
     #    app = yield self.deployment_controller.new_app(deployment_name, name, {'path': path})
@@ -289,15 +296,11 @@ class TaskService():
     #    d.addCallback(done)
     #    return d
 
-    def register(self, rpc_server):
+    @inlineCallbacks
+    def onJoin(self, details):
 
-        tasks = {}
+        print('Somebody joined!')
 
         for name, func in inspect.getmembers(self):
             if name.startswith('task_'):
-                tasks[name[5:]] = func
-
-        rpc_server.tasks.update(tasks)
-
-    def task_register_file(self, ticket_id):
-        return self.redis.incr('file_register_id')
+                yield self.register("mfcloud.%s" % name[5:], func)

@@ -3,6 +3,8 @@ import logging
 import sys
 import time
 import uuid
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.twisted.websocket import WampWebSocketClientProtocol, WampWebSocketClientFactory
 import inject
 import re
 import os
@@ -11,114 +13,91 @@ from prettytable import PrettyTable, ALL
 from texttable import Texttable
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
-from twisted.internet.error import ConnectionRefusedError
-from twisted.web.xmlrpc import Proxy
-from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
 
+class ApiRpcClient(ApplicationSession):
 
-console_handler = logging.StreamHandler(stream=sys.stderr)
-
-console_handler.setFormatter(logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(name)s] %(message)s'))
-console_handler.setLevel(logging.DEBUG)
-
-logger = logging.getLogger('mfcloud.client')
-logger.addHandler(console_handler)
-logger.setLevel(logging.DEBUG)
-logger.debug('Logger initialized')
-
-class ApiRpcClient(object):
-
-    def __init__(self, host='0.0.0.0'):
-        super(ApiRpcClient, self).__init__()
+    def __init__(self, host='0.0.0.0', port=7080):
+        ApplicationSession.__init__(self)
 
         self.host = host
+        self.port = port
 
-        self.init_zmq()
+        #self.ticket = {}
 
-        self.ticket = {}
+        self.on_connect_defered = defer.Deferred()
 
-        self.proxy = Proxy('http://%s:7080' % host)
+    @inlineCallbacks
+    def start_task(self, task, **kwargs):
+        yield getattr(self, task)(**kwargs)
+        reactor.stop()
 
-        self.reactor = reactor
 
-    def on_result(self, result):
+    @inlineCallbacks
+    def onJoin(self, details):
+        print("session attached")
+        self.on_connect_defered.callback(details)
+
+    def onDisconnect(self):
+        print("disconnected")
+        self.on_connect_defered.callback(None)
+        reactor.stop()
+
+    def onError(self, error):
+        print('Ohohoho: %s' % error)
+
+    def onClose(self, *args):
         pass
+        reactor.stop()
 
-    def init_zmq(self):
-        zf2 = ZmqFactory()
-        e2 = ZmqEndpoint('connect', 'tcp://%s:5555' % self.host)
-        s2 = ZmqSubConnection(zf2, e2)
-        s2.subscribe("")
-        s2.gotMessage = self._on_message
+    def wait_connection(self):
+        return self.on_connect_defered
 
+
+    @inlineCallbacks
     def _remote_exec(self, task_name, on_result, *args):
+        try:
+            res = yield self.call('mfcloud.%s' % task_name, *args)
+            on_result(res)
+        except Exception as e:
+            print('Failed to execute the task: %s' % e.message)
 
-        self.on_result = on_result
-
-        logger.debug('rpc call: task_start %s %s' % (task_name, args))
-        d = self.proxy.callRemote('task_start', task_name, *args)
-
-        def ready(result):
-            logger.debug('rpc response:%s' % result)
-            self.ticket['ticket_id'] = result['ticket_id']
-
-        def failed(failure):
-
-            if failure.type == ConnectionRefusedError:
-                print('\nConnection failure. Server is not started? \n\nRefer to documentation at '
-                      'http://mfcloud.readthedocs.org/ for instructions how to start the server.\n')
-            else:
-                print('Failed to execute the task: %s' % failure.getErrorMessage())
-            self.reactor.stop()
-
-        d.addCallback(ready)
-        d.addErrback(failed)
-        self.reactor.run()
-
-    def _task_failed(self, message):
-        self.reactor.stop()
-        print message
-
-    def _task_completed(self, message):
-        self.reactor.stop()
-        data = json.loads(message)
-        self.on_result(data)
-
-    def _on_message(self, message, tag):
-
-        logger.debug('zmq message: %s tag: %s', message, tag)
-
-        if not 'ticket_id' in self.ticket:
-            self.reactor.callLater(0.1, self._on_message, message, tag)
-            return
-
-        if tag == 'task-completed-%s' % self.ticket['ticket_id']:
-            self._task_completed(message)
-
-
-        elif tag == 'task-failed-%s' % self.ticket['ticket_id']:
-            self._task_failed(message)
-
-
-        elif tag == 'log-%s' % self.ticket['ticket_id']:
-            try:
-                data = json.loads(message)
-                if 'status' in data and 'progress' in data:
-                    sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
-
-                elif 'status' in data and 'id' in data:
-                    sys.stdout.write('\n[%s] %s' % (data['id'], data['status']))
-
-                elif 'status' in data:
-                    sys.stdout.write('\n%s' % (data['status']))
-                else:
-                    if isinstance(data, basestring):
-                        sys.stdout.write(data)
-                    else:
-                        print pprintpp.pformat(data)
-
-            except ValueError:
-                print(message)
+    #
+    #
+    #def _on_message(self, message, tag):
+    #
+    #    logger.debug('zmq message: %s tag: %s', message, tag)
+    #
+    #    if not 'ticket_id' in self.ticket:
+    #        self.reactor.callLater(0.1, self._on_message, message, tag)
+    #        return
+    #
+    #    if tag == 'task-completed-%s' % self.ticket['ticket_id']:
+    #        self._task_completed(message)
+    #
+    #
+    #    elif tag == 'task-failed-%s' % self.ticket['ticket_id']:
+    #        self._task_failed(message)
+    #
+    #
+    #    elif tag == 'log-%s' % self.ticket['ticket_id']:
+    #        try:
+    #            data = json.loads(message)
+    #            if 'status' in data and 'progress' in data:
+    #                sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
+    #
+    #            elif 'status' in data and 'id' in data:
+    #                sys.stdout.write('\n[%s] %s' % (data['id'], data['status']))
+    #
+    #            elif 'status' in data:
+    #                sys.stdout.write('\n%s' % (data['status']))
+    #            else:
+    #                if isinstance(data, basestring):
+    #                    sys.stdout.write(data)
+    #                else:
+    #                    print pprintpp.pformat(data)
+    #
+    #        except ValueError:
+    #            print(message)
 
     def init(self, name, path, **kwargs):
 
@@ -387,37 +366,7 @@ def populate_client_parser(subparsers):
     cmd.set_defaults(func='dns')
 
 
-    # # # mfcloud use ubuntu@myserver.com
-    # fig_cmd = subparsers.add_parser('fig', help='Executes fig commands')
-    # fig_cmd.add_argument('--env', help='Environment name', default='dev')
-    # fig_cmd.add_argument('--app-name', help='App name')
-    # fig_cmd.add_argument('fig_cmd', help='Fig command to execeute')
-    # fig_cmd.set_defaults(func=func=fig_main)
-
-
-    # 'PS1=(.env)\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\u@\h:\w\$'
-
-
-    # cmd = subparsers.add_parser('volumes', help='Show volumes of current project')
-    # cmd.add_argument('services', help='Service names', nargs='*')
-    # cmd.add_argument('--json', action='store_true', default=False)
-    # cmd.set_defaults(func='list_volumes')
-    #
-    # cmd = subparsers.add_parser('volume-push', help='Push volume to remote server')
-    # cmd.add_argument('volumes', help='Volume specs', nargs='*')
-    # cmd.set_defaults(func='push_volumes')
-    #
-    # cmd = subparsers.add_parser('volume-pull', help='Push volume to remote server')
-    # cmd.add_argument('volumes', help='Volume specs', nargs='*')
-    # cmd.set_defaults(func='pull_volumes')
-
-    # cmd = subparsers.add_parser('status', help='Show current status of services')
-    # cmd.set_defaults(func='status')
-
-
 import argparse
-from cmd import Cmd
-
 from mfcloud import metadata
 
 
@@ -445,11 +394,8 @@ URL: <{url}>
     return epilog
 
 
+
 def main(argv):
-
-
-    logging.getLogger("requests").propagate = False
-
     arg_parser = argparse.ArgumentParser(
         prog=argv[0],
 
@@ -476,13 +422,48 @@ def main(argv):
 
     args.argv0 = argv[0]
 
-    client = ApiRpcClient(host=args.host)
-
     if isinstance(args.func, str):
-        getattr(client, args.func)(**vars(args))
+
+        def timeout(*args):
+            if not hasattr(MfcloudWebSocketClientProtocol, '_mfcloud_connected'):
+                print('Connection timeout 3s\n\n\n')
+                reactor.stop()
+                return
+
+
+        class MfcloudWebSocketClientProtocol(WampWebSocketClientProtocol):
+            def connectionMade(self):
+
+                MfcloudWebSocketClientProtocol._mfcloud_connected = True
+
+                self._session = self.factory._factory()
+                WampWebSocketClientProtocol.connectionMade(self)
+
+            def failHandshake(self, reason):
+                WampWebSocketClientProtocol.failHandshake(self, reason)
+
+                self._session.onError('Failed handhshake: %s' % reason)
+
+
+        WampWebSocketClientFactory.protocol = MfcloudWebSocketClientProtocol
+
+        def mfcloud_client(config):
+            client = ApiRpcClient(config)
+
+            client.wait_connection()\
+                .addCallback(client.start_task, args.func, **vars(args))
+
+            return client
+
+        from autobahn.twisted.wamp import ApplicationRunner
+
+        reactor.callLater(3, timeout)
+
+        runner = ApplicationRunner("ws://127.0.0.1:7080/ws", "realm1", debug=False, debug_app=False, debug_wamp=False)
+        runner.run(mfcloud_client)
+
     else:
         args.func(**vars(args))
-
 
 
 

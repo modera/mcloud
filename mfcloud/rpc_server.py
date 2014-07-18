@@ -117,10 +117,9 @@ def entry_point():
     dns_prefix = args.dns_search_suffix
 
     def listen_rpc():
-        tasks = TaskService()
-        api = ApiRpcServer()
-        tasks.register(api)
-        reactor.listenTCP(rpc_port, server.Site(api), interface=rpc_interface)
+        from autobahn.twisted.wamp import ApplicationRunner
+        runner = ApplicationRunner("ws://%s:%s/ws" % (rpc_interface, rpc_port), "realm1", debug=True, debug_app=True, debug_wamp=True)
+        runner.run(TaskService, start_reactor=True)
 
     @inlineCallbacks
     def run_server(redis):

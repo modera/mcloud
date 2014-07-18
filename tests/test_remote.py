@@ -68,34 +68,28 @@ def test_exchange():
     yield sleep(0.1)
 
 
-def test_handlers():
+@pytest.inlineCallbacks
+def test_tasks():
+     inject.clear()
 
-    server = Server()
-    server.on_message()
+     rc = yield redis.Connection(dbid=2)
+     yield rc.flushdb()
 
-#
-# @pytest.inlineCallbacks
-# def test_tasks():
-#     inject.clear()
-#
-#     rc = yield redis.Connection(dbid=2)
-#     yield rc.flushdb()
-#
-#     task_defered = defer.Deferred()
-#
-#     task = flexmock()
-#     task.should_receive('foo').with_args(int, 'baz').once().and_return(task_defered)
-#
-#     server = Server(port=9998)
-#     server.register_task(task, 'foo')
-#     server.bind()
-#
-#     client = Client(port=9998)
-#
-#     task = Task('foo')
-#     yield client.call(task, 'baz')
-#
-#     yield sleep(0.1)
+     task_defered = defer.Deferred()
+
+     task = flexmock()
+     task.should_receive('foo').with_args(int, 'baz').once().and_return(task_defered)
+
+     server = Server(port=9998)
+     server.register_task(task, 'foo')
+     server.bind()
+
+     client = Client(port=9998)
+
+     task = Task('foo')
+     yield client.call(task, 'baz')
+
+     yield sleep(0.1)
 
 
     # assert task.task_id > 0

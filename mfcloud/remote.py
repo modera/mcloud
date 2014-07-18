@@ -85,34 +85,6 @@ class Server(object):
         reactor.listenTCP(self.port, factory)
 
 
-class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):
-    def __init__(self):
-        pass
-
-    client = None
-
-    def onConnect(self, response):
-        pass
-
-    def onOpen(self):
-        self.client.protocol = self
-        self.client.onc.callback(True)
-
-    def onMessage(self, payload, is_binary):
-        """
-        is_binary affects method of message encoding:
-
-        if is_binary:
-            print("Binary message received: {0} bytes".format(len(payload)))
-        else:
-            print("Text message received: {0}".format(payload.decode('utf8')))
-        """
-        self.client.on_message(payload)
-
-    def onClose(self, wasClean, code, reason):
-        pass
-
-
 
 class Client(object):
     def __init__(self, port=7080):
