@@ -28,7 +28,7 @@ class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
         self.factory.server.on_client_disconnect(self, wasClean, code, reason)
 
     def onMessage(self, payload, isBinary):
-        self.factory.server.on_message(payload, isBinary)
+        self.factory.server.on_message(self, payload, isBinary)
 
 
 class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):

@@ -21,14 +21,20 @@ class Server(object):
         self.port = port
         self.clients = []
 
-        self.request_map = {}
+    def on_message(self, client, payload, is_binary=False):
+        #"""
+        #Method is called when new message arrives from client
+        #"""
+        #ticket_id = yield self.redis.incr('mfcloud-ticket-id')
 
-    @inlineCallbacks
-    def on_message(self, payload, is_binary=False):
-        """
-        Method is called when new message arrives from client
-        """
-        yield self.redis.incr('mfcloud-ticket-id')
+        data = json.loads(payload)
+
+        if data['task'] == 'ping':
+            data['task'] = 'pong'
+            yield client.sendMessage(json.dumps(data))
+        else:
+            yield defer.succeed(True)
+
 
     def on_client_connect(self, client):
         """
@@ -74,6 +80,7 @@ class Client(object):
         self.onc = None
         self.protocol = None
         self.request_id = 0
+        self.request_map = {}
 
     def send(self, data):
         return self.protocol.sendMessage(data)
@@ -82,7 +89,13 @@ class Client(object):
         self.protocol.sendClose()
 
     def on_message(self, data, is_binary=False):
-        pass
+        data = json.loads(data)
+
+        if data['id'] in self.request_map:
+            self.request_map[data['id']].callback()
+        else:
+            print('Unknown request id: %s' % data['id'])
+
 
     def connect(self):
         factory = WebSocketClientFactory("ws://localhost:%s" % self.port, debug=False)
@@ -95,15 +108,29 @@ class Client(object):
         self.onc = defer.Deferred()
         return self.onc
 
-    def call(self, task, *args):
+    def call_sync(self, task, *args, **kwargs):
+        d = defer.Deferred()
+
         self.request_id += 1
+        _id = self.request_id
+
+        self.request_map[_id] = d
 
         msg = {
-            'id': self.request_id,
+            'id': _id,
             'task': task,
             'args': args,
+            'kwargs': kwargs,
         }
-        data = 'task:%s' % json.dumps(msg)
+
+        self.send(json.dumps(msg))
+
+        return d
+
+
+    def call(self, task, *args):
+
+        self.call_sync('ds')
 
         return self.send(data)
 

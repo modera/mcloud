@@ -13,17 +13,16 @@ from mfcloud.remote import Server, Task
 
 
 class MockServer(Server):
-
     message = None
 
-    def on_message(self, message, isBinary=False):
+    def on_message(self, client, message, isBinary=False):
         self.message = message
 
 
 class MockClient(Client):
     message = None
 
-    def on_message(self, cleint, message, isBinary=False):
+    def on_message(self, message, isBinary=False):
         self.message = message
 
 
@@ -67,29 +66,51 @@ def test_exchange():
 
     yield sleep(0.1)
 
-
 @pytest.inlineCallbacks
-def test_tasks():
-     inject.clear()
+def test_request_response():
+    inject.clear()
 
-     rc = yield redis.Connection(dbid=2)
-     yield rc.flushdb()
+    server = Server(port=9998)
+    server.bind()
 
-     task_defered = defer.Deferred()
+    client = Client(port=9998)
+    yield client.connect()
 
-     task = flexmock()
-     task.should_receive('foo').with_args(int, 'baz').once().and_return(task_defered)
+    d = client.call_sync('ping')
 
-     server = Server(port=9998)
-     server.register_task(task, 'foo')
-     server.bind()
+    assert response == 'pong'
 
-     client = Client(port=9998)
+#@pytest.inlineCallbacks
+#def test_tasks():
+#    inject.clear()
+#
+#    rc = yield redis.Connection(dbid=2)
+#    yield rc.flushdb()
+#
+#    task_defered = defer.Deferred()
+#
+#    task = flexmock()
+#    task.should_receive('foo').with_args(int, 'baz').once().and_return(task_defered)
+#
+#    server = Server(port=9998)
+#    server.register_task(task, 'foo')
+#    server.bind()
+#
+#    client = MockClient(port=9998)
+#    yield client.connect()
+#
+#    task = yield client.call('foo', 'baz')
+#
+#    assert task.id > 0
+#    assert task.name == 'foo()'
 
-     task = Task('foo')
-     yield client.call(task, 'baz')
-
-     yield sleep(0.1)
+    #assert task.is_running
+    #
+    #yield sleep(0.1)
+    #
+    #ps = yield client.ps()
+    #assert len(ps) == 1
+    #assert ps[task.id] == task.name
 
 
     # assert task.task_id > 0
