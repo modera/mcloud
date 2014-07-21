@@ -13,6 +13,24 @@ from txsockjs.factory import SockJSFactory
 logger = logging.getLogger('mfcloud.webclient_server')
 
 
+
+class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
+    def __init__(self):
+        pass
+
+    def onConnect(self, request):
+        pass
+
+    def onOpen(self):
+        self.factory.server.on_client_connect(self)
+
+    def onClose(self, wasClean, code, reason):
+        self.factory.server.on_client_disconnect(self, wasClean, code, reason)
+
+    def onMessage(self, payload, isBinary):
+        self.factory.server.on_message(payload, isBinary)
+
+
 class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):
     def __init__(self):
         pass
@@ -35,7 +53,7 @@ class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):
         else:
             print("Text message received: {0}".format(payload.decode('utf8')))
         """
-        self.client.on_message(payload)
+        self.client.on_message(payload, is_binary)
 
     def onClose(self, wasClean, code, reason):
         pass

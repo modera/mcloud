@@ -23,6 +23,11 @@ class TaskService(ApplicationSession):
     @type app_controller: ApplicationController
     """
 
+    def __init__(self, config=None):
+        ApplicationSession.__init__(self, config)
+        print "HOHOHOH@!"
+
+
     def task_help(self, ticket_id):
         pass
 
@@ -238,17 +243,17 @@ class TaskService(ApplicationSession):
         ret = yield defer.gatherResults(deployment_list, consumeErrors=True)
         defer.returnValue(ret)
 
-    @inlineCallbacks
-    def task_deployment_details(self, ticket_id, name):
-        deployment = yield self.deployment_controller.get(name)
+    #@inlineCallbacks
+    #def task_deployment_details(self, ticket_id, name):
+    #    deployment = yield self.deployment_controller.get(name)
+    #
+    #    ret = yield deployment.load_data()
+    #    defer.returnValue(ret)
 
-        ret = yield deployment.load_data()
-        defer.returnValue(ret)
-
-    @inlineCallbacks
-    def task_deployment_create(self, ticket_id, name, public_domain):
-        deployment = yield self.deployment_controller.create(name, public_domain)
-        defer.returnValue(not deployment is None)
+    #@inlineCallbacks
+    #def task_deployment_create(self, ticket_id, name, public_domain):
+    #    deployment = yield self.deployment_controller.create(name, public_domain)
+    #    defer.returnValue(not deployment is None)
 
     @inlineCallbacks
     def task_deployment_new_app_zip(self, ticket_id, deployment_name, name, path):
@@ -302,5 +307,5 @@ class TaskService(ApplicationSession):
         print('Somebody joined!')
 
         for name, func in inspect.getmembers(self):
-            if name.startswith('task_'):
-                yield self.register("mfcloud.%s" % name[5:], func)
+            if name.startswith('task_list'):
+                yield self.register(func, "mfcloud.%s" % name[5:])

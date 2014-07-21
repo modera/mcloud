@@ -32,7 +32,6 @@ class ApiRpcClient(ApplicationSession):
         reactor.stop()
 
 
-    @inlineCallbacks
     def onJoin(self, details):
         print("session attached")
         self.on_connect_defered.callback(details)

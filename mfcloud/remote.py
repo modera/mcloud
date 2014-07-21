@@ -12,23 +12,6 @@ from autobahn.twisted.websocket import WebSocketClientFactory
 import txredisapi
 
 
-class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
-    def __init__(self):
-        pass
-
-    def onConnect(self, request):
-        pass
-
-    def onOpen(self):
-        self.factory.server.on_client_connect(self)
-
-    def onClose(self):
-        self.factory.server.on_client_disconnect(self)
-
-    def onMessage(self, payload, isBinary):
-        self.factory.server.on_message(payload, isBinary)
-
-
 class Server(object):
     redis = inject.attr(txredisapi.Connection)
     eb = inject.attr(EventBus)
@@ -41,7 +24,7 @@ class Server(object):
         self.request_map = {}
 
     @inlineCallbacks
-    def on_message(self, payload, is_binary):
+    def on_message(self, payload, is_binary=False):
         """
         Method is called when new message arrives from client
         """
@@ -53,7 +36,7 @@ class Server(object):
         """
         self.clients.append(client)
 
-    def on_client_disconnect(self, client):
+    def on_client_disconnect(self, client, wasClean, code, reason):
         """
         Method is called when client disconnects
         """
@@ -85,7 +68,6 @@ class Server(object):
         reactor.listenTCP(self.port, factory)
 
 
-
 class Client(object):
     def __init__(self, port=7080):
         self.port = port
@@ -99,7 +81,7 @@ class Client(object):
     def shutdown(self):
         self.protocol.sendClose()
 
-    def on_message(self, data):
+    def on_message(self, data, is_binary=False):
         pass
 
     def connect(self):

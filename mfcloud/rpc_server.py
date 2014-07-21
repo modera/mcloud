@@ -1,6 +1,13 @@
 import json
 import logging
 import sys
+
+
+from autobahn.wamp import router
+from autobahn.twisted.util import sleep
+from autobahn.twisted import wamp, websocket
+
+
 import inject
 from mfcloud.dns_resolver import listen_dns, dump_resolv_conf
 from mfcloud.events import EventBus
@@ -12,6 +19,7 @@ from mfcloud.txdocker import IDockerClient, DockerTwistedClient
 from mfcloud.util import txtimeout
 from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.endpoints import serverFromString
 from twisted.web import xmlrpc, server
 import txredisapi
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqPubConnection
@@ -117,9 +125,24 @@ def entry_point():
     dns_prefix = args.dns_search_suffix
 
     def listen_rpc():
-        from autobahn.twisted.wamp import ApplicationRunner
-        runner = ApplicationRunner("ws://%s:%s/ws" % (rpc_interface, rpc_port), "realm1", debug=True, debug_app=True, debug_wamp=True)
-        runner.run(TaskService, start_reactor=True)
+        from twisted.python import log
+        log.startLogging(sys.stdout)
+        print '1'
+        router_factory = router.RouterFactory()
+        print '2'
+        session_factory = wamp.RouterSessionFactory(router_factory)
+        print '3'
+        session_factory.add(TaskService())
+        print '4'
+        transport_factory = websocket.WampWebSocketServerFactory(session_factory)
+        print '5'
+
+        server = serverFromString(reactor, "tcp:7080")
+        print '6'
+        server.listen(transport_factory)
+        print '7'
+
+        reactor.run()
 
     @inlineCallbacks
     def run_server(redis):
