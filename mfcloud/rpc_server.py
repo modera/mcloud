@@ -26,23 +26,17 @@ from txzmq import ZmqFactory, ZmqEndpoint, ZmqPubConnection
 
 
 
-class ApiRpcServer(xmlrpc.XMLRPC):
+class ApiRpcServer(object):
+
     redis = inject.attr(txredisapi.Connection)
     eb = inject.attr(EventBus)
 
-    def __init__(self, allowNone=False, useDateTime=False):
-        xmlrpc.XMLRPC.__init__(self, allowNone, useDateTime)
-
+    def __init__(self):
         self.tasks = {}
+        self.ticket_map = {}
 
     def task_completed(self, result, ticket_id):
-        self.eb.fire_event('task.completed.%s' % ticket_id, json.dumps(result))
-
-        #print 'Result is %s' % result
-        return defer.DeferredList([
-            self.redis.set('mfcloud-ticket-%s-completed' % ticket_id, 1),
-            self.redis.set('mfcloud-ticket-%s-result' % ticket_id, json.dumps(result))
-        ])
+        self.ticket_map[ticket_id].sendMessage(json.dumps())
 
     def task_failed(self, error, ticket_id):
         print 'Failure: <%s> %s' % (error.type, error.getErrorMessage())
@@ -50,32 +44,25 @@ class ApiRpcServer(xmlrpc.XMLRPC):
 
         self.eb.fire_event('task.failed.%s' % ticket_id, "Failed: <%s> %s" % (error.type, error.getErrorMessage()))
 
-    def xmlrpc_task_start(self, task_name, *args, **kwargs):
+    @inlineCallbacks
+    def task_start(self, client, task_name, *args, **kwargs):
         """
         Return all passed args.
         """
 
-        d = self.redis.incr('mfcloud-ticket-id')
+        ticket_id = yield self.redis.incr('mfcloud-ticket-id')
 
-        def process_task_id(ticket_id):
-            if not task_name in self.tasks:
-                raise ValueError('No such task: %s' % task_name)
-            task_defered = self.tasks[task_name](ticket_id, *args, **kwargs)
+        self.ticket_map[ticket_id] = client
 
-            task_defered.addCallback(self.task_completed, ticket_id)
-            task_defered.addErrback(self.task_failed, ticket_id)
+        if not task_name in self.tasks:
+            raise ValueError('No such task: %s' % task_name)
+        task_defered = self.tasks[task_name](ticket_id, *args, **kwargs)
 
-            return {
-                'ticket_id': ticket_id
-            }
+        task_defered.addCallback(self.task_completed, ticket_id)
+        task_defered.addErrback(self.task_failed, ticket_id)
 
-        def on_error(error):
-            return xmlrpc.Fault(1, "Task execution failed: <%s> %s" % (error.type, error.getErrorMessage()))
+        defer.returnValue(ticket_id)
 
-        d.addCallback(process_task_id)
-        d.addErrback(on_error)
-
-        return d
 
     def xmlrpc_is_completed(self, ticket_id):
         d = self.redis.get('mfcloud-ticket-%s-completed' % ticket_id)

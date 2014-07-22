@@ -31,7 +31,7 @@ def test_ticket_created():
         server = ApiRpcServer()
         server.tasks['foo'] = task
 
-        result = yield server.xmlrpc_task_start('foo', 'baz')
+        result = yield server.task_start('foo', 'baz')
 
         assert result['ticket_id'] == 123123
 
@@ -102,7 +102,7 @@ def test_xmlrpc_task_start_no_task():
     s.redis = flexmock()
     s.redis.should_receive('incr').with_args('mfcloud-ticket-id').and_return(defer.succeed(321))
 
-    r = yield s.xmlrpc_task_start('foo', 'bar', baz='123abc')
+    r = yield s.task_start('foo', 'bar', baz='123abc')
 
     assert isinstance(r, xmlrpc.Fault)
     assert r.faultCode == 1
@@ -126,7 +126,7 @@ def test_xmlrpc_task_start_proper_exec():
     s.redis = flexmock()
     s.redis.should_receive('incr').with_args('mfcloud-ticket-id').and_return(defer.succeed(321))
 
-    r = yield s.xmlrpc_task_start('foo', 'bar', baz='123abc')
+    r = yield s.task_start('foo', 'bar', baz='123abc')
 
     assert r == {'ticket_id': 321}
 
@@ -148,7 +148,7 @@ def test_xmlrpc_task_start_exec_fail():
     s.redis = flexmock()
     s.redis.should_receive('incr').with_args('mfcloud-ticket-id').and_return(defer.succeed(321))
 
-    r = yield s.xmlrpc_task_start('foo', 'bar', baz='123abc')
+    r = yield s.task_start('foo', 'bar', baz='123abc')
 
     assert r == {'ticket_id': 321}
 

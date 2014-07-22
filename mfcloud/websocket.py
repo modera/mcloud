@@ -1,7 +1,6 @@
 import json
 import logging
 import sys
-from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketServerProtocol
 from twisted.internet import reactor
 from twisted.internet.error import ConnectionRefusedError
 from twisted.internet.protocol import Protocol, Factory
@@ -9,55 +8,7 @@ from twisted.web.xmlrpc import Proxy
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
 from txsockjs.factory import SockJSFactory
 
-
-logger = logging.getLogger('mfcloud.webclient_server')
-
-
-
-class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
-    def __init__(self):
-        pass
-
-    def onConnect(self, request):
-        pass
-
-    def onOpen(self):
-        self.factory.server.on_client_connect(self)
-
-    def onClose(self, wasClean, code, reason):
-        self.factory.server.on_client_disconnect(self, wasClean, code, reason)
-
-    def onMessage(self, payload, isBinary):
-        self.factory.server.on_message(self, payload, isBinary)
-
-
-class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):
-    def __init__(self):
-        pass
-
-    client = None
-
-    def onConnect(self, response):
-        pass
-
-    def onOpen(self):
-        self.client.protocol = self
-        self.client.onc.callback(True)
-
-    def onMessage(self, payload, is_binary):
-        """
-        is_binary affects method of message encoding:
-
-        if is_binary:
-            print("Binary message received: {0} bytes".format(len(payload)))
-        else:
-            print("Text message received: {0}".format(payload.decode('utf8')))
-        """
-        self.client.on_message(payload, is_binary)
-
-    def onClose(self, wasClean, code, reason):
-        pass
-
+from twisted.python import log
 
 
 class WebsocketProtocol(Protocol):
@@ -76,8 +27,6 @@ class WebsocketProtocol(Protocol):
 
     def dataReceived(self, data):
 
-        logger.debug('[Websocket] %s' % data)
-
         message = json.loads(data)
 
         if not 'requestId' in message:
@@ -94,7 +43,6 @@ class WebsocketProtocol(Protocol):
         d = self.factory.proxy.callRemote('task_start', message['request'], *args)
 
         def ready(result):
-            logger.debug('rpc response:%s' % result)
             ticket_id = int(result['ticket_id'])
             self.rid_map[ticket_id] = message['requestId']
             self.factory.tid_map[ticket_id] = self
