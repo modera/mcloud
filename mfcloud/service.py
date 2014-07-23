@@ -1,6 +1,7 @@
 import logging
 import inject
-from mfcloud.txdocker import IDockerClient
+from mfcloud.remote import ApiRpcServer
+from mfcloud.txdocker import IDockerClient, DockerConnectionFailed
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks, returnValue
 
@@ -19,6 +20,8 @@ class Service(object):
     dns_server = inject.attr('dns-server')
     dns_search_suffix = inject.attr('dns-search-suffix')
 
+    rpc_server = inject.attr(ApiRpcServer)
+
     def __init__(self, **kwargs):
         self.image_builder = None
         self.name = None
@@ -36,22 +39,20 @@ class Service(object):
         self.__dict__.update(kwargs)
         super(Service, self).__init__()
 
+
+
+    def task_log(self, ticket_id, message):
+        self.rpc_server.task_progress(message, ticket_id)
+
     def build_docker_config(self):
         pass
 
 
     @inlineCallbacks
     def inspect(self):
-
-        _id = yield self.client.find_container_by_name(self.name)
         self._inspected = True
-
-        if not _id:
-            self._inspect_data = None
-        else:
-            data = yield self.client.inspect(_id)
-            self._inspect_data = data
-
+        data = yield self.client.inspect(self.name)
+        self._inspect_data = data
         defer.returnValue(self._inspect_data)
 
     def is_running(self):
@@ -112,16 +113,16 @@ class Service(object):
     def start(self, ticket_id):
         id_ = yield self.client.find_container_by_name(self.name)
 
-        logger.debug('[%s][%s] Starting service' % (ticket_id, self.name))
-        logger.debug('[%s][%s] Service resolve by name result: %s' % (ticket_id, self.name, id_))
+        self.task_log(ticket_id, '[%s][%s] Starting service' % (ticket_id, self.name))
+        self.task_log(ticket_id, '[%s][%s] Service resolve by name result: %s' % (ticket_id, self.name, id_))
 
         # container is not created yet
         if not id_:
-            logger.debug('[%s][%s] Service not created. Creating ...' % (ticket_id, self.name))
+            self.task_log(ticket_id, '[%s][%s] Service not created. Creating ...' % (ticket_id, self.name))
             yield self.create(ticket_id)
             id_ = yield self.client.find_container_by_name(self.name)
 
-        logger.debug('[%s][%s] Starting service...' % (ticket_id, self.name))
+        self.task_log(ticket_id, '[%s][%s] Starting service...' % (ticket_id, self.name))
 
         config = {
             "Dns": [self.dns_server],
@@ -135,9 +136,9 @@ class Service(object):
             config['PortBindings'] = dict([(port, [{}]) for port in self.ports])
 
         if self.volumes and len(self.volumes):
-           config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
+            config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
 
-        print config
+        self.task_log(ticket_id, 'Startng container with config: %s' % config)
 
         #config['Binds'] = ["/home/alex/dev/mfcloud/examples/static_site1/public:/var/www"]
 
@@ -145,6 +146,7 @@ class Service(object):
 
         # inspect and return result
         ret = yield self.inspect()
+
         defer.returnValue(ret)
 
 
@@ -181,6 +183,7 @@ class Service(object):
     @inlineCallbacks
     def create(self, ticket_id):
 
+        print('22')
         image_name = yield self.image_builder.build_image(ticket_id=ticket_id)
 
         config = self._generate_config(image_name)

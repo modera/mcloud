@@ -7,7 +7,7 @@ import os
 from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
-
+from twisted.python import log
 
 class Application(object):
 

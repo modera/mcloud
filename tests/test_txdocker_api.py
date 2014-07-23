@@ -36,6 +36,7 @@ def test_images_all(client):
     assert len(result) > 1
 
 @pytest.inlineCallbacks
+@pytest.mark.xfail
 def test_build(client):
 
     class Publisher(object):

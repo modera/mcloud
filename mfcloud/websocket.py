@@ -8,8 +8,7 @@ from twisted.web.xmlrpc import Proxy
 from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection
 from txsockjs.factory import SockJSFactory
 
-
-logger = logging.getLogger('mfcloud.webclient_server')
+from twisted.python import log
 
 
 class WebsocketProtocol(Protocol):
@@ -28,8 +27,6 @@ class WebsocketProtocol(Protocol):
 
     def dataReceived(self, data):
 
-        logger.debug('[Websocket] %s' % data)
-
         message = json.loads(data)
 
         if not 'requestId' in message:
@@ -46,7 +43,6 @@ class WebsocketProtocol(Protocol):
         d = self.factory.proxy.callRemote('task_start', message['request'], *args)
 
         def ready(result):
-            logger.debug('rpc response:%s' % result)
             ticket_id = int(result['ticket_id'])
             self.rid_map[ticket_id] = message['requestId']
             self.factory.tid_map[ticket_id] = self
