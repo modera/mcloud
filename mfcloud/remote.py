@@ -2,7 +2,7 @@ import json
 import sys
 import inject
 from mfcloud.events import EventBus
-from mfcloud.rpc_server import ApiRpcServer
+
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.endpoints import TCP4ClientEndpoint
@@ -18,6 +18,76 @@ from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketServerP
 
 class ApiError(Exception):
     pass
+
+
+
+class ApiRpcServer(object):
+
+    redis = inject.attr(txredisapi.Connection)
+    eb = inject.attr(EventBus)
+
+    def __init__(self):
+        self.tasks = {}
+        self.ticket_map = {}
+
+        self.eb.on('log-*', self.on_log)
+
+    def on_log(self, channel, message):
+        ticket_id = channel[4:]
+        self.task_progress(message, ticket_id)
+
+    def task_completed(self, result, ticket_id):
+        if ticket_id in self.ticket_map:
+            self.ticket_map[ticket_id].send_event('task.success.%s' % ticket_id, result)
+
+    def task_failed(self, error, ticket_id):
+        if ticket_id in self.ticket_map:
+            self.ticket_map[ticket_id].send_event('task.failure.%s' % ticket_id, str(error))
+
+    def task_progress(self, data, ticket_id):
+        if ticket_id in self.ticket_map:
+            log.msg('Progress: %s' % data)
+            self.ticket_map[ticket_id].send_event('task.progress.%s' % ticket_id, data)
+
+    @inlineCallbacks
+    def task_start(self, client, task_name, *args, **kwargs):
+        """
+        Return all passed args.
+        """
+        ticket_id = yield self.redis.incr('mfcloud-ticket-id')
+
+        def _do_start():
+            if not task_name in self.tasks:
+                raise ValueError('No such task: %s' % task_name)
+
+            try:
+                task_defered = self.tasks[task_name](ticket_id, *args, **kwargs)
+
+                task_defered.addCallback(self.task_completed, ticket_id)
+                task_defered.addErrback(self.task_failed, ticket_id)
+
+            except Exception as e:
+                self.task_failed(e.message, ticket_id)
+
+        reactor.callLater(0, _do_start)
+
+        self.ticket_map[ticket_id] = client
+        defer.returnValue(json.dumps({'success': True, 'id': ticket_id}))
+
+    def xmlrpc_is_completed(self, ticket_id):
+        d = self.redis.get('mfcloud-ticket-%s-completed' % ticket_id)
+
+        def on_result(result):
+            return result == 1
+
+        d.addCallback(on_result)
+        return d
+
+    def xmlrpc_get_result(self, ticket_id):
+        d = self.redis.get('mfcloud-ticket-%s-result' % ticket_id)
+        d.addCallback(lambda result: json.loads(result))
+        return d
+
 
 
 class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
@@ -40,6 +110,15 @@ class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
 
         reactor.callLater(0, self.factory.server.on_message, self, payload, isBinary)
 
+    def send_event(self, event_name, data=None):
+        data_ = {'type': 'event', 'name': event_name, 'data': data}
+        log.msg('Sent out event: %s' % data_)
+        return self.sendMessage(json.dumps(data_))
+
+    def send_response(self, request_id, response, success=True):
+        data_ = {'type': 'response', 'id': request_id, 'success': success, 'response': response}
+        log.msg('Sent out response: %s' % data_)
+        return self.sendMessage(json.dumps(data_))
 
 
 class Server(object):
@@ -52,22 +131,6 @@ class Server(object):
         self.port = port
         self.clients = []
 
-    def sendEvent(self, client, event_name, data):
-        return client.sendMessage(json.dumps({
-            'type': 'response',
-            'id': request_id,
-            'success': success,
-            'response': response
-        }))
-
-
-    def sendResponse(self, client, request_id, response, success=True):
-        return client.sendMessage(json.dumps({
-            'type': 'response',
-            'id': request_id,
-            'success': success,
-            'response': response
-        }))
 
     @inlineCallbacks
     def on_message(self, client, payload, is_binary=False):
@@ -82,13 +145,13 @@ class Server(object):
             data = json.loads(payload)
 
             if data['task'] == 'ping':
-                yield self.sendResponse(client, data['id'], 'pong')
+                yield client.send_response(data['id'], 'pong')
 
             elif data['task'] == 'task_start':
                 ticket_id = yield self.rpc_server.task_start(client, *data['args'], **data['kwargs'])
-                yield self.sendResponse(client, data['id'], ticket_id)
+                yield client.send_response(data['id'], ticket_id)
             else:
-                yield self.sendResponse(client, data['id'], 'Unknown command', success=False)
+                yield client.send_response(data['id'], 'Unknown command', success=False)
 
         except Exception:
             log.err()
@@ -191,9 +254,12 @@ class Client(object):
 
         log.msg('Client in: %s' % data)
 
-        data = json.loads(data)
-
         try:
+            data = json.loads(data)
+        except ValueError:
+            raise Exception('Invalid json: %s' % data)
+
+        if data['type'] == 'response':
             if data['id'] in self.request_map:
                 if data['success']:
                     return self.request_map[data['id']].callback(data['response'])
@@ -201,18 +267,37 @@ class Client(object):
                     return self.request_map[data['id']].errback(ApiError(data['response']))
             else:
                 raise Exception('Unknown request id: %s' % data['id'])
-        except ValueError:
-            raise Exception('Invalid json: %s' % data)
+
+        if data['type'] == 'event':
+
+            events = ['progress', 'failure', 'success']
+
+            if data['name'].startswith('task.'):
+
+                etype, task_id = data['name'].split('.')[1:]
+
+                task_id = int(task_id)
+
+                if not etype in events:
+                    raise Exception('Unknown task event: %s' % etype)
+
+                if task_id in self.task_map:
+                    method = 'on_%s' % etype
+                    # call one of on_progress, on_failure, on_success
+                    getattr(self.task_map[task_id], method)(data['data'])
+                else:
+                    raise Exception('Unknown task id: %s' % task_id)
 
     def connect(self):
         factory = WebSocketClientFactory("ws://localhost:%s" % self.port, debug=False)
         factory.protocol = MdcloudWebsocketClientProtocol
         factory.protocol.client = self
 
-        point = TCP4ClientEndpoint(reactor, "localhost", self.port)
-        point.connect(factory)
-
         self.onc = defer.Deferred()
+
+        point = TCP4ClientEndpoint(reactor, "localhost", self.port)
+        d = point.connect(factory)
+        d.addErrback(self.onc.errback)
         return self.onc
 
     def call_sync(self, task, *args, **kwargs):
@@ -232,20 +317,29 @@ class Client(object):
 
         self.send(json.dumps(msg))
 
-
-
         return d
 
 
     @inlineCallbacks
     def call(self, task, *args, **kwargs):
 
-        task.id = yield self.call_sync('task_start', task.name, *args, **kwargs)
+        result = yield self.call_sync('task_start', task.name, *args, **kwargs)
+        result = json.loads(result)
+
+        if result['success']:
+            task.id = result['id']
+        else:
+            raise ApiError(result['error'])
+
         task.is_running = True
 
         self.task_map[task.id] = task
 
         defer.returnValue(task)
+
+
+class TaskFailure(Exception):
+    pass
 
 
 class Task(object):
@@ -261,17 +355,27 @@ class Task(object):
         self.response = None
         self.failure = False
 
+        self.wait = None
+
     def on_progress(self, data):
         self.data.append(data)
 
     def on_success(self, result):
         self.response = result
         self.is_running = False
+        if self.wait:
+            self.wait.callback(result)
 
     def on_failure(self, result):
         self.is_running = False
         self.response = result
         self.failure = True
+        if self.wait:
+            self.wait.errback(TaskFailure(result))
+
+    def wait_result(self):
+        self.wait = defer.Deferred()
+        return self.wait
 
 if __name__ == '__main__':
     from twisted.python import log

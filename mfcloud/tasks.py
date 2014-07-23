@@ -6,27 +6,27 @@ import inject
 from mfcloud.application import ApplicationController, Application, AppDoesNotExist
 from mfcloud.config import ConfigParseError
 from mfcloud.deployment import DeploymentController
+from mfcloud.remote import ApiRpcServer
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 import txredisapi
 
-logger = logging.getLogger('mfcloud.tasks')
+from twisted.python import log
 
 
-class TaskService(ApplicationSession):
+class TaskService(object):
 
-    app_controller = inject.attr(ApplicationController)
-    deployment_controller = inject.attr(DeploymentController)
-    redis = inject.attr(txredisapi.Connection)
 
     """
     @type app_controller: ApplicationController
     """
-
-    def __init__(self, config=None):
-        ApplicationSession.__init__(self, config)
-        print "HOHOHOH@!"
-
+    app_controller = inject.attr(ApplicationController)
+    deployment_controller = inject.attr(DeploymentController)
+    redis = inject.attr(txredisapi.Connection)
+    rpc_server = inject.attr(ApiRpcServer)
+    
+    def task_log(self, ticket_id, message):
+        self.rpc_server.task_progress(message, ticket_id)
 
     def task_help(self, ticket_id):
         pass
@@ -43,12 +43,13 @@ class TaskService(ApplicationSession):
     def task_init_source(self, ticket_id, name, source):
 
         yield self.app_controller.create(name, {'source': source})
-
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
 
-    def task_list(self):
-        return self.app_controller.list()
+    @inlineCallbacks
+    def task_list(self, ticket_id):
+        alist = yield self.app_controller.list()
+        defer.returnValue(alist)
 
     @inlineCallbacks
     def task_remove(self, ticket_id, name):
@@ -99,7 +100,7 @@ class TaskService(ApplicationSession):
     @inlineCallbacks
     def task_start(self, ticket_id, name):
 
-        logger.debug('[%s] Starting application' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Starting application' % (ticket_id, ))
 
         app = yield self.app_controller.get(name)
         config = yield app.load()
@@ -108,15 +109,16 @@ class TaskService(ApplicationSession):
         @type config: YamlConfig
         """
 
-        logger.debug('[%s] Got response' % (ticket_id, ))
-
         for service in config.get_services().values():
             if not service.is_running():
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
                 yield service.start(ticket_id)
+
+                self.task_log(ticket_id,
+                    '[%s] Done starting service %s.' % (ticket_id, service.name))
             else:
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s is already running.' % (ticket_id, service.name))
 
         ret = yield self.app_controller.list()
@@ -143,7 +145,7 @@ class TaskService(ApplicationSession):
     @inlineCallbacks
     def task_stop(self, ticket_id, name):
 
-        logger.debug('[%s] Stoping application' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Stoping application' % (ticket_id, ))
 
         app = yield self.app_controller.get(name)
         config = yield app.load()
@@ -152,16 +154,16 @@ class TaskService(ApplicationSession):
         @type config: YamlConfig
         """
 
-        logger.debug('[%s] Got response' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
         d = []
         for service in config.get_services().values():
             if service.is_running():
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s is running. Stoping' % (ticket_id, service.name))
                 d.append(service.stop(ticket_id))
             else:
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s is already stopped.' % (ticket_id, service.name))
 
         yield defer.gatherResults(d)
@@ -172,7 +174,7 @@ class TaskService(ApplicationSession):
     @inlineCallbacks
     def task_destroy(self, ticket_id, name):
 
-        logger.debug('[%s] Destroying application containers' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Destroying application containers' % (ticket_id, ))
 
         app = yield self.app_controller.get(name)
         config = yield app.load()
@@ -181,23 +183,23 @@ class TaskService(ApplicationSession):
         @type config: YamlConfig
         """
 
-        logger.debug('[%s] Got response' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
         d = []
         for service in config.get_services().values():
             if service.is_created():
                 if service.is_running():
-                    logger.debug(
+                    self.task_log(ticket_id, 
                         '[%s] Service %s container is running. Stopping and then destroying' % (ticket_id, service.name))
                     yield service.stop(ticket_id)
                     d.append(service.destroy(ticket_id))
 
                 else:
-                    logger.debug(
+                    self.task_log(ticket_id, 
                         '[%s] Service %s container is created. Destroying' % (ticket_id, service.name))
                     d.append(service.destroy(ticket_id))
             else:
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s container is not yet created.' % (ticket_id, service.name))
 
         yield defer.gatherResults(d)
@@ -209,7 +211,7 @@ class TaskService(ApplicationSession):
     @inlineCallbacks
     def task_inspect(self, ticket_id, name, service_name):
 
-        logger.debug('[%s] Inspecting application service %s' %
+        self.task_log(ticket_id, '[%s] Inspecting application service %s' %
                      (ticket_id, service_name))
 
         app = yield self.app_controller.get(name)
@@ -218,7 +220,7 @@ class TaskService(ApplicationSession):
         """
         @type config: YamlConfig
         """
-        logger.debug('[%s] Got response' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
         service = config.get_service(service_name)
         if not service.is_running():
@@ -301,11 +303,12 @@ class TaskService(ApplicationSession):
     #    d.addCallback(done)
     #    return d
 
-    @inlineCallbacks
-    def onJoin(self, details):
+    def collect_tasks(self,):
 
-        print('Somebody joined!')
-
+        tasks = {}
         for name, func in inspect.getmembers(self):
-            if name.startswith('task_list'):
-                yield self.register(func, "mfcloud.%s" % name[5:])
+            if name.startswith('task_'):
+                tasks[name[5:]] = func
+
+        return tasks
+

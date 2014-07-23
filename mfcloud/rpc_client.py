@@ -6,6 +6,7 @@ import uuid
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.twisted.websocket import WampWebSocketClientProtocol, WampWebSocketClientFactory
 import inject
+from mfcloud.remote import Client, Task, ApiError
 import re
 import os
 import pprintpp
@@ -13,52 +14,42 @@ from prettytable import PrettyTable, ALL
 from texttable import Texttable
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.error import ConnectionRefusedError
+from twisted.python import log
 
-class ApiRpcClient(ApplicationSession):
+class ApiRpcClient(object):
 
     def __init__(self, host='0.0.0.0', port=7080):
-        ApplicationSession.__init__(self)
-
         self.host = host
         self.port = port
-
-        #self.ticket = {}
-
-        self.on_connect_defered = defer.Deferred()
 
     @inlineCallbacks
     def start_task(self, task, **kwargs):
         yield getattr(self, task)(**kwargs)
         reactor.stop()
 
-
-    def onJoin(self, details):
-        print("session attached")
-        self.on_connect_defered.callback(details)
-
-    def onDisconnect(self):
-        print("disconnected")
-        self.on_connect_defered.callback(None)
-        reactor.stop()
-
-    def onError(self, error):
-        print('Ohohoho: %s' % error)
-
-    def onClose(self, *args):
-        pass
-        reactor.stop()
-
-    def wait_connection(self):
-        return self.on_connect_defered
-
-
     @inlineCallbacks
-    def _remote_exec(self, task_name, on_result, *args):
+    def _remote_exec(self, task_name, on_result, *args, **kwargs):
+
+        client = Client()
         try:
-            res = yield self.call('mfcloud.%s' % task_name, *args)
-            on_result(res)
-        except Exception as e:
-            print('Failed to execute the task: %s' % e.message)
+            yield client.connect()
+
+            task = Task(task_name)
+            task.on_progress = self.print_progress
+
+            try:
+                yield client.call(task, *args, **kwargs)
+
+                res = yield task.wait_result()
+                on_result(res)
+            except Exception as e:
+                print('Failed to execute the task: %s' % e.message)
+
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mfcloud server'
+
+        reactor.stop()
 
     #
     #
@@ -79,24 +70,27 @@ class ApiRpcClient(ApplicationSession):
     #
     #
     #    elif tag == 'log-%s' % self.ticket['ticket_id']:
-    #        try:
-    #            data = json.loads(message)
-    #            if 'status' in data and 'progress' in data:
-    #                sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
-    #
-    #            elif 'status' in data and 'id' in data:
-    #                sys.stdout.write('\n[%s] %s' % (data['id'], data['status']))
-    #
-    #            elif 'status' in data:
-    #                sys.stdout.write('\n%s' % (data['status']))
-    #            else:
-    #                if isinstance(data, basestring):
-    #                    sys.stdout.write(data)
-    #                else:
-    #                    print pprintpp.pformat(data)
-    #
-    #        except ValueError:
-    #            print(message)
+
+    def print_progress(self, message):
+        try:
+            data = json.loads(message)
+            if 'status' in data and 'progress' in data:
+                sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
+
+            elif 'status' in data and 'id' in data:
+                sys.stdout.write('\n[%s] %s' % (data['id'], data['status']))
+
+            elif 'status' in data:
+                sys.stdout.write('\n%s' % (data['status']))
+            else:
+                if isinstance(data, basestring):
+                    sys.stdout.write(data)
+                else:
+                    print pprintpp.pformat(data)
+
+        except ValueError:
+            print(message)
+
 
     def init(self, name, path, **kwargs):
 
@@ -369,8 +363,6 @@ import argparse
 from mfcloud import metadata
 
 
-log = logging.getLogger(__name__)
-
 def format_epilog():
     """Program entry point.
 
@@ -393,7 +385,6 @@ URL: <{url}>
     return epilog
 
 
-
 def main(argv):
     arg_parser = argparse.ArgumentParser(
         prog=argv[0],
@@ -404,6 +395,7 @@ def main(argv):
         add_help=False
     )
 
+    arg_parser.add_argument('-v', '--verbose', help='Show more logs', action='store_true', default=False)
     arg_parser.add_argument('-e', '--env', help='Environment to use', default='dev')
     arg_parser.add_argument('-h', '--host', help='Host to use', default='127.0.0.1')
 
@@ -416,50 +408,20 @@ def main(argv):
 
     populate_client_parser(subparsers)
 
-
     args = arg_parser.parse_args()
+    if args.verbose:
+        log.startLogging(sys.stdout)
 
     args.argv0 = argv[0]
 
+    client = ApiRpcClient(host=args.host)
+
     if isinstance(args.func, str):
+        log.msg('Starting task: %s' % args.func)
 
-        def timeout(*args):
-            if not hasattr(MfcloudWebSocketClientProtocol, '_mfcloud_connected'):
-                print('Connection timeout 3s\n\n\n')
-                reactor.stop()
-                return
+        getattr(client, args.func)(**vars(args))
 
-
-        class MfcloudWebSocketClientProtocol(WampWebSocketClientProtocol):
-            def connectionMade(self):
-
-                MfcloudWebSocketClientProtocol._mfcloud_connected = True
-
-                self._session = self.factory._factory()
-                WampWebSocketClientProtocol.connectionMade(self)
-
-            def failHandshake(self, reason):
-                WampWebSocketClientProtocol.failHandshake(self, reason)
-
-                self._session.onError('Failed handhshake: %s' % reason)
-
-
-        WampWebSocketClientFactory.protocol = MfcloudWebSocketClientProtocol
-
-        def mfcloud_client(config):
-            client = ApiRpcClient(config)
-
-            client.wait_connection()\
-                .addCallback(client.start_task, args.func, **vars(args))
-
-            return client
-
-        from autobahn.twisted.wamp import ApplicationRunner
-
-        reactor.callLater(3, timeout)
-
-        runner = ApplicationRunner("ws://127.0.0.1:7080/ws", "realm1", debug=False, debug_app=False, debug_wamp=False)
-        runner.run(mfcloud_client)
+        reactor.run()
 
     else:
         args.func(**vars(args))

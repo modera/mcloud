@@ -88,20 +88,3 @@ def test_events_pattern_wrong():
 
     reactor.callLater(50, check_results)
 
-
-#
-#
-#def test_bus_is_passing_events_to_zmq():
-#
-#    zmq = flexmock()
-#
-#    def configure(binder):
-#        binder.bind(ZmqPubConnection, zmq)
-#
-#    with inject_services(configure):
-#
-#        zmq.should_receive('publish').with_args(json.dumps({'some': 'data'}), 'event-boo').once()
-#
-#        eb = EventBus()
-#        eb.fire_event('boo', some='data')
-

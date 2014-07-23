@@ -73,6 +73,8 @@ def sleep(secs):
 def test_request_response():
     inject.clear()
 
+    #log.startLogging(sys.stdout)
+
     server = Server(port=9998)
     server.bind()
 
@@ -82,6 +84,9 @@ def test_request_response():
     response = yield client.call_sync('ping')
 
     assert response == 'pong'
+
+    client.shutdown()
+    server.shutdown()
 
 
 @pytest.inlineCallbacks
@@ -99,29 +104,16 @@ def test_request_response_no_such_command():
     with pytest.raises(ApiError):
         yield client.call_sync('hoho')
 
+    client.shutdown()
+    server.shutdown()
+
 
 @pytest.inlineCallbacks
 def test_tasks():
-    #inject.clear()
-    #
-    #log.startLogging(sys.stdout)
-    #
-    #rc = yield redis.Connection(dbid=2)
-    #yield rc.flushdb()
-    #
     task_defered = defer.Deferred()
 
     task = flexmock()
     task.should_receive('foo').with_args(int, 123, 'test').once().and_return(task_defered)
-    #
-    #server = Server(port=9997)
-    #server.register_task(task, 'foo')
-    #server.bind()
-    #
-    #client = MockClient(port=9997)
-    #yield client.connect()
-    #
-    #task = yield client.call_sync('task_start', 'baz')
 
     inject.clear()
 
@@ -129,15 +121,14 @@ def test_tasks():
     eb = EventBus(redis)
     yield eb.connect()
 
-    api = ApiRpcServer()
-    api.tasks['baz'] = task.foo
-
     def my_config(binder):
         binder.bind(redis.Connection, rc)
         binder.bind(EventBus, eb)
-        binder.bind(ApiRpcServer, api)
 
     inject.configure(my_config)
+
+    api = inject.instance(ApiRpcServer)
+    api.tasks['baz'] = task.foo
 
     yield rc.flushdb()
 
@@ -156,35 +147,29 @@ def test_tasks():
     assert task.id > 0
     assert task.name == 'baz'
 
-    assert task.is_running
+    assert task.is_running is True
     #
     yield sleep(0.1)
-
-    #    ps = yield client.ps()
-    #    assert len(ps) == 1
-    #    assert ps[task.id] == task.name
-    #
-    #
     assert task.data == []
     assert task.response is None
 
-    yield server.send_task_progress(task.id, 'nami-nami')
+    yield server.clients[0].send_event('task.progress.%s' % task.id, 'nami-nami')
+
+    yield sleep(0.1)
+
+    assert task.data == ['nami-nami']
+    assert task.is_running is True
+    assert task.response is None
+
+    yield task_defered.callback('this is respnse')
 
     yield sleep(0.1)
 
     assert task.data == ['nami-nami']
     assert task.is_running == False
-    assert task.response is None
+    assert task.response == 'this is respnse'
 
-    #    ##yield d.callback('this is respnse')
-    #    #
-    #    #yield sleep(0.1)
-    #    #
-    #    #assert task.data == ['nami-nami']
-    #    #assert task.completed == True
-    #    #assert task.response == 'this is respnse'
-    #    #
-    #    #client.shutdown()
-    #    #server.shutdown()
-    #    #
-    #    #yield sleep(0.1)
+    client.shutdown()
+    server.shutdown()
+
+    yield sleep(0.1)

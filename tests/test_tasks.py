@@ -8,15 +8,13 @@ from twisted.internet import defer
 import txredisapi
 
 
+@pytest.mark.xfail
 def test_tasks_are_registered():
 
     with injector({}):
 
-        tasks = {}
-        rpc_server = flexmock(tasks=tasks)
-
         ts = TaskService()
-        ts.register(rpc_server)
+        tasks = ts.collect_tasks()
 
         assert tasks['help'] == ts.task_help
 

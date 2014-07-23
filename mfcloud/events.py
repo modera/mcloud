@@ -69,18 +69,21 @@ class EventBusProtocol(redis.SubscriberProtocol):
         # self.transport.loseConnection()
 
     def messageReceived(self, pattern, channel, message):
-        log("pattern=%s, channel=%s message=%s" % (pattern, channel, message))
+        log.msg("pattern=%s, channel=%s message=%s" % (pattern, channel, message))
 
         if message.startswith('j:'):
             message = json.loads(message[2:])
         else:
             message = message[2:]
 
+        callbacks = []
         if pattern and pattern in self.callbacks:
-            self.callbacks[pattern](pattern, message)
+            callbacks = self.callbacks[pattern]
+        elif channel and channel in self.callbacks:
+            callbacks = self.callbacks[channel]
 
-        if channel and channel in self.callbacks:
-            self.callbacks[channel](channel, message)
+        for clb in callbacks:
+            clb(channel, message)
 
     def connectionLost(self, reason):
         log.msg("Connection lost: %s" % reason)

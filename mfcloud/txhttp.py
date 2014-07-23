@@ -147,6 +147,7 @@ def _client(*args, **kwargs):
     reactor = default_reactor(kwargs.get('reactor'))
     pool = default_pool(reactor,
                         kwargs.get('pool'),
-                        kwargs.get('persistent'))
+                        persistent=False)
+                        #kwargs.get('persistent'))
     agent = UNIXAwareHttpAgent(reactor, pool=pool)
     return UNIXAwareHttpClient(agent)
