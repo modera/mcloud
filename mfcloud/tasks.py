@@ -1,27 +1,32 @@
 import inspect
 import logging
+from autobahn.twisted import wamp
+from autobahn.twisted.wamp import ApplicationSession
 import inject
 from mfcloud.application import ApplicationController, Application, AppDoesNotExist
 from mfcloud.config import ConfigParseError
 from mfcloud.deployment import DeploymentController
-from mfcloud.events import EventBus
+from mfcloud.remote import ApiRpcServer
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 import txredisapi
 
-logger = logging.getLogger('mfcloud.tasks')
+from twisted.python import log
 
-class TaskService():
-    app_controller = inject.attr(ApplicationController)
-    deployment_controller = inject.attr(DeploymentController)
-    redis = inject.attr(txredisapi.Connection)
-    event_bus = inject.attr(EventBus)
-    dns_server = inject.attr('dns-server')
-    dns_search_suffix = inject.attr('dns-search-suffix')
+
+class TaskService(object):
+
 
     """
     @type app_controller: ApplicationController
     """
+    app_controller = inject.attr(ApplicationController)
+    deployment_controller = inject.attr(DeploymentController)
+    redis = inject.attr(txredisapi.Connection)
+    rpc_server = inject.attr(ApiRpcServer)
+
+    def task_log(self, ticket_id, message):
+        self.rpc_server.task_progress(message, ticket_id)
 
     def task_help(self, ticket_id):
         pass
@@ -42,8 +47,10 @@ class TaskService():
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
 
+    @inlineCallbacks
     def task_list(self, ticket_id):
-        return self.app_controller.list()
+        alist = yield self.app_controller.list()
+        defer.returnValue(alist)
 
     @inlineCallbacks
     def task_remove(self, ticket_id, name):
@@ -109,7 +116,7 @@ class TaskService():
     @inlineCallbacks
     def task_start(self, ticket_id, name):
 
-        logger.debug('[%s] Starting application' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Starting application' % (ticket_id, ))
 
         app = yield self.app_controller.get(name)
         config = yield app.load()
@@ -118,12 +125,12 @@ class TaskService():
         @type config: YamlConfig
         """
 
-        logger.debug('[%s] Got response' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
         updated = False
         for service in config.get_services().values():
             if not service.is_created():
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s is not created. Creating' % (ticket_id, service.name))
                 yield service.create(ticket_id)
                 updated = True
@@ -134,11 +141,11 @@ class TaskService():
 
         for service in config.get_services().values():
             if not service.is_running():
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
                 yield service.start(ticket_id)
             else:
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s is already running.' % (ticket_id, service.name))
 
         ret = yield self.app_controller.list()
@@ -181,7 +188,7 @@ class TaskService():
     @inlineCallbacks
     def task_stop(self, ticket_id, name):
 
-        logger.debug('[%s] Stoping application' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Stoping application' % (ticket_id, ))
 
         app = yield self.app_controller.get(name)
         config = yield app.load()
@@ -190,16 +197,16 @@ class TaskService():
         @type config: YamlConfig
         """
 
-        logger.debug('[%s] Got response' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
         d = []
         for service in config.get_services().values():
             if service.is_running():
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s is running. Stoping' % (ticket_id, service.name))
                 d.append(service.stop(ticket_id))
             else:
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s is already stopped.' % (ticket_id, service.name))
 
         yield defer.gatherResults(d)
@@ -210,7 +217,7 @@ class TaskService():
     @inlineCallbacks
     def task_destroy(self, ticket_id, name):
 
-        logger.debug('[%s] Destroying application containers' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Destroying application containers' % (ticket_id, ))
 
         app = yield self.app_controller.get(name)
         config = yield app.load()
@@ -219,23 +226,23 @@ class TaskService():
         @type config: YamlConfig
         """
 
-        logger.debug('[%s] Got response' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
         d = []
         for service in config.get_services().values():
             if service.is_created():
                 if service.is_running():
-                    logger.debug(
+                    self.task_log(ticket_id, 
                         '[%s] Service %s container is running. Stopping and then destroying' % (ticket_id, service.name))
                     yield service.stop(ticket_id)
                     d.append(service.destroy(ticket_id))
 
                 else:
-                    logger.debug(
+                    self.task_log(ticket_id, 
                         '[%s] Service %s container is created. Destroying' % (ticket_id, service.name))
                     d.append(service.destroy(ticket_id))
             else:
-                logger.debug(
+                self.task_log(ticket_id, 
                     '[%s] Service %s container is not yet created.' % (ticket_id, service.name))
 
         yield defer.gatherResults(d)
@@ -247,7 +254,7 @@ class TaskService():
     @inlineCallbacks
     def task_inspect(self, ticket_id, name, service_name):
 
-        logger.debug('[%s] Inspecting application service %s' %
+        self.task_log(ticket_id, '[%s] Inspecting application service %s' %
                      (ticket_id, service_name))
 
         app = yield self.app_controller.get(name)
@@ -256,7 +263,7 @@ class TaskService():
         """
         @type config: YamlConfig
         """
-        logger.debug('[%s] Got response' % (ticket_id, ))
+        self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
         service = config.get_service(service_name)
         if not service.is_running():
@@ -310,42 +317,12 @@ class TaskService():
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
 
-    # @inlineCallbacks
-    # def task_deployment_remove(self, ticket_id, name):
-    #     deployment = yield self.deployment_controller.remove(name)
-    #     defer.returnValue(deployment is None)
-
-    #@inlineCallbacks
-    #def task_deployment_attach_volumes(self, ticket_id, deployment_name, name):
-    #    app = yield self.deployment_controller.new_app(deployment_name, name, {'path': path})
-    #    defer.returnValue(not app is None)
-
-    #
-    # def task_deployment_details(self, ticket_id, name):
-    #    d = self.deployment_controller.get(name)
-    #
-    #    def done(deployment):
-    #        deployment_list = []
-    #
-    #        for deployment in deployments:
-    #            print deployment
-    #            data = deployment.config
-    #            deployment_list.append(self.expand_app_list_on_deployment(data))
-    #
-    #        return defer.gatherResults(deployment_list, consumeErrors=True)
-    #
-    #    d.addCallback(done)
-    #    return d
-
-    def register(self, rpc_server):
+    def collect_tasks(self,):
 
         tasks = {}
-
         for name, func in inspect.getmembers(self):
             if name.startswith('task_'):
                 tasks[name[5:]] = func
 
-        rpc_server.tasks.update(tasks)
+        return tasks
 
-    def task_register_file(self, ticket_id):
-        return self.redis.incr('file_register_id')

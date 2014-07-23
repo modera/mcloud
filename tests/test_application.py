@@ -27,7 +27,7 @@ def test_app_load():
         config = yield app.load()
 
         assert isinstance(config, YamlConfig)
-        assert len(config.get_services()) == 1
+        assert len(config.get_services()) == 2  # + volume
         assert config.app_name == 'myapp'
 
         service = config.get_services()['controller.myapp']
@@ -48,7 +48,7 @@ controller:
         config = yield app.load()
 
         assert isinstance(config, YamlConfig)
-        assert len(config.get_services()) == 1
+        assert len(config.get_services()) == 2  # + volume
         assert config.app_name == 'myapp'
 
         service = config.get_services()['controller.myapp']

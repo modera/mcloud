@@ -1,5 +1,9 @@
 import json
 import logging
+import sys
+from autobahn.twisted.util import sleep
+from mfcloud.events import EventBus
+from mfcloud.remote import ApiRpcServer
 import os
 from urllib import urlencode
 import inject
@@ -11,7 +15,7 @@ from twisted.internet import defer
 from twisted.internet.defer import CancelledError, inlineCallbacks
 from twisted.web._newclient import ResponseFailed
 from txzmq import ZmqPubConnection
-
+from twisted.python import log
 logger = logging.getLogger('mfcloud.docker')
 
 class IDockerClient(Interface):
@@ -35,19 +39,24 @@ class DockerConnectionFailed(Exception):
 
 class DockerTwistedClient(object):
 
-    message_publisher = inject.attr(ZmqPubConnection)
-    docker_uri = inject.attr('docker-uri')
+    rpc_server = inject.attr(ApiRpcServer)
+    eb = inject.attr(EventBus)
+
+    def task_log(self, ticket_id, message):
+        self.rpc_server.task_progress(message, ticket_id)
 
     def __init__(self, url=None):
         super(DockerTwistedClient, self).__init__()
 
+        if url is None:
+            url = os.environ.get('DOCKER_API_URL', 'unix://var/run/docker.sock/')
+
+        self.url = url + '/'
 
     def _request(self, url, method=txhttp.get, **kwargs):
 
-        url = '/%s' % url
-
-        url_ = '%s%s' % (self.docker_uri, url)
-        d = method(url_, **kwargs)
+        url_ = '%s%s' % (self.url, url)
+        d = method(url_, timeout=30, **kwargs)
 
         def error(failure):
             e = DockerConnectionFailed('Connection timeout: %s When connecting to: %s' % (failure.getErrorMessage(), url_))
@@ -82,45 +91,24 @@ class DockerTwistedClient(object):
         r.addCallback(json_response)
         return r
 
+    @inlineCallbacks
     def build_image(self, dockerfile, ticket_id=None):
-
         headers = {'Content-Type': 'application/tar'}
 
         result = {}
 
         def on_content(chunk):
-
-            if ticket_id and self.message_publisher:
-                self.message_publisher.publish(chunk, 'log-%s' % ticket_id)
-            else:
-                print 'NB! >>>>>>>>>> MESSAGE NOT PUBLISHED: %s' % chunk
+            self.eb.fire_event('log-%s' % ticket_id, chunk)
 
             if not 'image_id' in result:
                 match = re.search(r'Successfully built ([0-9a-f]+)', chunk)
                 if match:
                     result['image_id'] = match.group(1)
 
-        def done(*args):
-            return result['image_id']
+        response = yield self._post('build', data=dockerfile, headers=headers, response_handler=None)
+        yield txhttp.collect(response, on_content)
+        defer.returnValue(result['image_id'])
 
-        def err(failure):
-            failure.trap(ResponseFailed)
-            raise failure.value.reasons[0]
-
-        r = self._post('build', data=dockerfile, headers=headers, response_handler=None)
-
-        def before_collect(response):
-            # print response.code
-            # print response.headers
-            # print response.length
-
-            return txhttp.collect(response, on_content)
-
-        r.addCallback(before_collect)
-        r.addCallback(done)
-        r.addErrback(err)
-
-        return r
 
 
     def pull(self, name, ticket_id):
@@ -131,8 +119,7 @@ class DockerTwistedClient(object):
 
             logger.debug('[%s] Content chunk <%s>', ticket_id, chunk)
 
-            if ticket_id and self.message_publisher:
-                self.message_publisher.publish(chunk, 'log-%s' % ticket_id)
+            self.eb.fire_event('log-%s' % ticket_id, chunk)
 
             try:
                 data = json.loads(chunk)
@@ -178,29 +165,25 @@ class DockerTwistedClient(object):
         r.addBoth(on_result)
         return r
 
-
     def events(self, on_event):
         r = self._get('events', response_handler=None)
         r.addCallback(txhttp.collect, on_event)
         return r
 
+    @inlineCallbacks
     def create_container(self, config, name, ticket_id):
 
         logger.debug('[%s] Create container "%s"', ticket_id, name)
 
-        #print json.dumps(config)
+        result = yield self._post('containers/create', params={'name': name}, headers={'Content-Type': 'application/json'}, data=json.dumps(config))
 
-        d = self._post('containers/create', params={'name': name}, headers={'Content-Type': 'application/json'}, data=json.dumps(config))
+        if result.code == 201:
+            defer.returnValue(True)
 
-        def done(result):
-            if result.code != 201:
-                raise CommandFailed('Create command returned unexpected status: %s' % result.code)
-            return txhttp.json_content(result)
+        if result.code == 409: # created
+            defer.returnValue(True)
 
-        d.addCallback(done)
-        return d
-
-
+        raise CommandFailed('Create command returned unexpected status: %s' % result.code)
 
     def collect_json_or_none(self, response):
 
@@ -215,11 +198,13 @@ class DockerTwistedClient(object):
 
         return d
 
+    @inlineCallbacks
     def inspect(self, id):
         assert not id is None
-        r = self._get('containers/%s/json' % bytes(id))
-        r.addCallback(self.collect_json_or_none)
-        return r
+        r = yield self._get('containers/%s/json' % bytes(id))
+        print r
+        r = yield self.collect_json_or_none(r)
+        defer.returnValue(r)
 
     def list(self):
         r = self._get('containers/json')
@@ -254,11 +239,11 @@ class DockerTwistedClient(object):
 
     @inlineCallbacks
     def find_container_by_name(self, name):
-        result = yield self._get('containers/json?all=1')
-        response = yield txhttp.json_content(result)
+        result = yield self._get('containers/%s/json' % str(name))
 
-        for ct in response:
-            if ('/%s' % name) in ct['Names']:
-                defer.returnValue(ct['Id'])
+        if result.code != 200:
+            defer.returnValue(None)
 
-        defer.returnValue(None)
+        ct = yield txhttp.json_content(result)
+
+        defer.returnValue(ct['Id'])

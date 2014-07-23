@@ -3,6 +3,10 @@ import logging
 import sys
 import time
 import uuid
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.twisted.websocket import WampWebSocketClientProtocol, WampWebSocketClientFactory
+import inject
+from mfcloud.remote import Client, Task, ApiError
 import re
 import os
 import pprintpp
@@ -11,127 +15,83 @@ from texttable import Texttable
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.error import ConnectionRefusedError
-from twisted.web.xmlrpc import Proxy
-from txzmq import ZmqFactory, ZmqEndpoint, ZmqSubConnection, ZmqEndpointType
-
-from time import sleep
-import zmq
-from zmq.utils import monitor
+from twisted.python import log
 
 
-logger = logging.getLogger('mfcloud.client')
 
 class ApiRpcClient(object):
 
-    def __init__(self, host='0.0.0.0'):
-        super(ApiRpcClient, self).__init__()
-
+    def __init__(self, host='0.0.0.0', port=7080):
         self.host = host
+        self.port = port
 
-        self.init_zmq()
+    @inlineCallbacks
+    def start_task(self, task, **kwargs):
+        yield getattr(self, task)(**kwargs)
+        reactor.stop()
 
-        self.ticket = {}
+    @inlineCallbacks
+    def _remote_exec(self, task_name, on_result, *args, **kwargs):
 
-        self.proxy = Proxy('http://%s:7080' % host)
+        client = Client()
+        try:
+            yield client.connect()
 
-        self.reactor = reactor
+            task = Task(task_name)
+            task.on_progress = self.print_progress
 
-    def on_result(self, result):
-        pass
-
-    def init_zmq(self):
-        self.factory = ZmqFactory()
-        e2 = ZmqEndpoint('connect', 'tcp://%s:5555' % self.host)
-        client = ZmqSubConnection(self.factory, e2)
-        client.gotMessage = self._on_message
-        client.subscribe('')
-
-        monitor_socket = client.socket.get_monitor_socket()
-
-        start = time.time()
-
-        while True:
-            logger.debug('Waiting for zmq connect')
-            event = monitor.recv_monitor_message(monitor_socket)
-            if event['event'] == zmq.EVENT_CONNECTED:
-                sleep(0.2)
-                return
-
-            if time.time() - start > 5:
-                print('\nZmq stream connection failure. Server is not started? \n\nRefer to documentation at '
-                      'http://mfcloud.readthedocs.org/ for instructions how to start the server.\n')
-
-                raise SystemExit(1)
-
-
-    def _remote_exec(self, task_name, on_result, *args):
-
-        self.on_result = on_result
-
-        logger.debug('rpc call: task_start %s %s' % (task_name, args))
-        d = self.proxy.callRemote('task_start', task_name, *args)
-
-        def ready(result):
-            logger.debug('rpc response:%s' % result)
-            self.ticket['ticket_id'] = result['ticket_id']
-
-        def failed(failure):
-
-            if failure.type == ConnectionRefusedError:
-                print('\nConnection failure. Server is not started? \n\nRefer to documentation at '
-                      'http://mfcloud.readthedocs.org/ for instructions how to start the server.\n')
-            else:
-                print('Failed to execute the task: %s' % failure.getErrorMessage())
-            self.reactor.stop()
-
-        d.addCallback(ready)
-        d.addErrback(failed)
-        self.reactor.run()
-
-    def _task_failed(self, message):
-        self.reactor.stop()
-        print message
-
-    def _task_completed(self, message):
-        self.reactor.stop()
-        data = json.loads(message)
-        self.on_result(data)
-
-    def _on_message(self, message, tag):
-
-        logger.debug('zmq message: %s tag: %s', message, tag)
-
-        if not 'ticket_id' in self.ticket:
-            self.reactor.callLater(0.1, self._on_message, message, tag)
-            return
-
-        if tag == 'task-completed-%s' % self.ticket['ticket_id']:
-            self._task_completed(message)
-
-
-        elif tag == 'task-failed-%s' % self.ticket['ticket_id']:
-            self._task_failed(message)
-
-
-        elif tag == 'log-%s' % self.ticket['ticket_id']:
             try:
-                data = json.loads(message)
-                if 'status' in data and 'progress' in data:
-                    sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
+                yield client.call(task, *args, **kwargs)
 
-                elif 'status' in data and 'id' in data:
-                    sys.stdout.write('\n[%s] %s' % (data['id'], data['status']))
+                res = yield task.wait_result()
+                on_result(res)
+            except Exception as e:
+                print('Failed to execute the task: %s' % e.message)
 
-                elif 'status' in data:
-                    sys.stdout.write('\n%s' % (data['status']))
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mfcloud server'
+
+        reactor.stop()
+
+    #
+    #
+    #def _on_message(self, message, tag):
+    #
+    #    logger.debug('zmq message: %s tag: %s', message, tag)
+    #
+    #    if not 'ticket_id' in self.ticket:
+    #        self.reactor.callLater(0.1, self._on_message, message, tag)
+    #        return
+    #
+    #    if tag == 'task-completed-%s' % self.ticket['ticket_id']:
+    #        self._task_completed(message)
+    #
+    #
+    #    elif tag == 'task-failed-%s' % self.ticket['ticket_id']:
+    #        self._task_failed(message)
+    #
+    #
+    #    elif tag == 'log-%s' % self.ticket['ticket_id']:
+
+    def print_progress(self, message):
+        try:
+            data = json.loads(message)
+            if 'status' in data and 'progress' in data:
+                sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
+
+            elif 'status' in data and 'id' in data:
+                sys.stdout.write('\n[%s] %s' % (data['id'], data['status']))
+
+            elif 'status' in data:
+                sys.stdout.write('\n%s' % (data['status']))
+            else:
+                if isinstance(data, basestring):
+                    sys.stdout.write(data)
                 else:
-                    if isinstance(data, basestring):
-                        sys.stdout.write(data)
-                    else:
-                        print pprintpp.pformat(data)
+                    print pprintpp.pformat(data)
 
-            except ValueError:
-                print(message)
+        except ValueError:
+            print(message)
 
     def init(self, name, path, **kwargs):
 
@@ -512,8 +472,6 @@ from cmd import Cmd
 from mfcloud import metadata
 
 
-log = logging.getLogger(__name__)
-
 def format_epilog():
     """Program entry point.
 
@@ -544,6 +502,7 @@ def get_argparser():
         epilog=format_epilog(),
         add_help=False
     )
+    arg_parser.add_argument('-v', '--verbose', help='Show more logs', action='store_true', default=False)
     arg_parser.add_argument('-e', '--env', help='Environment to use', default='dev')
     arg_parser.add_argument('-h', '--host', help='Host to use', default='127.0.0.1')
     arg_parser.add_argument(
@@ -575,12 +534,20 @@ def main(argv):
 
     args = arg_parser.parse_args()
 
+
+    if args.verbose:
+        log.startLogging(sys.stdout)
+
     args.argv0 = argv[0]
 
     client = ApiRpcClient(host=args.host)
 
     if isinstance(args.func, str):
+        log.msg('Starting task: %s' % args.func)
+
         getattr(client, args.func)(**vars(args))
+
+        reactor.run()
     else:
         args.func(**vars(args))
 

@@ -167,12 +167,13 @@ class YamlConfig(IConfig):
 
             volumes = None
 
-            keys_path = os.path.join(path, '.mfcloud/keys.txt')
-            if os.path.exists(keys_path):
-                volumes = [{
-                    'local': keys_path,
-                    'remote': '/root/.ssh/authorized_keys'
-                }]
+            if path:
+                keys_path = os.path.join(path, '.mfcloud/keys.txt')
+                if os.path.exists(keys_path):
+                    volumes = [{
+                        'local': keys_path,
+                        'remote': '/root/.ssh/authorized_keys'
+                    }]
 
             volume_service = Service(
                 volumes_from=name,
