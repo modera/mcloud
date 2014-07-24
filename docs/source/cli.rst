@@ -18,4 +18,4 @@ mfcloud-rpc-server command
 
 .. argparse::
    :ref: mfcloud.rpc_server.get_argparser
-   :prog: mfcloud
+   :prog: mfcloud-rpc-server

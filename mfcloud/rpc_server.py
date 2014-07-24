@@ -2,14 +2,7 @@ import logging
 import sys
 
 import inject
-from mfcloud.dns_resolver import listen_dns, dump_resolv_conf
-from mfcloud.events import EventBus
-from mfcloud.plugins.dns import DnsPlugin
-from mfcloud.plugins.haproxy import HaproxyPlugin
-from mfcloud.plugins.monitor import DockerMonitorPlugin
-from mfcloud.remote import ApiRpcServer, Server
-from mfcloud.tasks import TaskService
-from mfcloud.txdocker import IDockerClient, DockerTwistedClient
+
 from mfcloud.util import txtimeout
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
@@ -17,6 +10,23 @@ import txredisapi
 
 from twisted.python import log
 log.startLogging(sys.stdout)
+
+
+def get_argparser():
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Mfcloud rpc server')
+    parser.add_argument('--port', type=int, default=7080, help='port number')
+    parser.add_argument('--haproxy', default=False, action='store_true', help='Update haproxy config')
+    # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
+    # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
+    parser.add_argument('--dns-server-ip', type=str, default='172.17.42.1', help='Dns server to use in containers')
+    parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
+    parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
+    parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
+    #parser.add_argument('--zmq-bind', type=str, default='tcp://0.0.0.0:5555', help='ip address')
+    return parser
+
 
 def entry_point():
 
@@ -29,20 +39,7 @@ def entry_point():
     root_logger.setLevel(logging.DEBUG)
     log.msg('Logger initialized')
 
-
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Dns resolver')
-
-    parser.add_argument('--port', type=int, default=7080, help='port number')
-    parser.add_argument('--haproxy', default=False, action='store_true', help='Update haproxy config')
-    # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
-    # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
-    parser.add_argument('--dns-server-ip', type=str, default='172.17.42.1', help='Dns server to use in containers')
-    parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
-    parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
-    parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
-    #parser.add_argument('--zmq-bind', type=str, default='tcp://0.0.0.0:5555', help='ip address')
+    parser = get_argparser()
 
     args = parser.parse_args()
 
@@ -53,6 +50,15 @@ def entry_point():
     
     @inlineCallbacks
     def run_server(redis):
+        from mfcloud.dns_resolver import listen_dns, dump_resolv_conf
+        from mfcloud.events import EventBus
+        from mfcloud.plugins.dns import DnsPlugin
+        from mfcloud.plugins.haproxy import HaproxyPlugin
+        from mfcloud.plugins.monitor import DockerMonitorPlugin
+        from mfcloud.txdocker import IDockerClient, DockerTwistedClient
+        from mfcloud.remote import ApiRpcServer, Server
+        from mfcloud.tasks import TaskService
+
         log.msg('Running server')
 
         eb = EventBus(redis)

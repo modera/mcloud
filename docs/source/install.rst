@@ -154,26 +154,6 @@ Make sure it's running::
     3937 pts/5    S+     0:00 grep --color=auto mfcloud
 
 
-Configure system to use mfcloud-dns
-======================================
-
-On linux just add "172.17.42.1" to /etc/resolv.conf
-But this settings will be overridden on next reboot.
-To add new dns permanently you may add this record to /etc/network/interfaces.
-
-Example of /etc/network/interfaces::
-
-    auto lo
-    iface lo inet loopback
-
-    dns-nameservers 172.17.42.1 8.8.8.8
-
-https://help.ubuntu.com/12.04/serverguide/network-configuration.html#name-resolution
-
-
-For mac you can use this link, to get an idea how to add another dns server: http://macs.about.com/od/networking/qt/configure-your-macs-dns.htm
-
-
 Installing haproxy
 ==========================
 
