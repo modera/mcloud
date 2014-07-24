@@ -2,7 +2,7 @@ import json
 import logging
 import sys
 import uuid
-from mfcloud.remote import Client, Task
+
 import re
 import os
 import pprintpp
@@ -28,6 +28,8 @@ class ApiRpcClient(object):
 
     @inlineCallbacks
     def _remote_exec(self, task_name, on_result, *args, **kwargs):
+        from mfcloud.remote import Client, Task
+
         client = Client(host=self.host)
         try:
             yield client.connect()
