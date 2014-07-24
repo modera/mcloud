@@ -27,4 +27,3 @@ PyYAML
 txsockjs
 service-identity
 netifaces
-autobahn==0.8.11
