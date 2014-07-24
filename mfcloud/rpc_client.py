@@ -1,12 +1,8 @@
 import json
 import logging
 import sys
-import time
 import uuid
-from autobahn.twisted.wamp import ApplicationSession
-from autobahn.twisted.websocket import WampWebSocketClientProtocol, WampWebSocketClientFactory
-import inject
-from mfcloud.remote import Client, Task, ApiError
+from mfcloud.remote import Client, Task
 import re
 import os
 import pprintpp
@@ -472,7 +468,6 @@ def populate_client_parser(subparsers):
 
 
 import argparse
-from cmd import Cmd
 
 from mfcloud import metadata
 

@@ -77,7 +77,6 @@ setup(
         'prettytable',
         'docker-py',
         'treq',
-        'txZMQ',
         'pyOpenSSL',
         'PyYAML',
         'txsockjs',

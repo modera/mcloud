@@ -1,21 +1,17 @@
 import json
 import logging
-import sys
-from autobahn.twisted.util import sleep
+from urllib import urlencode
+from mfcloud import txhttp
+
 from mfcloud.events import EventBus
 from mfcloud.remote import ApiRpcServer
 import os
-from urllib import urlencode
 import inject
-from mfcloud import txhttp
 from mfcloud.util import Interface
 import re
-import treq
 from twisted.internet import defer
-from twisted.internet.defer import CancelledError, inlineCallbacks
-from twisted.web._newclient import ResponseFailed
-from txzmq import ZmqPubConnection
-from twisted.python import log
+from twisted.internet.defer import inlineCallbacks
+
 logger = logging.getLogger('mfcloud.docker')
 
 class IDockerClient(Interface):
