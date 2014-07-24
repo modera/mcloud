@@ -5,8 +5,8 @@ from mfcloud.application import ApplicationController
 from mfcloud.events import EventBus
 from mfcloud.plugins import Plugin
 from mfcloud.txdocker import IDockerClient, NotFound
-from pytest_twisted.plugin import inlineCallbacks
 from twisted.internet import reactor, defer
+from twisted.internet.defer import inlineCallbacks
 from twisted.python import log
 
 logger = logging.getLogger('mfcloud.monitor')

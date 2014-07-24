@@ -79,9 +79,6 @@ def entry_point():
         tasks = inject.instance(TaskService)
         api.tasks = tasks.collect_tasks()
 
-        log.msg('Tasks collected: %s' % api.tasks)
-
-
 
         log.msg('Starting rpc listener')
         server = Server(port=rpc_port)
@@ -92,19 +89,20 @@ def entry_point():
         # dns
         dump_resolv_conf(dns_server_ip)
 
-        log.msg('Listen dns')
-        listen_dns(dns_prefix, dns_server_ip, 53)
-
-        log.msg('Dns plugin')
-        DnsPlugin()
-
-
         if args.haproxy:
             log.msg('Haproxy plugin')
             HaproxyPlugin()
 
         log.msg('Monitor plugin')
         DockerMonitorPlugin()
+
+
+        log.msg('Dns plugin')
+        DnsPlugin()
+
+
+        log.msg('Listen dns')
+        listen_dns(dns_prefix, dns_server_ip, 53)
 
         log.msg('Started.')
 

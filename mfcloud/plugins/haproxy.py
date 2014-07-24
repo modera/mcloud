@@ -32,19 +32,41 @@ defaults
         errorfile 503 /etc/haproxy/errors/503.http
         errorfile 504 /etc/haproxy/errors/504.http
 
+
+{% if ssl_apps %}
+frontend http_ssl_proxy
+  bind 0.0.0.0:443
+  {% for app in ssl_apps %}
+  {% for domain in app.domains %}
+  acl is_ssl_{{ app.name }} req_ssl_sni -i {{ domain }}
+  {% endfor %}
+  use_backend backend_ssl_{{ app.name }}_cluster if is_ssl_{{ app.name }}
+  {% endfor %}
+
+  {% for app in ssl_apps %}
+  {% for backend in app.backends %}
+  backend {{ backend.name }}_cluster
+      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }}
+  {% endfor %}
+  {% endfor %}
+{% endif %}
+
 frontend http_proxy
   bind 0.0.0.0:80
 
   {% for app in apps %}
   {% for domain in app.domains %}
-  acl is_{{ app.name }} hdr_dom(host) -i {{ domain }}{% endfor %}
-  use_backend {{ app.name }}_cluster if is_{{ app.name }}
+  acl is_{{ app.name }} hdr_dom(host) -i {{ domain }}
+  {% endfor %}
+  use_backend backend_{{ app.name }}_cluster if is_{{ app.name }}
   {% endfor %}
 
-{% for app in apps %}
-backend {{ app.name }}_cluster
-  {% for backend in app.backends %}server {{ backend.name }} {{ backend.ip }}:{{ backend.port }}{% endfor %}
-{% endfor %}
+  {% for app in apps %}
+  {% for backend in app.backends %}
+  backend {{ backend.name }}_cluster
+      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }}
+  {% endfor %}
+  {% endfor %}
 """
 
 from jinja2 import Template
@@ -65,28 +87,39 @@ class HaproxyConfig(object):
             template = Template(HAPROXY_TPL)
 
         proxy_apps = []
+        proxy_ssl_apps = []
 
         for app in apps_list:
-            if not app['running']:
+            if not 'web_ip' in app or not app['web_ip']:
                 continue
 
             domains = [app['fullname']]
+            ssl_domains = []
 
-            if app['public_url']:
-                domains.append(app['public_url'])
+            if app['public_urls']:
+                for url in app['public_urls']:
+                    if url.startswith('https://'):
+                        ssl_domains.append(url[8:])
+                    else:
+                        domains.append(url)
+
+            if ssl_domains:
+                proxy_ssl_apps.append({
+                    'name': app['fullname'],
+                    'domains': ssl_domains,
+                    'backends': [{'name': 'backend_ssl_%s' % app['fullname'], 'ip': app['web_ip'], 'port': 443}]
+                })
 
             proxy_apps.append({
                 'name': app['fullname'],
                 'domains': domains,
-                'backends': [{
-                     'name': 'backend_%s' % app['fullname'],
-                     'ip': app['web_ip'],
-                     'port': 80
-                 }]
+                'backends': [{'name': 'backend_%s' % app['fullname'], 'ip': app['web_ip'], 'port': 80}]
             })
 
+        log.msg('Writing haproxy config')
+
         with open('/etc/haproxy/haproxy.cfg', 'w') as f:
-            f.write(template.render({'apps': proxy_apps}))
+            f.write(template.render({'apps': proxy_apps, 'ssl_apps': proxy_ssl_apps}))
 
         os.system('service haproxy reload')
 
@@ -103,8 +136,10 @@ class HaproxyPlugin(Plugin):
 
         logger.info('Haproxy plugin started')
 
+        self.containers_updated()
+
     @inlineCallbacks
-    def containers_updated(self):
+    def containers_updated(self, *args, **kwargs):
         logger.info('Containers updated: dumping haproxy config.')
         data = yield self.app_controller.list()
         self.proxy_config.dump(data)

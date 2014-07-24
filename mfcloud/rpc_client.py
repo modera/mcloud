@@ -32,8 +32,7 @@ class ApiRpcClient(object):
 
     @inlineCallbacks
     def _remote_exec(self, task_name, on_result, *args, **kwargs):
-
-        client = Client()
+        client = Client(host=self.host)
         try:
             yield client.connect()
 
@@ -272,19 +271,24 @@ class ApiRpcClient(object):
 
         self._remote_exec('start', self.on_print_list_result, name)
 
-    def publish(self, domain, app, **kwargs):
+    def format_domain(self, domain, ssl):
+        if ssl:
+            domain = 'https://%s' % domain
+        return domain
+
+    def publish(self, domain, app, ssl=False, **kwargs):
 
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
 
-        self._remote_exec('publish', self.on_print_list_result, domain, app)
+        self._remote_exec('publish', self.on_print_list_result, self.format_domain(domain, ssl), app)
 
-    def unpublish(self, domain, **kwargs):
+    def unpublish(self, domain, ssl=False, **kwargs):
 
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
 
-        self._remote_exec('unpublish', self.on_print_list_result, domain)
+        self._remote_exec('unpublish', self.on_print_list_result, self.format_domain(domain, ssl))
 
     def restart(self, name, **kwargs):
 
@@ -409,11 +413,12 @@ def populate_client_parser(subparsers):
     cmd = subparsers.add_parser('publish', help='Publish an application')
     cmd.add_argument('domain', help='Domain to publish')
     cmd.add_argument('app', help='Application name')
-    # cmd.add_argument('--ssl', default=False, action='store_true', help='Ssl protocol')
+    cmd.add_argument('--ssl', default=False, action='store_true', help='Ssl protocol')
     cmd.set_defaults(func='publish')
 
     cmd = subparsers.add_parser('unpublish', help='Unpublish an application')
     cmd.add_argument('domain', help='Domain to unpublish')
+    cmd.add_argument('--ssl', default=False, action='store_true', help='Ssl protocol')
     cmd.set_defaults(func='unpublish')
 
     cmd = subparsers.add_parser('run', help='Execute command')

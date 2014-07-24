@@ -1,9 +1,8 @@
 from contextlib import contextmanager
 from abc import ABCMeta
-from flask import logging
 import inject
 from twisted.internet import reactor
-from twisted.python import log
+
 
 class Interface(object):
     __metaclass__ = ABCMeta

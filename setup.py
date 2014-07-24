@@ -83,6 +83,7 @@ setup(
         'txsockjs',
         'service-identity',
         'netifaces',
+        'autobahn==0.8.11',
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
     tests_require=[

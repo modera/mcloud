@@ -112,12 +112,12 @@ class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
 
     def send_event(self, event_name, data=None):
         data_ = {'type': 'event', 'name': event_name, 'data': data}
-        log.msg('Sent out event: %s' % data_)
+        log.msg('Sent out event: %s' % event_name)
         return self.sendMessage(json.dumps(data_))
 
     def send_response(self, request_id, response, success=True):
         data_ = {'type': 'response', 'id': request_id, 'success': success, 'response': response}
-        log.msg('Sent out response: %s' % data_)
+        log.msg('Sent out response: %s' % request_id)
         return self.sendMessage(json.dumps(data_))
 
 
@@ -234,8 +234,9 @@ class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):
 
 
 class Client(object):
-    def __init__(self, port=7080):
+    def __init__(self, host='127.0.0.1', port=7080):
         self.port = port
+        self.host = host
         self.onc = None
         self.protocol = None
         self.request_id = 0
@@ -289,13 +290,13 @@ class Client(object):
                     raise Exception('Unknown task id: %s' % task_id)
 
     def connect(self):
-        factory = WebSocketClientFactory("ws://localhost:%s" % self.port, debug=False)
+        factory = WebSocketClientFactory("ws://%s:%s" % (self.host, self.port), debug=False)
         factory.protocol = MdcloudWebsocketClientProtocol
         factory.protocol.client = self
 
         self.onc = defer.Deferred()
 
-        point = TCP4ClientEndpoint(reactor, "localhost", self.port)
+        point = TCP4ClientEndpoint(reactor, self.host, self.port)
         d = point.connect(factory)
         d.addErrback(self.onc.errback)
         return self.onc

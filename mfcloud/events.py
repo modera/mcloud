@@ -12,12 +12,19 @@ class EventBus(object):
         super(EventBus, self).__init__()
         self.redis = redis_connection
 
-    def fire_event(self, event_name, data):
+    def fire_event(self, event_name, data=None, *args, **kwargs):
         log.msg('Firing event: %s' % event_name)
-        if isinstance(data, basestring):
+
+        if not data:
+            if kwargs:
+                data = kwargs
+            elif args:
+                data = args
+
+        if not isinstance(data, basestring):
             data = 'j:' + json.dumps(data)
         else:
-            data = 'r:' + data
+            data = 'r:' + str(data)
 
         return self.redis.publish(event_name, data)
 

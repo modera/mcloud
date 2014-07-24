@@ -9,7 +9,7 @@ from twisted.python import log
 
 logger = logging.getLogger('mfcloud.plugin.dns')
 
-class DnsPlugin(Plugin):
+class HostsPlugin(Plugin):
     eb = inject.attr(EventBus)
     app_controller = inject.attr(ApplicationController)
     redis = inject.attr(txredisapi.Connection)
@@ -23,12 +23,11 @@ class DnsPlugin(Plugin):
                 if service['running']:
                     apps[service['fullname']] = service['ip']
 
-            if 'web_service' in app and app['web_service']:
+            if app['web_service']:
                 apps[app['fullname']] = app['web_ip']
 
-            if 'public_urls' in  app and app['public_urls'] and 'web_ip' in app:
-                for url in app['public_urls']:
-                    apps[url] = app['web_ip']
+            if app['public_url']:
+                apps[app['public_url']] = app['web_ip']
 
         logger.info('Installing new app list: %s' % str(apps))
 
@@ -40,7 +39,7 @@ class DnsPlugin(Plugin):
             yield self.redis.hset('domain', apps.keys()[0], apps.values()[0])
 
     def __init__(self):
-        super(DnsPlugin, self).__init__()
+        super(HostsPlugin, self).__init__()
         self.eb.on('containers.updated', self.containers_updated)
 
         logger.info('Dns plugin started')

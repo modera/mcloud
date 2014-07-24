@@ -6,6 +6,7 @@ import inject
 from mfcloud.application import ApplicationController, Application, AppDoesNotExist
 from mfcloud.config import ConfigParseError
 from mfcloud.deployment import DeploymentController
+from mfcloud.events import EventBus
 from mfcloud.remote import ApiRpcServer
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
@@ -24,6 +25,10 @@ class TaskService(object):
     deployment_controller = inject.attr(DeploymentController)
     redis = inject.attr(txredisapi.Connection)
     rpc_server = inject.attr(ApiRpcServer)
+    event_bus = inject.attr(EventBus)
+
+    dns_server = inject.attr('dns-server')
+    dns_search_suffix = inject.attr('dns-search-suffix')
 
     def task_log(self, ticket_id, message):
         self.rpc_server.task_progress(message, ticket_id)

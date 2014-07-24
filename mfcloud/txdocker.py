@@ -98,7 +98,7 @@ class DockerTwistedClient(object):
         result = {}
 
         def on_content(chunk):
-            self.eb.fire_event('log-%s' % ticket_id, chunk)
+            self.task_log(ticket_id, chunk)
 
             if not 'image_id' in result:
                 match = re.search(r'Successfully built ([0-9a-f]+)', chunk)
@@ -116,10 +116,8 @@ class DockerTwistedClient(object):
         logger.debug('[%s] Pulling image "%s"', ticket_id, name)
 
         def on_content(chunk):
-
             logger.debug('[%s] Content chunk <%s>', ticket_id, chunk)
-
-            self.eb.fire_event('log-%s' % ticket_id, chunk)
+            self.task_log(ticket_id, chunk)
 
             try:
                 data = json.loads(chunk)
