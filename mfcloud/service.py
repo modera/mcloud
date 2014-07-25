@@ -63,6 +63,13 @@ class Service(object):
         except KeyError:
             return False
 
+    @property
+    def shortname(self):
+        name_ = self.name
+        if self.app_name and name_.endswith(self.app_name):
+            name_ = name_[0:-len(self.app_name) - 1]
+        return name_
+
     def ip(self):
         if not self.is_running():
             return None
@@ -74,6 +81,12 @@ class Service(object):
             return None
 
         return self._inspect_data['Image']
+
+    def hosts_path(self):
+        if not self.is_created():
+            return None
+
+        return self._inspect_data['HostsPath']
 
     def public_ports(self):
         if not self.is_running():
@@ -125,8 +138,8 @@ class Service(object):
         self.task_log(ticket_id, '[%s][%s] Starting service...' % (ticket_id, self.name))
 
         config = {
-            "Dns": [self.dns_server],
-            "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
+            #"Dns": [self.dns_server],
+            #"DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
         }
 
         if self.volumes_from:

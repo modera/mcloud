@@ -2,6 +2,7 @@ import logging
 import sys
 
 import inject
+from mfcloud.plugins.hosts import HostsPlugin
 
 from mfcloud.util import txtimeout
 from twisted.internet import reactor
@@ -106,6 +107,7 @@ def entry_point():
         log.msg('Dns plugin')
         DnsPlugin()
 
+        HostsPlugin()
 
         log.msg('Listen dns')
         listen_dns(dns_prefix, dns_server_ip, 53)

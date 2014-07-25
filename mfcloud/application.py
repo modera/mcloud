@@ -42,15 +42,9 @@ class Application(object):
                 defer.returnValue(yaml_config)
 
         except ValueError as e:
-            defer.returnValue({
-                'name': self.name,
-                'config': self.config,
-                #'host_ip': self.host_ip,
-                'services': [],
-                'running': False,
-                'status': 'error',
-                'message': '%s When loading config: %s' % (e.message, self.config)
-            })
+            config_ = {'name': self.name, 'config': self.config, 'services': [], 'running': False, 'status': 'error',
+                       'message': '%s When loading config: %s' % (e.message, self.config)}
+            defer.returnValue(config_)
 
 
 
@@ -63,10 +57,13 @@ class Application(object):
 
         services = []
         for service in app_config.get_services().values():
+            service.app_name = self.name
             services.append({
+                'shortname': service.shortname,
                 'name': service.name,
                 'ip': service.ip(),
                 'ports': service.public_ports(),
+                'hosts_path': service.hosts_path(),
                 'volumes': service.attached_volumes(),
                 'started_at': service.started_at(),
                 'fullname': '%s.%s' % (service.name, self.dns_search_suffix),

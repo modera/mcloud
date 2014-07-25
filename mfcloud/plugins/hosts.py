@@ -7,46 +7,54 @@ from twisted.internet.defer import inlineCallbacks
 import txredisapi
 from twisted.python import log
 
-logger = logging.getLogger('mfcloud.plugin.dns')
 
 class HostsPlugin(Plugin):
     eb = inject.attr(EventBus)
     app_controller = inject.attr(ApplicationController)
     redis = inject.attr(txredisapi.Connection)
 
-    @inlineCallbacks
+    #@inlineCallbacks
     def dump(self, apps_list):
-        apps = {}
-
         for app in apps_list:
+
+            containers = {}
+
             for service in app['services']:
-                if service['running']:
-                    apps[service['fullname']] = service['ip']
+                if service['ip']:
+                    containers[service['shortname']] = service['ip']
 
-            if app['web_service']:
-                apps[app['fullname']] = app['web_ip']
+            if containers:
+                for service in app['services']:
+                    if service['hosts_path']:
+                        prepend = ''
+                        with open(service['hosts_path'], 'r') as f:
+                            contents = f.read()
 
-            if app['public_url']:
-                apps[app['public_url']] = app['web_ip']
+                            for name, ip in containers.items():
+                                if name == service['shortname']:
+                                    continue
+                                hs_line = '%s\t%s\n' % (ip, name)
 
-        logger.info('Installing new app list: %s' % str(apps))
+                                if not hs_line in contents:
+                                    prepend += hs_line
 
-        yield self.redis.delete('domain')
+                        if prepend:
+                            with open(service['hosts_path'], 'w') as f:
+                                f.write('%s\n%s' % (prepend, contents))
 
-        if len(apps) > 1:
-            yield self.redis.hmset('domain', apps)
-        elif len(apps) == 1:
-            yield self.redis.hset('domain', apps.keys()[0], apps.values()[0])
+                    log.msg('*********** Hosts for %s: %s' % (service['name'], str(containers)))
 
     def __init__(self):
         super(HostsPlugin, self).__init__()
         self.eb.on('containers.updated', self.containers_updated)
 
-        logger.info('Dns plugin started')
+        log.msg('Hosts plugin started')
+
+        self.containers_updated()
 
     @inlineCallbacks
     def containers_updated(self, *args, **kwargs):
-        logger.info('Containers updated: dumping haproxy config.')
+        log.msg('Containers updated: dumping haproxy config.')
 
         data = yield self.app_controller.list()
         self.dump(data)

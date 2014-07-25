@@ -1,6 +1,7 @@
 import inspect
 import logging
 from autobahn.twisted import wamp
+from autobahn.twisted.util import sleep
 from autobahn.twisted.wamp import ApplicationSession
 import inject
 from mfcloud.application import ApplicationController, Application, AppDoesNotExist
@@ -132,17 +133,15 @@ class TaskService(object):
 
         self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
-        updated = False
         for service in config.get_services().values():
             if not service.is_created():
                 self.task_log(ticket_id, 
                     '[%s] Service %s is not created. Creating' % (ticket_id, service.name))
                 yield service.create(ticket_id)
-                updated = True
 
-        if updated:
-            app_data = yield self.app_controller.list()
-            self.event_bus.fire_event('containers-updated', apps=app_data)
+        self.event_bus.fire_event('containers-updated')
+
+        yield sleep(0.2)
 
         for service in config.get_services().values():
             if not service.is_running():
@@ -186,6 +185,7 @@ class TaskService(object):
 
         defer.returnValue({
             'image': service.image(),
+            'hosts_path': service.hosts_path(),
             'dns-server': self.dns_server,
             'dns-suffix': self.dns_search_suffix,
         })
@@ -233,21 +233,26 @@ class TaskService(object):
 
         self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
+        if isinstance(config, dict):
+            self.task_log(ticket_id, 'Application location does not exist, use remove command to remove application')
+            self.task_log(ticket_id, config['message'])
+            return
+
         d = []
         for service in config.get_services().values():
             if service.is_created():
                 if service.is_running():
-                    self.task_log(ticket_id, 
+                    self.task_log(ticket_id,
                         '[%s] Service %s container is running. Stopping and then destroying' % (ticket_id, service.name))
                     yield service.stop(ticket_id)
                     d.append(service.destroy(ticket_id))
 
                 else:
-                    self.task_log(ticket_id, 
+                    self.task_log(ticket_id,
                         '[%s] Service %s container is created. Destroying' % (ticket_id, service.name))
                     d.append(service.destroy(ticket_id))
             else:
-                self.task_log(ticket_id, 
+                self.task_log(ticket_id,
                     '[%s] Service %s container is not yet created.' % (ticket_id, service.name))
 
         yield defer.gatherResults(d)

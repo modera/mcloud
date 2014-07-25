@@ -126,6 +126,9 @@ class ApiRpcClient(object):
 
     def on_print_list_result(self, data):
 
+        if not data:
+            return 
+
         x = PrettyTable(["Application name", "Web", "status", "services"], hrules=ALL)
         for app in data:
 
@@ -357,9 +360,10 @@ class ApiRpcClient(object):
 
         def on_result(result):
 
-            os.system("docker run -i -t --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
+            os.system("docker run -i -t -v %(hosts_vol)s --volumes-from=%(container)s %(image)s %(command)s" % {
                 'container': '%s.%s' % (service, app),
                 'image': result['image'],
+                'hosts_vol': '%s:/etc/hosts' % result['hosts_path'],
                 'dns-server': result['dns-server'],
                 'dns-suffix': '%s.%s' % (app, result['dns-suffix']),
                 'command': command
