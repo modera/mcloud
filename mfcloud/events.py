@@ -4,6 +4,7 @@ from twisted.internet import reactor, defer
 import txredisapi as redis
 from twisted.python import log
 
+
 class EventBus(object):
     redis = None
     protocol = None
@@ -42,7 +43,6 @@ class EventBus(object):
 
 
 class EventBusProtocol(redis.SubscriberProtocol):
-
     callbacks = {}
 
     def on(self, pattern, callback):
@@ -62,18 +62,18 @@ class EventBusProtocol(redis.SubscriberProtocol):
         if self.factory.on_connect:
             self.factory.on_connect.callback(self)
             self.factory.on_connect = None
-        #
-        #print "waiting for messages..."
-        #print "use the redis client to send messages:"
-        #print "$ redis-cli publish zz test"
-        #print "$ redis-cli publish foo.bar hello world"
-        #self.subscribe("zz")
-        #self.psubscribe("foo.*")
-        #reactor.callLater(10, self.unsubscribe, "zz")
-        #reactor.callLater(15, self.punsubscribe, "foo.*")
+            #
+            #print "waiting for messages..."
+            #print "use the redis client to send messages:"
+            #print "$ redis-cli publish zz test"
+            #print "$ redis-cli publish foo.bar hello world"
+            #self.subscribe("zz")
+            #self.psubscribe("foo.*")
+            #reactor.callLater(10, self.unsubscribe, "zz")
+            #reactor.callLater(15, self.punsubscribe, "foo.*")
 
-        # self.continueTrying = False
-        # self.transport.loseConnection()
+            # self.continueTrying = False
+            # self.transport.loseConnection()
 
     def messageReceived(self, pattern, channel, message):
         log.msg("pattern=%s, channel=%s message=%s" % (pattern, channel, message))

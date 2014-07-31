@@ -54,12 +54,11 @@ class Resolver(client.Resolver):
         else:
             return self._lookup(name, dns.IN, dns.A, timeout)
 
-class DNSServerFactory(server.DNSServerFactory):
 
+class DNSServerFactory(server.DNSServerFactory):
     redis = inject.attr(txredisapi.Connection)
 
     def __init__(self, authorities=None, caches=None, clients=None, prefix=None, verbose=0):
-
         resolver = Resolver(servers=[('8.8.8.8', 53)], prefix=prefix)
         resolver.server_factory = self
 
@@ -93,8 +92,8 @@ def listen_dns(dns_prefix, dns_server_ip, dns_port):
     reactor.listenUDP(dns_port, protocol, interface=dns_server_ip)
     reactor.listenTCP(dns_port, factory, interface=dns_server_ip)
 
-def entry_point():
 
+def entry_point():
     console_handler = logging.StreamHandler(stream=sys.stderr)
     console_handler.setFormatter(logging.Formatter())
     console_handler.setLevel(logging.DEBUG)
@@ -119,7 +118,6 @@ def entry_point():
     dns_port = args.port
 
     def run_server(redis):
-
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
 

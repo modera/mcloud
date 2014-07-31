@@ -59,6 +59,21 @@ class TaskService(object):
         defer.returnValue(alist)
 
     @inlineCallbacks
+    def task_list_vars(self, ticket_id):
+        vlist = yield self.redis.hgetall('vars')
+        defer.returnValue(vlist)
+
+    @inlineCallbacks
+    def task_set_var(self, ticket_id, name, val):
+        yield self.redis.hset('vars', name, val)
+        defer.returnValue((yield self.task_list_vars(ticket_id)))
+
+    @inlineCallbacks
+    def task_rm_var(self, ticket_id, name):
+        yield self.redis.hdel('vars', name)
+        defer.returnValue((yield self.task_list_vars(ticket_id)))
+
+    @inlineCallbacks
     def task_remove(self, ticket_id, name):
         yield self.task_destroy(ticket_id, name)
         yield self.app_controller.remove(name)

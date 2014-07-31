@@ -9,6 +9,7 @@ from twisted.python import log
 
 logger = logging.getLogger('mfcloud.plugin.dns')
 
+
 class DnsPlugin(Plugin):
     eb = inject.attr(EventBus)
     app_controller = inject.attr(ApplicationController)
@@ -20,8 +21,7 @@ class DnsPlugin(Plugin):
 
         for app in apps_list:
             for service in app['services']:
-                if service['running']:
-                    apps[service['fullname']] = service['ip']
+                apps[service['fullname']] = service['ip']
 
             if 'web_service' in app and app['web_service']:
                 apps[app['fullname']] = app['web_ip']

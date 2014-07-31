@@ -107,7 +107,7 @@ def entry_point():
         log.msg('Dns plugin')
         DnsPlugin()
 
-        HostsPlugin()
+        # HostsPlugin()
 
         log.msg('Listen dns')
         listen_dns(dns_prefix, dns_server_ip, 53)

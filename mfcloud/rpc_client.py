@@ -284,6 +284,21 @@ class ApiRpcClient(object):
 
         self._remote_exec('publish', self.on_print_list_result, self.format_domain(domain, ssl), app)
 
+    def on_vars_result(self, data):
+        x = PrettyTable(["variable", "value"], hrules=ALL)
+        for line in data.items():
+            x.add_row(line)
+        print x
+
+    def set(self, name, val, **kwargs):
+        self._remote_exec('set_var', self.on_vars_result, name, val)
+
+    def unset(self, name, **kwargs):
+        self._remote_exec('rm_var', self.on_vars_result, name)
+
+    def vars(self, **kwargs):
+        self._remote_exec('list_vars', self.on_vars_result)
+
     def unpublish(self, domain, ssl=False, **kwargs):
 
         def on_result(data):
@@ -360,7 +375,7 @@ class ApiRpcClient(object):
 
         def on_result(result):
 
-            os.system("docker run -i -t -v %(hosts_vol)s --volumes-from=%(container)s %(image)s %(command)s" % {
+            os.system("docker run -i -t -v %(hosts_vol)s --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
                 'container': '%s.%s' % (service, app),
                 'image': result['image'],
                 'hosts_vol': '%s:/etc/hosts' % result['hosts_path'],
@@ -417,6 +432,18 @@ def populate_client_parser(subparsers):
     cmd.add_argument('app', help='Application name')
     cmd.add_argument('--ssl', default=False, action='store_true', help='Ssl protocol')
     cmd.set_defaults(func='publish')
+
+    cmd = subparsers.add_parser('set', help='Set environment variable on server')
+    cmd.add_argument('name', help='Variable name')
+    cmd.add_argument('val', help='Value')
+    cmd.set_defaults(func='set')
+
+    cmd = subparsers.add_parser('unset', help='Unset environment variable on server')
+    cmd.add_argument('name', help='Variable name')
+    cmd.set_defaults(func='unset')
+
+    cmd = subparsers.add_parser('vars', help='List environment variables on server')
+    cmd.set_defaults(func='vars')
 
     cmd = subparsers.add_parser('unpublish', help='Unpublish an application')
     cmd.add_argument('domain', help='Domain to unpublish')

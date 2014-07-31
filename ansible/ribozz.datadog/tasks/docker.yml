@@ -1,0 +1,4 @@
+
+
+ # docker integration
+ - name: Add dd-agent to docker group

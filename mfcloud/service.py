@@ -4,6 +4,7 @@ from mfcloud.remote import ApiRpcServer
 from mfcloud.txdocker import IDockerClient, DockerConnectionFailed
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks, returnValue
+import txredisapi
 
 logger = logging.getLogger('mfcloud.application')
 
@@ -19,6 +20,7 @@ class Service(object):
 
     dns_server = inject.attr('dns-server')
     dns_search_suffix = inject.attr('dns-search-suffix')
+    redis = inject.attr(txredisapi.Connection)
 
     rpc_server = inject.attr(ApiRpcServer)
 
@@ -138,8 +140,8 @@ class Service(object):
         self.task_log(ticket_id, '[%s][%s] Starting service...' % (ticket_id, self.name))
 
         config = {
-            #"Dns": [self.dns_server],
-            #"DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
+            "Dns": [self.dns_server],
+            "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
         }
 
         if self.volumes_from:
@@ -173,14 +175,19 @@ class Service(object):
         ret = yield self.inspect()
         defer.returnValue(ret)
 
+    @inlineCallbacks
     def _generate_config(self, image_name):
         config = {
             "Hostname": self.name,
             "Image": image_name,
         }
 
+        vlist = yield self.redis.hgetall('vars')
+
         if self.env:
-            config['Env'] = ['%s=%s' % x for x in self.env.items()]
+            vlist.update(self.env)
+
+        config['Env'] = ['%s=%s' % x for x in vlist.items()]
 
         if self.ports:
             config['ExposedPorts'] = dict([(port, {}) for port in self.ports])
@@ -190,16 +197,15 @@ class Service(object):
                 (x['remote'], {}) for x in self.volumes
             ])
 
-        return config
+        defer.returnValue(config)
 
 
     @inlineCallbacks
     def create(self, ticket_id):
 
-        print('22')
         image_name = yield self.image_builder.build_image(ticket_id=ticket_id)
 
-        config = self._generate_config(image_name)
+        config = yield self._generate_config(image_name)
         yield self.client.create_container(config, self.name, ticket_id=ticket_id)
 
         ret = yield self.inspect()

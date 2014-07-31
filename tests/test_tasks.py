@@ -2,9 +2,9 @@ from flexmock import flexmock
 from mfcloud.application import ApplicationController, Application
 from mfcloud.deployment import DeploymentController, Deployment
 from mfcloud.tasks import TaskService
-from mfcloud.util import inject_services, injector
+from mfcloud.util import inject_services, injector, txtimeout
 import pytest
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 import txredisapi
 
 
@@ -173,5 +173,34 @@ def test_list_deployments_task():
             ]
         }]
 
+@pytest.inlineCallbacks
+def test_set_var_task():
 
+    def timeout():
+        print('Can not connect to redis!')
+        reactor.stop()
 
+    redis = yield txtimeout(txredisapi.Connection(dbid=2), 2, timeout)
+    yield redis.flushdb()
+
+    def configure(binder):
+        binder.bind(txredisapi.Connection, redis)
+
+    with inject_services(configure):
+
+        ts = TaskService()
+
+        r = yield ts.task_list_vars(123123)
+        assert r == {}
+
+        r = yield ts.task_set_var(123123, 'boo', '123')
+        assert r == {'boo': 123}
+
+        r = yield ts.task_list_vars(123123)
+        assert r == {'boo': 123}
+
+        r = yield ts.task_set_var(123123, 'boo2', '1234')
+        assert r == {'boo': 123, 'boo2': 1234}
+
+        r = yield ts.task_rm_var(123123, 'boo')
+        assert r == {'boo2': 1234}
