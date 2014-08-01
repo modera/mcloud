@@ -82,7 +82,10 @@ setup(
         'txsockjs',
         'service-identity',
         'netifaces',
+        'dogapi',
         'autobahn==0.8.11',
+        'pyasn1-modules',
+        'characteristic',
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
     tests_require=[

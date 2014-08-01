@@ -2,6 +2,7 @@ import logging
 import sys
 
 import inject
+from mfcloud.plugins.datadog import DatadogPlugin
 from mfcloud.plugins.hosts import HostsPlugin
 
 from mfcloud.util import txtimeout
@@ -94,11 +95,14 @@ def entry_point():
         log.msg('Dumping resolv conf')
 
         # dns
-        dump_resolv_conf(dns_server_ip)
+        # dump_resolv_conf(dns_server_ip)
 
         if args.haproxy:
             log.msg('Haproxy plugin')
             HaproxyPlugin()
+
+        log.msg('Datadog plugin')
+        DatadogPlugin()
 
         log.msg('Monitor plugin')
         DockerMonitorPlugin()
@@ -109,8 +113,8 @@ def entry_point():
 
         # HostsPlugin()
 
-        log.msg('Listen dns')
-        listen_dns(dns_prefix, dns_server_ip, 53)
+        # log.msg('Listen dns')
+        # listen_dns(dns_prefix, dns_server_ip, 53)
 
         log.msg('Started.')
 

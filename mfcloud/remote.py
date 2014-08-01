@@ -57,6 +57,13 @@ class ApiRpcServer(object):
         ticket_id = yield self.redis.incr('mfcloud-ticket-id')
 
         def _do_start():
+
+            self.eb.fire_event('task.start', data={
+                'name': task_name,
+                'args': args,
+                'kwargs': kwargs
+            })
+
             if not task_name in self.tasks:
                 raise ValueError('No such task: %s' % task_name)
 

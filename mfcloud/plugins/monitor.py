@@ -24,7 +24,7 @@ class DockerMonitorPlugin(Plugin):
         reactor.callLater(0, self.start)
 
     def on_event(self, event):
-        logger.info('New docker event: %s' % event)
+        log.msg('New docker event: %s' % event)
         self.event_bus.fire_event('containers.updated')
 
     def attach_to_events(self, *args):
