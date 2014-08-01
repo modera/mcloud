@@ -6,6 +6,7 @@ from mfcloud.plugins.datadog import DatadogPlugin
 from mfcloud.plugins.hosts import HostsPlugin
 
 from mfcloud.util import txtimeout
+import os
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
@@ -49,6 +50,28 @@ def entry_point():
     rpc_port = args.port
     dns_server_ip = args.dns_server_ip
     dns_prefix = args.dns_search_suffix
+
+    from confire import Configuration
+    from confire import environ_setting
+
+    class SslConfiguration(Configuration):
+        enabled = False
+        key = '/etc/mfcloud/ssl.key'
+        cert = '/etc/mfcloud/ssl.crt'
+
+    class MyAppConfiguration(Configuration):
+
+        CONF_PATHS = [
+            '/etc/mfcloud/mfcloud-server.yml',
+            # os.path.expanduser('~/.myapp.yaml'),
+            # os.path.abspath('conf/myapp.yaml')
+        ]
+
+        haproxy = False
+
+        ssl = SslConfiguration()
+
+    settings = MyAppConfiguration.load()
     
     @inlineCallbacks
     def run_server(redis):
@@ -77,6 +100,7 @@ def entry_point():
             #binder.bind(IDockerClient, DockerTwistedClient(url='http://127.0.0.1:4243'))
             binder.bind(IDockerClient, DockerTwistedClient())
 
+            binder.bind('settings', settings)
             binder.bind('dns-server', dns_server_ip)
             binder.bind('dns-search-suffix', dns_prefix)
 
@@ -95,14 +119,14 @@ def entry_point():
         log.msg('Dumping resolv conf')
 
         # dns
-        # dump_resolv_conf(dns_server_ip)
+        dump_resolv_conf(dns_server_ip)
 
-        if args.haproxy:
+        if settings.haproxy:
             log.msg('Haproxy plugin')
             HaproxyPlugin()
 
-        log.msg('Datadog plugin')
-        DatadogPlugin()
+        # log.msg('Datadog plugin')
+        # DatadogPlugin()
 
         log.msg('Monitor plugin')
         DockerMonitorPlugin()
@@ -113,8 +137,8 @@ def entry_point():
 
         # HostsPlugin()
 
-        # log.msg('Listen dns')
-        # listen_dns(dns_prefix, dns_server_ip, 53)
+        log.msg('Listen dns')
+        listen_dns(dns_prefix, dns_server_ip, 53)
 
         log.msg('Started.')
 

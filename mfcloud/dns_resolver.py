@@ -39,7 +39,7 @@ class Resolver(client.Resolver):
 
             def callback(value):
 
-                if not value:
+                if not value or value == 'None':
                     d.callback(([], [], []))
                 else:
                     a = dns.RRHeader(name=name, type=dns.A, ttl=10)

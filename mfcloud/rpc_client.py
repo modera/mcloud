@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 import uuid
+from confire import Configuration
 
 import re
 import os
@@ -17,9 +18,10 @@ from twisted.python import log
 
 class ApiRpcClient(object):
 
-    def __init__(self, host='0.0.0.0', port=7080):
+    def __init__(self, host='0.0.0.0', port=7080, settings=None):
         self.host = host
         self.port = port
+        self.settings = settings
 
     @inlineCallbacks
     def start_task(self, task, **kwargs):
@@ -30,7 +32,7 @@ class ApiRpcClient(object):
     def _remote_exec(self, task_name, on_result, *args, **kwargs):
         from mfcloud.remote import Client, Task
 
-        client = Client(host=self.host)
+        client = Client(host=self.host, settings=self.settings)
         try:
             yield client.connect()
 
@@ -42,13 +44,14 @@ class ApiRpcClient(object):
 
                 res = yield task.wait_result()
                 on_result(res)
+
             except Exception as e:
                 print('Failed to execute the task: %s' % e.message)
 
         except ConnectionRefusedError:
             print 'Can\'t connect to mfcloud server'
 
-        reactor.stop()
+        client.shutdown()
 
     #
     #
@@ -468,6 +471,11 @@ def populate_client_parser(subparsers):
     cmd.add_argument('service', help='Service name')
     cmd.set_defaults(func='inspect')
 
+    cmd = subparsers.add_parser('cert-gen', help='Inspect application service')
+    cmd.add_argument('username', help='Your username')
+    cmd.add_argument('service', help='Service name')
+    cmd.set_defaults(func='inspect')
+
     cmd = subparsers.add_parser('dns', help='List dns records')
     cmd.set_defaults(func='dns')
 
@@ -562,9 +570,6 @@ def main(argv):
 
     arg_parser = get_argparser()
 
-
-
-
     args = arg_parser.parse_args()
 
 
@@ -573,7 +578,27 @@ def main(argv):
 
     args.argv0 = argv[0]
 
-    client = ApiRpcClient(host=args.host)
+
+    class SslConfiguration(Configuration):
+        enabled = False
+        key = '/etc/mfcloud/ssl.key'
+        cert = '/etc/mfcloud/ssl.crt'
+
+    class MyAppConfiguration(Configuration):
+
+        CONF_PATHS = [
+            '/etc/mfcloud/mfcloud-client.yml',
+            # os.path.expanduser('~/.myapp.yaml'),
+            # os.path.abspath('conf/myapp.yaml')
+        ]
+
+        haproxy = False
+
+        ssl = SslConfiguration()
+
+    settings = MyAppConfiguration.load()
+
+    client = ApiRpcClient(host=args.host, settings=settings)
 
     if isinstance(args.func, str):
         log.msg('Starting task: %s' % args.func)

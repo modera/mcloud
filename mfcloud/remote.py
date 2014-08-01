@@ -3,9 +3,10 @@ import sys
 import inject
 from mfcloud.events import EventBus
 
-from twisted.internet import reactor, defer
+from OpenSSL import SSL
+
+from twisted.internet import reactor, defer, ssl
 from twisted.internet.defer import inlineCallbacks
-from twisted.internet.endpoints import TCP4ClientEndpoint
 
 from autobahn.twisted.websocket import WebSocketServerFactory
 from autobahn.twisted.websocket import WebSocketClientFactory
@@ -133,6 +134,8 @@ class Server(object):
     eb = inject.attr(EventBus)
     rpc_server = inject.attr(ApiRpcServer)
 
+    settings = inject.attr('settings')
+
     def __init__(self, port=7080):
         self.task_map = {}
         self.port = port
@@ -196,6 +199,17 @@ class Server(object):
         """
         self.tasks[name] = callback
 
+    def verifyCallback(self, connection, x509, errnum, errdepth, ok):
+
+        if not ok:
+            print 'invalid cert from subject:', x509.get_subject()
+            return False
+        else:
+            print 'Subject is: %s' % x509.get_subject().commonName
+            print "Certs are fine"
+            # return False
+        return True
+
     def bind(self):
         """
         Start listening on the port specified
@@ -204,7 +218,27 @@ class Server(object):
         factory.server = self
         factory.protocol = MdcloudWebsocketServerProtocol
 
-        reactor.listenTCP(self.port, factory)
+        try:
+
+            if self.settings.ssl.enabled:
+                myContextFactory = ssl.DefaultOpenSSLContextFactory(
+                    self.settings.ssl.key, self.settings.ssl.cert
+                )
+                ctx = myContextFactory.getContext()
+
+                ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.verifyCallback)
+
+                # Since we have self-signed certs we have to explicitly
+                # tell the server to trust them.
+                ctx.load_verify_locations(self.settings.ssl.cert)
+
+                reactor.listenSSL(self.port, factory, myContextFactory)
+            else:
+                reactor.listenTCP(self.port, factory)
+        except:
+            log.err()
+
+
 
 
 
@@ -234,20 +268,20 @@ class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):
         log.msg('Websocket client in: %s' % payload)
         reactor.callLater(0, self.client.on_message, payload, is_binary)
 
-
-
     def onClose(self, wasClean, code, reason):
-        pass
+        self.client.onClose(wasClean, code, reason)
 
 
 class Client(object):
-    def __init__(self, host='127.0.0.1', port=7080):
+
+    def __init__(self, host='127.0.0.1', port=7080, settings=None):
         self.port = port
         self.host = host
         self.onc = None
         self.protocol = None
         self.request_id = 0
         self.request_map = {}
+        self.settings = settings
 
         self.task_map = {}
 
@@ -303,9 +337,11 @@ class Client(object):
 
         self.onc = defer.Deferred()
 
-        point = TCP4ClientEndpoint(reactor, self.host, self.port)
-        d = point.connect(factory)
-        d.addErrback(self.onc.errback)
+        if self.settings.ssl.enabled:
+            reactor.connectSSL(self.host, self.port, factory, CtxFactory())
+        else:
+            reactor.connectTCP(self.host, self.port, factory)
+
         return self.onc
 
     def call_sync(self, task, *args, **kwargs):
@@ -327,6 +363,13 @@ class Client(object):
 
         return d
 
+    def onClose(self, wasClean, code, reason):
+
+        if not wasClean:
+            print('Connection closed: %s (code: %s)' % (reason, code))
+
+        reactor.stop()
+
 
     @inlineCallbacks
     def call(self, task, *args, **kwargs):
@@ -344,6 +387,18 @@ class Client(object):
         self.task_map[task.id] = task
 
         defer.returnValue(task)
+
+class CtxFactory(ssl.ClientContextFactory):
+
+    settings = inject.attr('settings')
+
+    def getContext(self):
+        self.method = SSL.SSLv23_METHOD
+        ctx = ssl.ClientContextFactory.getContext(self)
+        ctx.use_certificate_file(self.settings.ssl.cert)
+        ctx.use_privatekey_file(self.settings.ssl.key)
+
+        return ctx
 
 
 class TaskFailure(Exception):
