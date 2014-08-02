@@ -17,8 +17,6 @@ from twisted.python import log
 
 
 class TaskService(object):
-
-
     """
     @type app_controller: ApplicationController
     """
@@ -150,22 +148,23 @@ class TaskService(object):
 
         for service in config.get_services().values():
             if not service.is_created():
-                self.task_log(ticket_id, 
-                    '[%s] Service %s is not created. Creating' % (ticket_id, service.name))
+                self.task_log(ticket_id,
+                              '[%s] Service %s is not created. Creating' % (ticket_id, service.name))
                 yield service.create(ticket_id)
-
-        self.event_bus.fire_event('containers-updated')
-
-        yield sleep(0.2)
 
         for service in config.get_services().values():
             if not service.is_running():
-                self.task_log(ticket_id, 
-                    '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
+                self.task_log(ticket_id,
+                              '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
                 yield service.start(ticket_id)
+
+                self.task_log(ticket_id, 'Updating container list')
+                self.event_bus.fire_event('containers-updated')
+
+                yield sleep(0.2)
             else:
-                self.task_log(ticket_id, 
-                    '[%s] Service %s is already running.' % (ticket_id, service.name))
+                self.task_log(ticket_id,
+                              '[%s] Service %s is already running.' % (ticket_id, service.name))
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
@@ -222,12 +221,12 @@ class TaskService(object):
         d = []
         for service in config.get_services().values():
             if service.is_running():
-                self.task_log(ticket_id, 
-                    '[%s] Service %s is running. Stoping' % (ticket_id, service.name))
+                self.task_log(ticket_id,
+                              '[%s] Service %s is running. Stoping' % (ticket_id, service.name))
                 d.append(service.stop(ticket_id))
             else:
-                self.task_log(ticket_id, 
-                    '[%s] Service %s is already stopped.' % (ticket_id, service.name))
+                self.task_log(ticket_id,
+                              '[%s] Service %s is already stopped.' % (ticket_id, service.name))
 
         yield defer.gatherResults(d)
 
@@ -258,17 +257,18 @@ class TaskService(object):
             if service.is_created():
                 if service.is_running():
                     self.task_log(ticket_id,
-                        '[%s] Service %s container is running. Stopping and then destroying' % (ticket_id, service.name))
+                                  '[%s] Service %s container is running. Stopping and then destroying' % (
+                                      ticket_id, service.name))
                     yield service.stop(ticket_id)
                     d.append(service.destroy(ticket_id))
 
                 else:
                     self.task_log(ticket_id,
-                        '[%s] Service %s container is created. Destroying' % (ticket_id, service.name))
+                                  '[%s] Service %s container is created. Destroying' % (ticket_id, service.name))
                     d.append(service.destroy(ticket_id))
             else:
                 self.task_log(ticket_id,
-                    '[%s] Service %s container is not yet created.' % (ticket_id, service.name))
+                              '[%s] Service %s container is not yet created.' % (ticket_id, service.name))
 
         yield defer.gatherResults(d)
 
@@ -280,7 +280,7 @@ class TaskService(object):
     def task_inspect(self, ticket_id, name, service_name):
 
         self.task_log(ticket_id, '[%s] Inspecting application service %s' %
-                     (ticket_id, service_name))
+                                 (ticket_id, service_name))
 
         app = yield self.app_controller.get(name)
         config = yield app.load()
@@ -312,6 +312,7 @@ class TaskService(object):
 
         ret = yield defer.gatherResults(deployment_list, consumeErrors=True)
         defer.returnValue(ret)
+
     #
     # @inlineCallbacks
     # def task_deployment_create(self, ticket_id, public_domain):
@@ -342,7 +343,7 @@ class TaskService(object):
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
 
-    def collect_tasks(self,):
+    def collect_tasks(self, ):
 
         tasks = {}
         for name, func in inspect.getmembers(self):
