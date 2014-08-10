@@ -19,3 +19,21 @@ Documentation
 -------------
 
 http://mfcloud.readthedocs.org/
+
+
+Changelog
+---------------------
+
+0.4.4
+
+stop, start, restart, rebuild, destroy commands now nderstand [service].[app] syntax,
+allowing to restat single container. (Alex R.)
+
+----------------------
+
+0.4.3
+
+Major improvments of container start order logic (Alex R.)
+
+---------------------
+

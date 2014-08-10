@@ -137,7 +137,13 @@ class TaskService(object):
 
         self.task_log(ticket_id, '[%s] Starting application' % (ticket_id, ))
 
-        app = yield self.app_controller.get(name)
+        if '.' in name:
+            service_name, app_name = name.split('.')
+        else:
+            service_name = None
+            app_name = name
+
+        app = yield self.app_controller.get(app_name)
         config = yield app.load()
 
         """
@@ -147,12 +153,18 @@ class TaskService(object):
         self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
         for service in config.get_services().values():
+            if service_name and '%s.%s' % (service_name, app_name) != service.name:
+                continue
+
             if not service.is_created():
                 self.task_log(ticket_id,
                               '[%s] Service %s is not created. Creating' % (ticket_id, service.name))
                 yield service.create(ticket_id)
 
         for service in config.get_services().values():
+            if service_name and '%s.%s' % (service_name, app_name) != service.name:
+                continue
+
             if not service.is_running():
                 self.task_log(ticket_id,
                               '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
@@ -209,7 +221,13 @@ class TaskService(object):
 
         self.task_log(ticket_id, '[%s] Stoping application' % (ticket_id, ))
 
-        app = yield self.app_controller.get(name)
+        if '.' in name:
+            service_name, app_name = name.split('.')
+        else:
+            service_name = None
+            app_name = name
+
+        app = yield self.app_controller.get(app_name)
         config = yield app.load()
 
         """
@@ -220,6 +238,10 @@ class TaskService(object):
 
         d = []
         for service in config.get_services().values():
+
+            if service_name and '%s.%s' % (service_name, app_name) != service.name:
+                continue
+
             if service.is_running():
                 self.task_log(ticket_id,
                               '[%s] Service %s is running. Stoping' % (ticket_id, service.name))
@@ -238,7 +260,13 @@ class TaskService(object):
 
         self.task_log(ticket_id, '[%s] Destroying application containers' % (ticket_id, ))
 
-        app = yield self.app_controller.get(name)
+        if '.' in name:
+            service_name, app_name = name.split('.')
+        else:
+            service_name = None
+            app_name = name
+
+        app = yield self.app_controller.get(app_name)
         config = yield app.load()
 
         """
@@ -254,6 +282,12 @@ class TaskService(object):
 
         d = []
         for service in config.get_services().values():
+
+            if service_name and '%s.%s' % (service_name, app_name) != service.name:
+                continue
+
+            self.task_log(ticket_id, '[%s] Destroying container: %s' % (ticket_id, service_name))
+
             if service.is_created():
                 if service.is_running():
                     self.task_log(ticket_id,

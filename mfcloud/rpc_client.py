@@ -110,7 +110,7 @@ class ApiRpcClient(object):
                 'user': user,
                 'id': uuid.uuid1()
             }
-            command = 'rsync -v --rsync-path="mkdir -p %(path)s && rsync" -r %(local)s %(user)s@%(remote)s:%(path)s' % {
+            command = 'rsync -v --exclude \'.git\' --rsync-path="mkdir -p %(path)s && rsync" -r %(local)s %(user)s@%(remote)s:%(path)s' % {
                 'local': path,
                 'user': user,
                 'path': remote_path,
@@ -363,7 +363,7 @@ class ApiRpcClient(object):
         source = yield self.resolve_volume_port(source)
         destination = yield self.resolve_volume_port(destination)
 
-        command = "rsync -v -r %(local_path)s %(remote_path)s" % {
+        command = "rsync -v -r --exclude '.git' %(local_path)s %(remote_path)s" % {
             'local_path': source,
             'remote_path': destination,
         }

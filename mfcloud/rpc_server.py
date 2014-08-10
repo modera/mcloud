@@ -121,7 +121,7 @@ def entry_point():
         # dns
         dump_resolv_conf(dns_server_ip)
 
-        if settings.haproxy:
+        if settings.haproxy or args.haproxy:
             log.msg('Haproxy plugin')
             HaproxyPlugin()
 
