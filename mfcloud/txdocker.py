@@ -241,3 +241,17 @@ class DockerTwistedClient(object):
         ct = yield txhttp.json_content(result)
 
         defer.returnValue(ct['Id'])
+
+    @inlineCallbacks
+    def find_containers_by_names(self, names):
+        result = yield self._get('containers/json?all=1')
+        response = yield txhttp.json_content(result)
+
+        ids = dict([(name, None) for name in names])
+
+        for ct in response:
+            for name in names:
+                if ('/%s' % name) in ct['Names']:
+                    ids[name] = ct['Id']
+
+        defer.returnValue(ids)

@@ -4,6 +4,7 @@ import sys
 import inject
 from mfcloud.plugins.datadog import DatadogPlugin
 from mfcloud.plugins.hosts import HostsPlugin
+from mfcloud.plugins.metrics import MetricsPlugin
 
 from mfcloud.util import txtimeout
 import os
@@ -139,6 +140,9 @@ def entry_point():
 
         log.msg('Listen dns')
         listen_dns(dns_prefix, dns_server_ip, 53)
+
+        log.msg('Listen metrics')
+        MetricsPlugin()
 
         log.msg('Started.')
 

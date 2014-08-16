@@ -368,7 +368,7 @@ class Client(object):
         if not wasClean:
             print('Connection closed: %s (code: %s)' % (reason, code))
 
-        reactor.stop()
+        # reactor.stop()
 
 
     @inlineCallbacks

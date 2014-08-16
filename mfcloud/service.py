@@ -38,6 +38,9 @@ class Service(object):
         self._inspect_data = None
         self._inspected = False
 
+        self.cpu_usage = 0.0
+        self.memory_usage = 0
+
         self.__dict__.update(kwargs)
         super(Service, self).__init__()
 
@@ -55,6 +58,11 @@ class Service(object):
         self._inspected = True
         data = yield self.client.inspect(self.name)
         self._inspect_data = data
+
+        metrics = yield self.redis.hget('metrics', self.name)
+        if metrics:
+            self.memory_usage, self.cpu_usage = metrics.split(';')
+
         defer.returnValue(self._inspect_data)
 
     def is_running(self):

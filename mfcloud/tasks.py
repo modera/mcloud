@@ -183,6 +183,39 @@ class TaskService(object):
 
 
     @inlineCallbacks
+    def task_create(self, ticket_id, name):
+
+        self.task_log(ticket_id, '[%s] Creating application' % (ticket_id, ))
+
+        if '.' in name:
+            service_name, app_name = name.split('.')
+        else:
+            service_name = None
+            app_name = name
+
+        app = yield self.app_controller.get(app_name)
+        config = yield app.load()
+
+        """
+        @type config: YamlConfig
+        """
+
+        self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
+
+        for service in config.get_services().values():
+            if service_name and '%s.%s' % (service_name, app_name) != service.name:
+                continue
+
+            if not service.is_created():
+                self.task_log(ticket_id,
+                              '[%s] Service %s is not created. Creating' % (ticket_id, service.name))
+                yield service.create(ticket_id)
+
+        ret = yield self.app_controller.list()
+        defer.returnValue(ret)
+
+
+    @inlineCallbacks
     def task_push(self, ticket_id, app_name, service_name, volume):
 
         app = yield self.app_controller.get(app_name)

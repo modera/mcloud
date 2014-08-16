@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 import uuid
+from autobahn.twisted.util import sleep
 from confire import Configuration
 
 import re
@@ -24,12 +25,7 @@ class ApiRpcClient(object):
         self.settings = settings
 
     @inlineCallbacks
-    def start_task(self, task, **kwargs):
-        yield getattr(self, task)(**kwargs)
-        reactor.stop()
-
-    @inlineCallbacks
-    def _remote_exec(self, task_name, on_result, *args, **kwargs):
+    def _remote_exec(self, task_name, on_result, stop_reactor=True, *args, **kwargs):
         from mfcloud.remote import Client, Task
 
         client = Client(host=self.host, settings=self.settings)
@@ -52,6 +48,10 @@ class ApiRpcClient(object):
             print 'Can\'t connect to mfcloud server'
 
         client.shutdown()
+        yield sleep(0.01)
+
+        if stop_reactor:
+            reactor.stop()
 
     #
     #
@@ -127,12 +127,12 @@ class ApiRpcClient(object):
         self._remote_exec('init', self.on_print_list_result, name, os.path.realpath(path))
 
 
-    def on_print_list_result(self, data):
+    def on_print_list_result(self, data, as_string=False):
 
         if not data:
-            return 
+            return ''
 
-        x = PrettyTable(["Application name", "Web", "status", "services"], hrules=ALL)
+        x = PrettyTable(["Application name", "Web", "status", "cpu %", "memory", "services"], hrules=ALL)
         for app in data:
 
             volume_services = {}
@@ -148,7 +148,11 @@ class ApiRpcClient(object):
                         service['ports']['22/tcp'][0]['HostPort'],
                     )
 
+            service_memory = []
+            service_cpu = []
             services = []
+            app_cpu = 0.0
+            app_mem = 0
             for service in app['services']:
                 if service['name'].startswith('_volumes_'):
                     continue
@@ -178,17 +182,28 @@ class ApiRpcClient(object):
                         data += ' (%s)' % ', '.join(service['volumes'])
 
                 services.append(data)
+                service_memory.append(str(service['memory']) + 'M')
+                service_cpu.append(("%.2f" % float(service['cpu'])) + '%')
+
+                app_mem += int(service['memory'])
+                app_cpu += float(service['cpu'])
 
             if app['running']:
                 app_status = app['status']
                 services_list = '\n'.join(services)
+                services_cpu_list = '\n'.join(service_cpu) + ('\n-----\n%.2f' % app_cpu) + '%'
+                services_memory_list = '\n'.join(service_memory) + ('\n-----\n' + str(app_mem)) + 'M'
 
             elif app['status'] == 'error':
                 app_status = 'ERROR'
                 services_list = app['message']
+                services_cpu_list = ''
+                services_memory_list = ''
             else:
                 app_status = ''
                 services_list = '\n'.join(services)
+                services_cpu_list = ''
+                services_memory_list = ''
 
 
             if app['status'] != 'error':
@@ -206,12 +221,33 @@ class ApiRpcClient(object):
             else:
                 web = ''
 
-            x.add_row([app['name'], web, app_status, services_list])
+            x.add_row([app['name'], web, app_status, services_cpu_list, services_memory_list, services_list])
 
-        print x
+        if not as_string:
+            print x
+        else:
+            return str(x)
 
-    def list(self, **kwargs):
-        self._remote_exec('list', self.on_print_list_result)
+    @inlineCallbacks
+    def list(self, follow=False, **kwargs):
+        self.last_lines = 0
+
+        def _print(data):
+            ret = self.on_print_list_result(data, as_string=True)
+
+            if self.last_lines > 0:
+                print '\033[1A' * self.last_lines
+
+            print ret
+
+            self.last_lines = ret.count('\n') + 2
+
+
+        while follow:
+            yield self._remote_exec('list', _print, stop_reactor=False)
+            if follow:
+                yield sleep(1)
+
 
 
     def inspect(self, name, service, **kwargs):
@@ -274,6 +310,13 @@ class ApiRpcClient(object):
             print 'result: %s' % pprintpp.pformat(data)
 
         self._remote_exec('start', self.on_print_list_result, name)
+
+    def create(self, name, **kwargs):
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        self._remote_exec('create', self.on_print_list_result, name)
 
     def format_domain(self, domain, ssl):
         if ssl:
@@ -407,6 +450,7 @@ def populate_client_parser(subparsers):
     cmd.set_defaults(func='init')
 
     cmd = subparsers.add_parser('list', help='List registered applications')
+    cmd.add_argument('-f', '--follow', default=False, action='store_true', help='Continuously run list command')
     cmd.set_defaults(func='list')
 
     cmd = subparsers.add_parser('remove', help='Remove application')
@@ -416,6 +460,10 @@ def populate_client_parser(subparsers):
     cmd = subparsers.add_parser('start', help='Start application')
     cmd.add_argument('name', help='App name')
     cmd.set_defaults(func='start')
+
+    cmd = subparsers.add_parser('create', help='Create application containers')
+    cmd.add_argument('name', help='App name')
+    cmd.set_defaults(func='create')
 
     cmd = subparsers.add_parser('restart', help='Start application')
     cmd.add_argument('name', help='App name')

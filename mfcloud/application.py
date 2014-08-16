@@ -70,6 +70,8 @@ class Application(object):
                 'is_web': service.is_web(),
                 'running': service.is_running(),
                 'created': service.is_created(),
+                'cpu': service.cpu_usage,
+                'memory': service.memory_usage,
             })
 
             if service.is_web():
