@@ -104,8 +104,6 @@ class YamlConfig(IConfig):
                 with open(self._file) as f:
                     cfg = yaml.load(f, OrderedDictYAMLLoader)
 
-                    print cfg
-
                 path = dirname(self._file)
             else:
                 cfg = yaml.load(self._source, OrderedDictYAMLLoader)

@@ -28,6 +28,8 @@ class ApiRpcClient(object):
     def _remote_exec(self, task_name, on_result, stop_reactor=True, *args, **kwargs):
         from mfcloud.remote import Client, Task
 
+        log.msg('Remote exec: %s()' % task_name)
+
         client = Client(host=self.host, settings=self.settings)
         try:
             yield client.connect()
@@ -242,11 +244,12 @@ class ApiRpcClient(object):
 
             self.last_lines = ret.count('\n') + 2
 
-
-        while follow:
-            yield self._remote_exec('list', _print, stop_reactor=False)
-            if follow:
+        if follow:
+            while follow:
+                yield self._remote_exec('list', _print, stop_reactor=False)
                 yield sleep(1)
+        else:
+            yield self._remote_exec('list', _print)
 
 
 

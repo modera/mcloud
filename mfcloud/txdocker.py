@@ -196,7 +196,6 @@ class DockerTwistedClient(object):
     def inspect(self, id):
         assert not id is None
         r = yield self._get('containers/%s/json' % bytes(id))
-        print r
         r = yield self.collect_json_or_none(r)
         defer.returnValue(r)
 

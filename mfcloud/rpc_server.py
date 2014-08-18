@@ -1,5 +1,6 @@
 import logging
 import sys
+import netifaces
 
 import inject
 from mfcloud.plugins.datadog import DatadogPlugin
@@ -10,10 +11,13 @@ from mfcloud.util import txtimeout
 import os
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.protocol import Factory, AbstractDatagramProtocol
 import txredisapi
 
 from twisted.python import log
 log.startLogging(sys.stdout)
+
+Factory.noisy = False
 
 
 def get_argparser():
@@ -24,7 +28,7 @@ def get_argparser():
     parser.add_argument('--haproxy', default=False, action='store_true', help='Update haproxy config')
     # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
     # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
-    parser.add_argument('--dns-server-ip', type=str, default='172.17.42.1', help='Dns server to use in containers')
+    parser.add_argument('--dns-server-ip', type=str, default=None, help='Dns server to use in containers')
     parser.add_argument('--dns-search-suffix', type=str, default='mfcloud.lh', help='Dns suffix to use')
     parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
     parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
@@ -36,11 +40,11 @@ def entry_point():
 
     console_handler = logging.StreamHandler(stream=sys.stderr)
     console_handler.setFormatter(logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(name)s] %(message)s'))
-    console_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(logging.ERROR)
 
     root_logger = logging.getLogger()
     root_logger.addHandler(console_handler)
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.ERROR)
     log.msg('Logger initialized')
 
     parser = get_argparser()
@@ -49,7 +53,12 @@ def entry_point():
 
     rpc_interface = args.interface
     rpc_port = args.port
-    dns_server_ip = args.dns_server_ip
+
+    if not args.dns_server_ip:
+        dns_server_ip = netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
+    else:
+        dns_server_ip = args.dns_server_ip
+
     dns_prefix = args.dns_search_suffix
 
     from confire import Configuration
@@ -76,6 +85,7 @@ def entry_point():
     
     @inlineCallbacks
     def run_server(redis):
+
         from mfcloud.dns_resolver import listen_dns, dump_resolv_conf
         from mfcloud.events import EventBus
         from mfcloud.plugins.dns import DnsPlugin
@@ -120,7 +130,7 @@ def entry_point():
         log.msg('Dumping resolv conf')
 
         # dns
-        dump_resolv_conf(dns_server_ip)
+        # dump_resolv_conf(dns_server_ip)
 
         if settings.haproxy or args.haproxy:
             log.msg('Haproxy plugin')
@@ -138,8 +148,8 @@ def entry_point():
 
         # HostsPlugin()
 
-        log.msg('Listen dns')
-        listen_dns(dns_prefix, dns_server_ip, 53)
+        log.msg('Listen dns on ip %s:53' % dns_server_ip)
+        listen_dns(dns_prefix, dns_server_ip, 7053)
 
         log.msg('Listen metrics')
         MetricsPlugin()

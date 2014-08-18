@@ -2,6 +2,7 @@ import logging
 import sys
 import inject
 from mfcloud.util import txtimeout
+from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor, defer
@@ -21,38 +22,29 @@ class Resolver(client.Resolver):
         self.prefix = prefix
 
 
+    @inlineCallbacks
     def lookupAddress(self, name, timeout=None):
-        if name.endswith('.%s' % self.prefix):
+        if name == '%s.%s' % ('_dns', self.prefix):
+            value = '127.0.1.7'
+            a = dns.RRHeader(name=name, type=dns.A, ttl=10)
 
-            if name == '%s.%s' % ('_dns', self.prefix):
-                value = '127.0.1.7'
-                a = dns.RRHeader(name=name, type=dns.A, ttl=10)
-
+            if self.server_factory.noisy:
                 logging.debug('Asked for %s -> Resolved to: %s' % (name, value))
-                a.payload = dns.Record_A(value, ttl=10)
+            a.payload = dns.Record_A(value, ttl=10)
 
-                return defer.succeed(([a], [], []))
+            defer.returnValue(([a], [], []))
 
-            d = defer.Deferred()
+        value = yield self.server_factory.redis.hget("domain", name)
 
-            result = self.server_factory.redis.hget("domain", name)
-
-            def callback(value):
-
-                if not value or value == 'None':
-                    d.callback(([], [], []))
-                else:
-                    a = dns.RRHeader(name=name, type=dns.A, ttl=10)
-
-                    logging.debug('Asked for %s -> Resolved to: %s' % (name, value))
-                    a.payload = dns.Record_A(value, ttl=10)
-                    d.callback(([a], [], []))
-
-            result.addCallback(callback)
-
-            return d
+        if not value or value == 'None':
+            defer.returnValue(([], [], []))
         else:
-            return self._lookup(name, dns.IN, dns.A, timeout)
+            a = dns.RRHeader(name=name, type=dns.A, ttl=10)
+
+            if self.server_factory.noisy:
+                logging.debug('Asked for %s -> Resolved to: %s' % (name, value))
+            a.payload = dns.Record_A(value, ttl=10)
+            defer.returnValue(([a], [], []))
 
 
 class DNSServerFactory(server.DNSServerFactory):
@@ -69,9 +61,8 @@ class DNSServerFactory(server.DNSServerFactory):
 
         server.DNSServerFactory.__init__(self, authorities, caches, clients, verbose)
 
-
-    def stopFactory(self):
-        self.redis.disconnect()
+    # def stopFactory(self):
+    #     self.redis.disconnect()
 
 
 def dump_resolv_conf(dns_server_ip):

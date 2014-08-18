@@ -3,9 +3,7 @@ import sys
 import inject
 from mfcloud.events import EventBus
 
-from OpenSSL import SSL
-
-from twisted.internet import reactor, defer, ssl
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.websocket import WebSocketServerFactory
@@ -215,12 +213,17 @@ class Server(object):
         Start listening on the port specified
         """
         factory = WebSocketServerFactory("ws://localhost:%s" % self.port, debug=False)
+        factory.noisy = False
         factory.server = self
         factory.protocol = MdcloudWebsocketServerProtocol
 
         try:
 
             if self.settings.ssl.enabled:
+
+                from OpenSSL import SSL
+
+                from twisted.internet import ssl
                 myContextFactory = ssl.DefaultOpenSSLContextFactory(
                     self.settings.ssl.key, self.settings.ssl.cert
                 )
@@ -332,12 +335,14 @@ class Client(object):
 
     def connect(self):
         factory = WebSocketClientFactory("ws://%s:%s" % (self.host, self.port), debug=False)
+        factory.noisy = False
         factory.protocol = MdcloudWebsocketClientProtocol
         factory.protocol.client = self
 
         self.onc = defer.Deferred()
 
         if self.settings.ssl.enabled:
+            from mfcloud.ssl import CtxFactory
             reactor.connectSSL(self.host, self.port, factory, CtxFactory())
         else:
             reactor.connectTCP(self.host, self.port, factory)
@@ -388,17 +393,6 @@ class Client(object):
 
         defer.returnValue(task)
 
-class CtxFactory(ssl.ClientContextFactory):
-
-    settings = inject.attr('settings')
-
-    def getContext(self):
-        self.method = SSL.SSLv23_METHOD
-        ctx = ssl.ClientContextFactory.getContext(self)
-        ctx.use_certificate_file(self.settings.ssl.cert)
-        ctx.use_privatekey_file(self.settings.ssl.key)
-
-        return ctx
 
 
 class TaskFailure(Exception):
