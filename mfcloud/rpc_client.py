@@ -23,12 +23,11 @@ class ApiRpcClient(object):
         self.host = host
         self.port = port
         self.settings = settings
+        self.stop_reactor = True
 
     @inlineCallbacks
-    def _remote_exec(self, task_name, on_result, stop_reactor=True, *args, **kwargs):
+    def _remote_exec(self, task_name, on_result, *args, **kwargs):
         from mfcloud.remote import Client, Task
-
-        log.msg('Remote exec: %s()' % task_name)
 
         client = Client(host=self.host, settings=self.settings)
         try:
@@ -52,7 +51,7 @@ class ApiRpcClient(object):
         client.shutdown()
         yield sleep(0.01)
 
-        if stop_reactor:
+        if self.stop_reactor:
             reactor.stop()
 
     #
@@ -245,8 +244,9 @@ class ApiRpcClient(object):
             self.last_lines = ret.count('\n') + 2
 
         if follow:
+            self.stop_reactor = False
             while follow:
-                yield self._remote_exec('list', _print, stop_reactor=False)
+                yield self._remote_exec('list', _print)
                 yield sleep(1)
         else:
             yield self._remote_exec('list', _print)
