@@ -131,7 +131,10 @@ class YamlConfig(IConfig):
 
                     'env': {
                         str: str
-                    }
+                    },
+
+                    'cmd': str
+
                 }
             })(config)
 
