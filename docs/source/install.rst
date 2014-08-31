@@ -187,6 +187,17 @@ And finally restart mfcloud::
     http://stackoverflow.com/questions/138162/wildcards-in-a-hosts-file
 
 
+.. note::
+
+    If ip of docker is not 172.17.42.1 than you need 
+    to add *--dns-server-ip=%dockerip%* option to the mfcloud-rpc-server command. 
+    
+    ex.: exec /opt/mfcloud/bin/mfcloud-rpc-server --dns-server-ip=10.1.42.1 --haproxy >> /var/www/mfcloud.log 2>&1
+    for more information look in manual for  mfcloud-rpc-server command
+
+
+
+
 Checking installation
 ===========================================
 
