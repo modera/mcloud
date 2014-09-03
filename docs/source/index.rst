@@ -132,6 +132,7 @@ Contents
 
   install
   usage
+  tutor/static
   examples
   cli
   yml

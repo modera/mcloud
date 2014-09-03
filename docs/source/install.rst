@@ -102,6 +102,28 @@ Just open separate console and execute::
 Sudo is required as commands also runs dns server on 53 port,
 this action require super-use privileges.
 
+Install dnsmasq server
+***************************************
+
+dnsmasq acts as dns proxy for local machine, we will configure it to proxify all request
+to outer dns servers, except mfcloud.lh subdomain.
+
+Install dnamasq https://help.ubuntu.com/community/Dnsmasq
+
+Put following content into /etc/dnsmasq.conf::
+
+    interface=lo
+    interface=docker0
+    server=/mfcloud.lh/172.17.42.1#7053
+
+Replace '172.17.42.1' with your docker interface ip. You can get it using ifconfig command::
+
+    $ ifconfig docker0
+
+Start dnsmasq server::
+
+    $ sudo service dnsmasq start
+
 
 Running mfcloud-server with supervisor
 ****************************************
