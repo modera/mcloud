@@ -105,12 +105,19 @@ this action require super-use privileges.
 Install dnsmasq server
 ***************************************
 
+.. note::
+
+    If you are updating from previous version of mfcloud, stop mfcloud server before installing dnsmasq
+    (sudo service mfcloud stop)
+
 dnsmasq acts as dns proxy for local machine, we will configure it to proxify all request
 to outer dns servers, except mfcloud.lh subdomain.
 
-Install dnamasq https://help.ubuntu.com/community/Dnsmasq
+Install dnamasq:
 
-Put following content into /etc/dnsmasq.conf::
+    sudo apt-get install dnsmasq
+
+Replace content of /etc/dnsmasq.conf file with following 3 lines::
 
     interface=lo
     interface=docker0
