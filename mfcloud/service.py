@@ -195,6 +195,9 @@ class Service(object):
         if self.env:
             vlist.update(self.env)
 
+        if self.command:
+            config['Cmd'] = self.command.split(' ')
+
         config['Env'] = ['%s=%s' % x for x in vlist.items()]
 
         if self.ports:

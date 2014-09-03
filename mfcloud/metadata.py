@@ -7,7 +7,7 @@ Information describing the project.
 package = 'mfcloud'
 project = "mfcloud"
 project_no_spaces = project.replace(' ', '')
-version = '0.4.6'
+version = '0.4.7'
 description = 'Production cloud deployments of fig infrastructure with docker'
 authors = ['Alex Rudakov']
 authors_string = ', '.join(authors)
