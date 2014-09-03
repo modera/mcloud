@@ -1,3 +1,4 @@
+setuptools>=2.1
 # Runtime requirements
 pytest-pythonpath
 pytest
