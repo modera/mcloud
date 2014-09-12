@@ -47,12 +47,12 @@ class EventBus(object):
 
         def _on_message(channel, message):
             if not d.called:
-                d.callback(True)
+                d.callback(message)
 
         self.on(pattern, _on_message)
 
         if not timeout == 0:
-            return txtimeout(d, timeout, lambda: d.callback(False))
+            return txtimeout(d, timeout, lambda: d.callback(None))
         else:
             return d
 

@@ -1,5 +1,6 @@
 import inspect
 import logging
+import re
 from autobahn.twisted import wamp
 from autobahn.twisted.util import sleep
 from autobahn.twisted.wamp import ApplicationSession
@@ -202,27 +203,50 @@ class TaskService(object):
 
                 if not service.wait is False:
 
+                    wait = service.wait
+                    if wait <= 0:
+                        wait = 0.2
+                    if wait > 300:
+                        self.task_log(ticket_id, 'WARN: wait is to high, forcibly set to 300s to prevent memory leaks')
+                        wait = 300
+
                     log_process = self.follow_logs(service, ticket_id)
 
                     self.task_log(ticket_id, 'Waiting for container to start. %s' % (
-                        'without timeout' if service.wait == 0 else 'with timout %ss' % service.wait))
+                        'without timeout' if wait == 0 else 'with timout %ss' % wait))
 
-                    event_received = yield self.event_bus.wait_for_event('api.%s.*' % service.name, service.wait)
-                    timeout_happenned = not event_received
-
-                    log_process.cancel()
+                    event = yield self.event_bus.wait_for_event('api.%s.*' % service.name, wait)
+                    timeout_happenned = event is None
 
                     if timeout_happenned:
-                        self.task_log(ticket_id, '%s seconds passed.' % service.wait)
+                        self.task_log(ticket_id, '%s seconds passed.' % wait)
                         yield service.inspect()
 
                         if not service.is_running():
                             self.task_log(ticket_id, 'FATAL: Service is not running after timeout. Stopping application execution.')
+                            log_process.cancel()
                             defer.returnValue(False)
                         else:
                             self.task_log(ticket_id, 'Container still up. Continue execution.')
                     else:
-                        self.task_log(ticket_id, 'Container is ready. Continue execution.')
+                        sleep_time = 0.5
+                        if 'my_args' in event and len(event['my_args']) == 2:
+                            if event['my_args'][0] == 'in':
+                                match = re.match('^([0-9]+)s$', event['my_args'][1])
+                                if match:
+                                    sleep_time = float(match.group(1))
+
+                        self.task_log(ticket_id, 'Container is waiting %ss to make sure container is started.' % sleep_time)
+                        yield sleep(sleep_time)
+
+                        if not service.is_running():
+                            self.task_log(ticket_id, 'FATAL: Service is not running after ready report. Stopping application execution.')
+                            log_process.cancel()
+                            defer.returnValue(False)
+                        else:
+                            self.task_log(ticket_id, 'Container still up. Continue execution.')
+
+                    log_process.cancel()
 
                 else:
                     yield sleep(0.2)

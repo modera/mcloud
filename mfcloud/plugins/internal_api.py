@@ -26,7 +26,7 @@ class InternalApiProtocol(protocol.Protocol):
         log.msg('Message in: %s' % data)
 
         msg = json.loads(data)
-        self.eb.fire_event('api.%s.%s' % (msg['hostname'], msg['command']))
+        self.eb.fire_event('api.%s.%s' % (msg['hostname'], msg['command']), my_args=msg['args'])
         self.transport.write(json.dumps({'status': 'ok'}))
 
 

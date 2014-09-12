@@ -43,6 +43,7 @@ class ApiRpcClient(object):
                 on_result(res)
 
             except Exception as e:
+                log.err()
                 print('Failed to execute the task: %s' % e.message)
 
         except ConnectionRefusedError:
@@ -133,96 +134,99 @@ class ApiRpcClient(object):
         if not data:
             return ''
 
-        x = PrettyTable(["Application name", "Web", "status", "cpu %", "memory", "services"], hrules=ALL)
-        for app in data:
+        if isinstance(data, basestring):
+            x = data
+        else:
+            x = PrettyTable(["Application name", "Web", "status", "cpu %", "memory", "services"], hrules=ALL)
+            for app in data:
 
-            volume_services = {}
+                volume_services = {}
 
-            for service in app['services']:
-                if service['name'].startswith('_volumes_') and service['running']:
+                for service in app['services']:
+                    if service['name'].startswith('_volumes_') and service['running']:
+                        name = service['name']
+                        #if name.endswith(app['name']):
+                        #    name = name[0:-len(app['name']) - 1]
+                        name = name[9:]
+                        volume_services[name] = '%s' % (
+                            #service['ports']['22/tcp'][0]['HostIp'],
+                            service['ports']['22/tcp'][0]['HostPort'],
+                        )
+
+                service_memory = []
+                service_cpu = []
+                services = []
+                app_cpu = 0.0
+                app_mem = 0
+                for service in app['services']:
+                    if service['name'].startswith('_volumes_'):
+                        continue
+
                     name = service['name']
                     #if name.endswith(app['name']):
                     #    name = name[0:-len(app['name']) - 1]
-                    name = name[9:]
-                    volume_services[name] = '%s' % (
-                        #service['ports']['22/tcp'][0]['HostIp'],
-                        service['ports']['22/tcp'][0]['HostPort'],
-                    )
 
-            service_memory = []
-            service_cpu = []
-            services = []
-            app_cpu = 0.0
-            app_mem = 0
-            for service in app['services']:
-                if service['name'].startswith('_volumes_'):
-                    continue
+                    if service['created']:
+                        service_status = 'ON' if service['running'] else 'OFF'
+                    else:
+                        service_status = 'NOT CREATED'
 
-                name = service['name']
-                #if name.endswith(app['name']):
-                #    name = name[0:-len(app['name']) - 1]
+                    if service['is_web']:
+                        mark = '*'
+                    else:
+                        mark = ''
 
-                if service['created']:
-                    service_status = 'ON' if service['running'] else 'OFF'
+                    data = '%s%s (%s)' % (name, mark, service_status)
+
+                    if service['ip']:
+                        data += ' ip: %s' % service['ip']
+
+                    if name in volume_services:
+                        data += ' vol: %s' % volume_services[name]
+                        if service['volumes']:
+                            data += ' (%s)' % ', '.join(service['volumes'])
+
+                    services.append(data)
+                    service_memory.append(str(service['memory']) + 'M')
+                    service_cpu.append(("%.2f" % float(service['cpu'])) + '%')
+
+                    app_mem += int(service['memory'])
+                    app_cpu += float(service['cpu'])
+
+                if app['running']:
+                    app_status = app['status']
+                    services_list = '\n'.join(services)
+                    services_cpu_list = '\n'.join(service_cpu) + ('\n-----\n%.2f' % app_cpu) + '%'
+                    services_memory_list = '\n'.join(service_memory) + ('\n-----\n' + str(app_mem)) + 'M'
+
+                elif app['status'] == 'error':
+                    app_status = 'ERROR'
+                    services_list = app['message']
+                    services_cpu_list = ''
+                    services_memory_list = ''
                 else:
-                    service_status = 'NOT CREATED'
+                    app_status = ''
+                    services_list = '\n'.join(services)
+                    services_cpu_list = ''
+                    services_memory_list = ''
 
-                if service['is_web']:
-                    mark = '*'
+
+                if app['status'] != 'error':
+                    web_service_ = 'No web'
+                    if 'web_service' in app and app['web_service']:
+                        web_service_ = app['web_service']
+                        if web_service_.endswith(app['name']):
+                            web_service_ = web_service_[0:-len(app['name']) - 1]
+
+                    web = '%s -> [%s]' % (app['fullname'], web_service_)
+
+                    if 'public_urls' in app and app['public_urls']:
+                        for url in app['public_urls']:
+                            web += '\n' + '%s -> [%s]' % (url, web_service_)
                 else:
-                    mark = ''
+                    web = ''
 
-                data = '%s%s (%s)' % (name, mark, service_status)
-
-                if service['ip']:
-                    data += ' ip: %s' % service['ip']
-
-                if name in volume_services:
-                    data += ' vol: %s' % volume_services[name]
-                    if service['volumes']:
-                        data += ' (%s)' % ', '.join(service['volumes'])
-
-                services.append(data)
-                service_memory.append(str(service['memory']) + 'M')
-                service_cpu.append(("%.2f" % float(service['cpu'])) + '%')
-
-                app_mem += int(service['memory'])
-                app_cpu += float(service['cpu'])
-
-            if app['running']:
-                app_status = app['status']
-                services_list = '\n'.join(services)
-                services_cpu_list = '\n'.join(service_cpu) + ('\n-----\n%.2f' % app_cpu) + '%'
-                services_memory_list = '\n'.join(service_memory) + ('\n-----\n' + str(app_mem)) + 'M'
-
-            elif app['status'] == 'error':
-                app_status = 'ERROR'
-                services_list = app['message']
-                services_cpu_list = ''
-                services_memory_list = ''
-            else:
-                app_status = ''
-                services_list = '\n'.join(services)
-                services_cpu_list = ''
-                services_memory_list = ''
-
-
-            if app['status'] != 'error':
-                web_service_ = 'No web'
-                if 'web_service' in app and app['web_service']:
-                    web_service_ = app['web_service']
-                    if web_service_.endswith(app['name']):
-                        web_service_ = web_service_[0:-len(app['name']) - 1]
-
-                web = '%s -> [%s]' % (app['fullname'], web_service_)
-
-                if 'public_urls' in app and app['public_urls']:
-                    for url in app['public_urls']:
-                        web += '\n' + '%s -> [%s]' % (url, web_service_)
-            else:
-                web = ''
-
-            x.add_row([app['name'], web, app_status, services_cpu_list, services_memory_list, services_list])
+                x.add_row([app['name'], web, app_status, services_cpu_list, services_memory_list, services_list])
 
         if not as_string:
             print x
