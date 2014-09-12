@@ -1,0 +1,1 @@
+MFCLOUD="python -c \"import sys,socket,os;s=socket.socket(1,1);s.connect('/var/run/mfcloud');s.send('[%s] %s'%(os.uname()[1],sys.stdin.read().strip()));s.close()\""

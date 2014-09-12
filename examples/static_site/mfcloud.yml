@@ -1,9 +1,15 @@
 
+
 web:
-  image: orchardup/nginx
+  image: ribozz/python-app
+#web:
+#  image: nginx
 
   volumes:
     public: /var/www
+    nginx.conf: /etc/nginx.conf
+
+  cmd: /var/www/run.sh
 
 
 

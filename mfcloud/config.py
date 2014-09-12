@@ -201,6 +201,10 @@ class YamlConfig(IConfig):
             self.process_command_build(s, service, path)
             self.process_env_build(s, service, path)
 
+            # expose mfcloud api
+            s.volumes.append({'local': '/var/run/mfcloud', 'remote': '/var/run/mfcloud'})
+            s.volumes.append({'local': dirname(__file__) + '/api.py', 'remote': '/usr/bin/@me'})
+
             self.services[name] = s
 
             volume_service_name = '_volumes_%s' % name

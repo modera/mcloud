@@ -5,6 +5,7 @@ import netifaces
 import inject
 from mfcloud.plugins.datadog import DatadogPlugin
 from mfcloud.plugins.hosts import HostsPlugin
+from mfcloud.plugins.internal_api import InternalApiPlugin
 from mfcloud.plugins.metrics import MetricsPlugin
 
 from mfcloud.util import txtimeout
@@ -147,6 +148,8 @@ def entry_point():
         DnsPlugin()
 
         # HostsPlugin()
+
+        InternalApiPlugin()
 
         log.msg('Listen dns on ip %s:53' % dns_server_ip)
         listen_dns(dns_prefix, dns_server_ip, 7053)
