@@ -3,6 +3,7 @@ import json
 from twisted.internet import reactor, defer
 import txredisapi as redis
 from twisted.python import log
+from mfcloud.util import txtimeout
 
 
 class EventBus(object):
@@ -40,6 +41,20 @@ class EventBus(object):
             raise Exception('Event bus is not connected yet!')
         self.protocol.on(pattern, callback)
         log.msg('Registered %s for channel: %s' % (callback, pattern))
+
+    def wait_for_event(self, pattern, timeout=False):
+        d = defer.Deferred()
+
+        def _on_message(channel, message):
+            if not d.called:
+                d.callback(True)
+
+        self.on(pattern, _on_message)
+
+        if not timeout == 0:
+            return txtimeout(d, timeout, lambda: d.callback(False))
+        else:
+            return d
 
 
 class EventBusProtocol(redis.SubscriberProtocol):

@@ -122,6 +122,7 @@ class YamlConfig(IConfig):
         try:
             Schema({
                 Required(str): {
+                    'wait': int,
                     'image': str,
                     'build': str,
 
@@ -147,6 +148,10 @@ class YamlConfig(IConfig):
         return True
 
     def process_command_build(self, service, config, path):
+
+        if 'wait' in config:
+            service.wait = config['wait']
+
         if 'cmd' in config and config['cmd'] and  len(str(config['cmd']).strip()) > 0:
             service.command = str(config['cmd']).strip()
 

@@ -4,6 +4,7 @@ from autobahn.twisted import wamp
 from autobahn.twisted.util import sleep
 from autobahn.twisted.wamp import ApplicationSession
 import inject
+from mfcloud.txdocker import IDockerClient
 from mfcloud.application import ApplicationController, Application, AppDoesNotExist
 from mfcloud.config import ConfigParseError
 from mfcloud.deployment import DeploymentController
@@ -25,6 +26,7 @@ class TaskService(object):
     redis = inject.attr(txredisapi.Connection)
     rpc_server = inject.attr(ApiRpcServer)
     event_bus = inject.attr(EventBus)
+    """ @type: EventBus """
 
     dns_server = inject.attr('dns-server')
     dns_search_suffix = inject.attr('dns-search-suffix')
@@ -76,7 +78,8 @@ class TaskService(object):
         yield self.task_destroy(ticket_id, name)
         yield self.app_controller.remove(name)
 
-        ret = yield self.app_controller.list()
+        # ret = yield self.app_controller.list()
+        ret = 'Done.'
         defer.returnValue(ret)
 
 
@@ -132,6 +135,26 @@ class TaskService(object):
         defer.returnValue(ret)
 
 
+    def follow_logs(self, service, ticket_id):
+        def on_log(log):
+            log = log[8:]
+            self.task_log(ticket_id, log)
+
+        def done(result):
+           pass
+
+        def on_err(failure):
+           pass
+
+        client = inject.instance(IDockerClient)
+
+        d = client.logs(service.name, on_log)
+        d.addCallback(done)
+        d.addErrback(on_err)
+
+        return d
+
+
     @inlineCallbacks
     def task_start(self, ticket_id, name):
 
@@ -165,6 +188,10 @@ class TaskService(object):
             if service_name and '%s.%s' % (service_name, app_name) != service.name:
                 continue
 
+            self.task_log(ticket_id, '\n' + '*' * 50)
+            self.task_log(ticket_id, '\n Service %s' % service.name)
+            self.task_log(ticket_id, '\n' + '*' * 50)
+
             if not service.is_running():
                 self.task_log(ticket_id,
                               '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
@@ -173,12 +200,39 @@ class TaskService(object):
                 self.task_log(ticket_id, 'Updating container list')
                 self.event_bus.fire_event('containers-updated')
 
-                yield sleep(0.2)
+                if not service.wait is False:
+
+                    log_process = self.follow_logs(service, ticket_id)
+
+                    self.task_log(ticket_id, 'Waiting for container to start. %s' % (
+                        'without timeout' if service.wait == 0 else 'with timout %ss' % service.wait))
+
+                    event_received = yield self.event_bus.wait_for_event('api.%s.*' % service.name, service.wait)
+                    timeout_happenned = not event_received
+
+                    log_process.cancel()
+
+                    if timeout_happenned:
+                        self.task_log(ticket_id, '%s seconds passed.' % service.wait)
+                        yield service.inspect()
+
+                        if not service.is_running():
+                            self.task_log(ticket_id, 'FATAL: Service is not running after timeout. Stopping application execution.')
+                            defer.returnValue(False)
+                        else:
+                            self.task_log(ticket_id, 'Container still up. Continue execution.')
+                    else:
+                        self.task_log(ticket_id, 'Container is ready. Continue execution.')
+
+                else:
+                    yield sleep(0.2)
+
             else:
                 self.task_log(ticket_id,
                               '[%s] Service %s is already running.' % (ticket_id, service.name))
 
-        ret = yield self.app_controller.list()
+        # ret = yield self.app_controller.list()
+        ret = 'Done.'
         defer.returnValue(ret)
 
 
@@ -211,7 +265,8 @@ class TaskService(object):
                               '[%s] Service %s is not created. Creating' % (ticket_id, service.name))
                 yield service.create(ticket_id)
 
-        ret = yield self.app_controller.list()
+        # ret = yield self.app_controller.list()
+        ret = 'Done.'
         defer.returnValue(ret)
 
 
@@ -285,7 +340,8 @@ class TaskService(object):
 
         yield defer.gatherResults(d)
 
-        ret = yield self.app_controller.list()
+        # ret = yield self.app_controller.list()
+        ret = 'Done.'
         defer.returnValue(ret)
 
     @inlineCallbacks
@@ -339,7 +395,8 @@ class TaskService(object):
 
         yield defer.gatherResults(d)
 
-        ret = yield self.app_controller.list()
+        # ret = yield self.app_controller.list()
+        ret = 'Done.'
         defer.returnValue(ret)
 
 
@@ -347,7 +404,7 @@ class TaskService(object):
     def task_inspect(self, ticket_id, name, service_name):
 
         self.task_log(ticket_id, '[%s] Inspecting application service %s' %
-                                 (ticket_id, service_name))
+                      (ticket_id, service_name))
 
         app = yield self.app_controller.get(name)
         config = yield app.load()
@@ -383,7 +440,7 @@ class TaskService(object):
     #
     # @inlineCallbacks
     # def task_deployment_create(self, ticket_id, public_domain):
-    #     deployment = yield self.deployment_controller.create(public_domain)
+    # deployment = yield self.deployment_controller.create(public_domain)
     #     defer.returnValue(not deployment is None)
     #
     # @inlineCallbacks

@@ -1,3 +1,10 @@
 #!/bin/bash
 
-@me ready in 5s
+echo hoho
+sleep 1
+echo 323hoho
+sleep 1
+echo h32oho
+sleep 1
+
+@me ready in 1s

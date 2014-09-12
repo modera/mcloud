@@ -10,7 +10,4 @@ web:
     nginx.conf: /etc/nginx.conf
 
   cmd: /var/www/run.sh
-
-
-
-
+  wait: 3

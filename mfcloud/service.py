@@ -37,6 +37,7 @@ class Service(object):
         self.status_message = ''
         self._inspect_data = None
         self._inspected = False
+        self.wait = False
 
         self.cpu_usage = 0.0
         self.memory_usage = 0

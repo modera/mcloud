@@ -144,6 +144,8 @@ class DockerTwistedClient(object):
     def logs(self, container_id, on_log):
         r = self._get('containers/%s/logs' % bytes(container_id), response_handler=None, data={
             'follow': True,
+            'tail': 0,
+            'timestamps': 0,
             'stdout': True,
             'stderr': True
         })
