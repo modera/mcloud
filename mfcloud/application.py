@@ -142,8 +142,23 @@ class ApplicationController(object):
             defer.returnValue(Application(json.loads(config), name=name))
 
     @defer.inlineCallbacks
-    def list(self, *args):
+    def volume_list(self, *args):
 
+        config = yield self.redis.hgetall('mfcloud-apps')
+
+        result = {}
+
+        for name, app_config in config.items():
+            app = Application(json.loads(app_config), name=name)
+            app = yield app.load(need_details=False)
+
+            for service in app.services:
+                result[service.name] = service.volumes
+
+        defer.returnValue(result)
+
+    @defer.inlineCallbacks
+    def list(self, *args):
 
         deps = yield self.redis.hgetall('mfcloud-deployments')
 

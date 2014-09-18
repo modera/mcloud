@@ -86,7 +86,8 @@ class MetricsPlugin(Plugin):
         logger.info('Dumping metrics for containers')
 
         yield self.redis.delete('metrics')
-        yield self.redis.hmset('metrics', usage)
+        if usage:
+            yield self.redis.hmset('metrics', usage)
 
     def __init__(self, interval=1):
         super(MetricsPlugin, self).__init__()

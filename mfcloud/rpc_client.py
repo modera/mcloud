@@ -43,8 +43,51 @@ class ApiRpcClient(object):
                 on_result(res)
 
             except Exception as e:
-                log.err()
                 print('Failed to execute the task: %s' % e.message)
+
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mfcloud server'
+
+        client.shutdown()
+        yield sleep(0.01)
+
+        if self.stop_reactor:
+            reactor.stop()
+
+    @inlineCallbacks
+    def task_list(self, **kwargs):
+        from mfcloud.remote import Client
+
+        client = Client(host=self.host, settings=self.settings)
+        try:
+            yield client.connect()
+            tasks = yield client.task_list()
+
+            print tasks
+
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mfcloud server'
+
+        client.shutdown()
+        yield sleep(0.01)
+
+        if self.stop_reactor:
+            reactor.stop()
+
+    @inlineCallbacks
+    def task_kill(self, task_id=None, **kwargs):
+        from mfcloud.remote import Client
+
+        client = Client(host=self.host, settings=self.settings)
+        try:
+            yield client.connect()
+            success = yield client.terminate_task(task_id)
+
+            if not success:
+                print 'Task not found by id'
+
+            else:
+                print 'Task successfully treminated.'
 
         except ConnectionRefusedError:
             print 'Can\'t connect to mfcloud server'
@@ -234,6 +277,28 @@ class ApiRpcClient(object):
             return str(x)
 
     @inlineCallbacks
+    def ps(self, follow=False, **kwargs):
+        self.last_lines = 0
+
+        def _print(data):
+            ret = self.on_print_list_result(data, as_string=True)
+
+            if self.last_lines > 0:
+                print '\033[1A' * self.last_lines
+
+            print ret
+
+            self.last_lines = ret.count('\n') + 2
+
+        if follow:
+            self.stop_reactor = False
+            while follow:
+                yield self._remote_exec('list', _print)
+                yield sleep(1)
+        else:
+            yield self._remote_exec('list', _print)
+
+    @inlineCallbacks
     def list(self, follow=False, **kwargs):
         self.last_lines = 0
 
@@ -254,6 +319,12 @@ class ApiRpcClient(object):
                 yield sleep(1)
         else:
             yield self._remote_exec('list', _print)
+
+    @inlineCallbacks
+    def logs(self, name, follow=False, **kwargs):
+        def _print(data):
+            self.on_print_list_result(data)
+        yield self._remote_exec('logs', _print, name)
 
 
 
@@ -324,6 +395,13 @@ class ApiRpcClient(object):
             print 'result: %s' % pprintpp.pformat(data)
 
         self._remote_exec('create', self.on_print_list_result, name)
+
+    def backup(self, **kwargs):
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        self._remote_exec('list_volumes', self.on_print_list_result)
 
     def format_domain(self, domain, ssl):
         if ssl:
@@ -422,19 +500,20 @@ class ApiRpcClient(object):
 
         os.system(command)
 
-    def run(self, service, command='bash', **kwargs):
+    def run(self, service, command='bash', no_tty=False, **kwargs):
 
         service, app = service.split('.')
 
         def on_result(result):
 
-            os.system("docker run -i -t -v %(hosts_vol)s --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
+            os.system("docker run -i %(options)s-v %(hosts_vol)s --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
                 'container': '%s.%s' % (service, app),
                 'image': result['image'],
                 'hosts_vol': '%s:/etc/hosts' % result['hosts_path'],
                 'dns-server': result['dns-server'],
                 'dns-suffix': '%s.%s' % (app, result['dns-suffix']),
-                'command': command
+                'command': command,
+                'options': '-t' if not no_tty else ''
             })
 
         self._remote_exec('run', on_result, app, service)
@@ -460,13 +539,27 @@ def populate_client_parser(subparsers):
     cmd.add_argument('-f', '--follow', default=False, action='store_true', help='Continuously run list command')
     cmd.set_defaults(func='list')
 
+    cmd = subparsers.add_parser('ps', help='List running processes')
+    cmd.set_defaults(func='task_list')
+
     cmd = subparsers.add_parser('remove', help='Remove application')
     cmd.add_argument('name', help='App name')
     cmd.set_defaults(func='remove')
 
+    cmd = subparsers.add_parser('kill', help='Kill running process')
+    cmd.add_argument('task_id', help='Task id')
+    cmd.set_defaults(func='task_kill')
+
     cmd = subparsers.add_parser('start', help='Start application')
     cmd.add_argument('name', help='App name')
     cmd.set_defaults(func='start')
+
+    cmd = subparsers.add_parser('logs', help='Show container logs')
+    cmd.add_argument('name', help='Container name')
+    cmd.set_defaults(func='logs')
+
+    cmd = subparsers.add_parser('backup', help='Backup volumes')
+    cmd.set_defaults(func='backup')
 
     cmd = subparsers.add_parser('create', help='Create application containers')
     cmd.add_argument('name', help='App name')
@@ -511,6 +604,7 @@ def populate_client_parser(subparsers):
     cmd = subparsers.add_parser('run', help='Execute command')
     cmd.add_argument('service', help='Service name')
     cmd.add_argument('command', help='Command to execute', default='bash', nargs='?')
+    cmd.add_argument('--no-tty', default=False, action='store_true', help='Disable tty binding')
     cmd.set_defaults(func='run')
 
     cmd = subparsers.add_parser('stop', help='Stop application')

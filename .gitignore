@@ -1,4 +1,5 @@
 # Emacs rope configuration
+.env
 .ropeproject
 .project
 .pydevproject

@@ -1,21 +1,18 @@
 import inspect
-import logging
 import re
-from autobahn.twisted import wamp
+
 from autobahn.twisted.util import sleep
-from autobahn.twisted.wamp import ApplicationSession
 import inject
-from mfcloud.txdocker import IDockerClient
-from mfcloud.application import ApplicationController, Application, AppDoesNotExist
-from mfcloud.config import ConfigParseError
+from twisted.internet import defer, reactor
+from twisted.internet.defer import inlineCallbacks
+from twisted.python import log
+import txredisapi
+
+from mfcloud.txdocker import IDockerClient, NotFound
+from mfcloud.application import ApplicationController
 from mfcloud.deployment import DeploymentController
 from mfcloud.events import EventBus
 from mfcloud.remote import ApiRpcServer
-from twisted.internet import defer, reactor
-from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
-import txredisapi
-
-from twisted.python import log
 
 
 class TaskService(object):
@@ -60,6 +57,11 @@ class TaskService(object):
         defer.returnValue(alist)
 
     @inlineCallbacks
+    def task_list_volumes(self, ticket_id):
+        alist = yield self.app_controller.volume_list()
+        defer.returnValue(alist)
+
+    @inlineCallbacks
     def task_list_vars(self, ticket_id):
         vlist = yield self.redis.hgetall('vars')
         defer.returnValue(vlist)
@@ -82,6 +84,20 @@ class TaskService(object):
         # ret = yield self.app_controller.list()
         ret = 'Done.'
         defer.returnValue(ret)
+
+
+    @inlineCallbacks
+    def task_logs(self, ticket_id, name):
+
+        def on_log(log):
+            log = log[8:]
+            self.task_log(ticket_id, log)
+
+        try:
+            client = inject.instance(IDockerClient)
+            yield client.logs(name, on_log, tail=100)
+        except NotFound:
+            self.task_log(ticket_id, 'Container not found by name.')
 
 
     @inlineCallbacks
@@ -153,6 +169,8 @@ class TaskService(object):
         d.addCallback(done)
         d.addErrback(on_err)
 
+        self.event_bus.once('task.failure.%s' % ticket_id, d.cancel)
+
         return d
 
 
@@ -186,6 +204,7 @@ class TaskService(object):
                 yield service.create(ticket_id)
 
         for service in config.get_services().values():
+
             if service_name and '%s.%s' % (service_name, app_name) != service.name:
                 continue
 
@@ -206,9 +225,9 @@ class TaskService(object):
                     wait = service.wait
                     if wait <= 0:
                         wait = 0.2
-                    if wait > 300:
-                        self.task_log(ticket_id, 'WARN: wait is to high, forcibly set to 300s to prevent memory leaks')
-                        wait = 300
+                    if wait > 3600:
+                        self.task_log(ticket_id, 'WARN: wait is to high, forcibly set to 3600s to prevent memory leaks')
+                        wait = 3600
 
                     log_process = self.follow_logs(service, ticket_id)
 

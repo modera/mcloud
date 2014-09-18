@@ -3,19 +3,16 @@ import sys
 import netifaces
 
 import inject
-from mfcloud.plugins.datadog import DatadogPlugin
-from mfcloud.plugins.hosts import HostsPlugin
-from mfcloud.plugins.internal_api import InternalApiPlugin
-from mfcloud.plugins.metrics import MetricsPlugin
-
-from mfcloud.util import txtimeout
-import os
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
-from twisted.internet.protocol import Factory, AbstractDatagramProtocol
+from twisted.internet.protocol import Factory
 import txredisapi
-
 from twisted.python import log
+
+from mfcloud.plugins.internal_api import InternalApiPlugin
+from mfcloud.plugins.metrics import MetricsPlugin
+from mfcloud.util import txtimeout
+
 log.startLogging(sys.stdout)
 
 Factory.noisy = False
@@ -63,7 +60,6 @@ def entry_point():
     dns_prefix = args.dns_search_suffix
 
     from confire import Configuration
-    from confire import environ_setting
 
     class SslConfiguration(Configuration):
         enabled = False
@@ -87,7 +83,7 @@ def entry_point():
     @inlineCallbacks
     def run_server(redis):
 
-        from mfcloud.dns_resolver import listen_dns, dump_resolv_conf
+        from mfcloud.dns_resolver import listen_dns
         from mfcloud.events import EventBus
         from mfcloud.plugins.dns import DnsPlugin
         from mfcloud.plugins.haproxy import HaproxyPlugin

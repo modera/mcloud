@@ -42,6 +42,17 @@ class EventBus(object):
         self.protocol.on(pattern, callback)
         log.msg('Registered %s for channel: %s' % (callback, pattern))
 
+    def once(self, pattern, callback):
+        if not self.protocol:
+            raise Exception('Event bus is not connected yet!')
+
+        def _once_and_remove(*args, **kwargs):
+            self.protocol.cancel(pattern, _once_and_remove)
+            callback(*args, **kwargs)
+
+        self.protocol.on(pattern, _once_and_remove)
+        log.msg('Registered %s for single invocation on channel: %s' % (callback, pattern))
+
     def wait_for_event(self, pattern, timeout=False):
         d = defer.Deferred()
 
@@ -70,6 +81,10 @@ class EventBusProtocol(redis.SubscriberProtocol):
                 self.subscribe(pattern)
 
         self.callbacks[pattern].append(callback)
+
+    def cancel(self, pattern, callback):
+        if pattern in self.callbacks:
+            self.callbacks[pattern].remove(callback)
 
     def connectionMade(self):
         self.factory.eb.protocol = self
