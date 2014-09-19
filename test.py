@@ -1,5 +1,5 @@
-from fnmatch import fnmatch
-import os
+
+
 
 # import librsync
 #
