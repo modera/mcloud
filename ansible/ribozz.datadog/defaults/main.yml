@@ -1,0 +1,4 @@
+---
+# defaults file for mfcloud-ansible-role/
+
+mfcloud_datadog_agent: false

@@ -605,12 +605,11 @@ class ApiRpcClient(object):
                         print 'And %s files more ...' % (len(cmp[type_]) - 11)
                         break
 
-
-
                 has_changes = True
 
         if has_changes:
             print '\n'
+
         else:
             print 'Files are identical.'
 

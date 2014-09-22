@@ -333,6 +333,13 @@ class TaskService(object):
         defer.returnValue(directory_snapshot(all_volumes[volume]))
 
     @inlineCallbacks
+    def task_sync_volume_file(self, ticket_id, app_name, service_name=None, volume=None):
+
+
+
+
+
+    @inlineCallbacks
     def task_run(self, ticket_id, app_name, service_name):
 
         app = yield self.app_controller.get(app_name)

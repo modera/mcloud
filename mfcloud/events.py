@@ -14,9 +14,7 @@ class EventBus(object):
         super(EventBus, self).__init__()
         self.redis = redis_connection
 
-    def fire_event(self, event_name, data=None, *args, **kwargs):
-        log.msg('Firing event: %s' % event_name)
-
+    def fire_event(self, event_name, data=None,  *args, **kwargs):
         if not data:
             if kwargs:
                 data = kwargs
@@ -26,9 +24,10 @@ class EventBus(object):
         if not isinstance(data, basestring):
             data = 'j:' + json.dumps(data)
         else:
-            data = 'r:' + str(data)
+            data = str(data)
 
         return self.redis.publish(event_name, data)
+
 
     def connect(self, host="127.0.0.1", port=6379):
         log.msg('Event bus connected')
@@ -106,8 +105,6 @@ class EventBusProtocol(redis.SubscriberProtocol):
             # self.transport.loseConnection()
 
     def messageReceived(self, pattern, channel, message):
-        log.msg("pattern=%s, channel=%s message=%s" % (pattern, channel, message))
-
         if message.startswith('j:'):
             message = json.loads(message[2:])
         else:

@@ -1,0 +1,7 @@
+---
+  # datadog
+  - include: datadog.yml
+
+  # integrations
+  - include: docker.yml
+
