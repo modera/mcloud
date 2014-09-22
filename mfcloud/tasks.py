@@ -13,6 +13,7 @@ from mfcloud.application import ApplicationController
 from mfcloud.deployment import DeploymentController
 from mfcloud.events import EventBus
 from mfcloud.remote import ApiRpcServer
+from mfcloud.volumes import directory_snapshot
 
 
 class TaskService(object):
@@ -314,21 +315,22 @@ class TaskService(object):
 
 
     @inlineCallbacks
-    def task_push(self, ticket_id, app_name, service_name, volume):
+    def task_volume_snapshot(self, ticket_id, app_name, service_name, volume):
 
         app = yield self.app_controller.get(app_name)
         config = yield app.load()
 
-        name = '_volumes_%s.%s' % (service_name, app_name)
+        services = config.get_services()
 
-        service = config.get_services()[name]
+        log.msg(services)
 
-        """
-        @type service: mfcloud.service.Service
-        """
-        port = service.public_ports()['22/tcp'][0]['HostPort']
+        service = services['%s.%s' % (service_name, app_name)]
 
-        defer.returnValue(port)
+        all_volumes = service.list_volumes()
+        if not volume in all_volumes:
+            raise Exception('Volume with name %s no found!' % volume)
+
+        defer.returnValue(directory_snapshot(all_volumes[volume]))
 
     @inlineCallbacks
     def task_run(self, ticket_id, app_name, service_name):

@@ -17,16 +17,87 @@ from twisted.python import log
 
 
 
+import argparse
+
+from mfcloud import metadata
+from mfcloud.volumes import directory_snapshot, compare
+
+
+def format_epilog():
+    """Program entry point.
+
+    :param argv: command-line arguments
+    :type argv: :class:`list`
+    """
+    author_strings = []
+    for name, email in zip(metadata.authors, metadata.emails):
+        author_strings.append('Author: {0} <{1}>'.format(name, email))
+    epilog = '''
+{project} {version}
+
+{authors}
+URL: <{url}>
+'''.format(
+        project=metadata.project,
+        version=metadata.version,
+        authors='\n'.join(author_strings),
+        url=metadata.url)
+    return epilog
+
+
+arg_parser = argparse.ArgumentParser(
+    prog='mfcloud',
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    description=metadata.description,
+    epilog=format_epilog(),
+    add_help=False
+)
+arg_parser.add_argument('-v', '--verbose', help='Show more logs', action='store_true', default=False)
+arg_parser.add_argument('-e', '--env', help='Environment to use', default='dev')
+arg_parser.add_argument('-h', '--host', help='Host to use', default='127.0.0.1')
+arg_parser.add_argument(
+    '-V', '--version',
+    action='version',
+    version='{0} {1}'.format(metadata.project, metadata.version))
+
+subparsers = arg_parser.add_subparsers()
+
+
+def cli(help_, arguments=None):
+    def cmd_decorator(func):
+
+        cmd = subparsers.add_parser(func.__name__, help=help_)
+
+        if arguments:
+            for argument in arguments:
+                cmd.add_argument(*argument[0], **argument[1])
+
+        cmd.set_defaults(func=func.__name__)
+
+        def _run(*args, **kwargs):
+            func1 = func(*args, **kwargs)
+            if reactor.running:
+                reactor.stop()
+            return func1
+
+        return _run
+
+    return cmd_decorator
+
+
+def arg(*args, **kwargs):
+    return args, kwargs
+
+
 class ApiRpcClient(object):
 
     def __init__(self, host='0.0.0.0', port=7080, settings=None):
         self.host = host
         self.port = port
         self.settings = settings
-        self.stop_reactor = True
 
     @inlineCallbacks
-    def _remote_exec(self, task_name, on_result, *args, **kwargs):
+    def _remote_exec(self, task_name, *args, **kwargs):
         from mfcloud.remote import Client, Task
 
         client = Client(host=self.host, settings=self.settings)
@@ -40,7 +111,7 @@ class ApiRpcClient(object):
                 yield client.call(task, *args, **kwargs)
 
                 res = yield task.wait_result()
-                on_result(res)
+                defer.returnValue(res)
 
             except Exception as e:
                 print('Failed to execute the task: %s' % e.message)
@@ -49,13 +120,32 @@ class ApiRpcClient(object):
             print 'Can\'t connect to mfcloud server'
 
         client.shutdown()
-        yield sleep(0.01)
 
-        if self.stop_reactor:
-            reactor.stop()
 
+    def print_progress(self, message):
+        try:
+            data = json.loads(message)
+            if 'status' in data and 'progress' in data:
+                sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
+
+            elif 'status' in data and 'id' in data:
+                sys.stdout.write('\n[%s] %s' % (data['id'], data['status']))
+
+            elif 'status' in data:
+                sys.stdout.write('\n%s' % (data['status']))
+            else:
+                if isinstance(data, basestring):
+                    sys.stdout.write(data)
+                else:
+                    print pprintpp.pformat(data)
+
+        except ValueError:
+            print(message)
+
+
+    @cli('List running tasks')
     @inlineCallbacks
-    def task_list(self, **kwargs):
+    def ps(self, **kwargs):
         from mfcloud.remote import Client
 
         client = Client(host=self.host, settings=self.settings)
@@ -74,8 +164,11 @@ class ApiRpcClient(object):
         if self.stop_reactor:
             reactor.stop()
 
+    @cli('Kills task', arguments=(
+        arg('task_id', help='Id of the task'),
+    ))
     @inlineCallbacks
-    def task_kill(self, task_id=None, **kwargs):
+    def kill(self, task_id=None, **kwargs):
         from mfcloud.remote import Client
 
         client = Client(host=self.host, settings=self.settings)
@@ -98,46 +191,11 @@ class ApiRpcClient(object):
         if self.stop_reactor:
             reactor.stop()
 
-    #
-    #
-    #def _on_message(self, message, tag):
-    #
-    #    logger.debug('zmq message: %s tag: %s', message, tag)
-    #
-    #    if not 'ticket_id' in self.ticket:
-    #        self.reactor.callLater(0.1, self._on_message, message, tag)
-    #        return
-    #
-    #    if tag == 'task-completed-%s' % self.ticket['ticket_id']:
-    #        self._task_completed(message)
-    #
-    #
-    #    elif tag == 'task-failed-%s' % self.ticket['ticket_id']:
-    #        self._task_failed(message)
-    #
-    #
-    #    elif tag == 'log-%s' % self.ticket['ticket_id']:
-
-    def print_progress(self, message):
-        try:
-            data = json.loads(message)
-            if 'status' in data and 'progress' in data:
-                sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
-
-            elif 'status' in data and 'id' in data:
-                sys.stdout.write('\n[%s] %s' % (data['id'], data['status']))
-
-            elif 'status' in data:
-                sys.stdout.write('\n%s' % (data['status']))
-            else:
-                if isinstance(data, basestring):
-                    sys.stdout.write(data)
-                else:
-                    print pprintpp.pformat(data)
-
-        except ValueError:
-            print(message)
-
+    @cli('Creates a new application', arguments=(
+        arg('name', help='App name'),
+        arg('--user', default=None, help='Remote username'),
+        arg('path', help='Path', nargs='?', default='.')
+    ))
     def init(self, name, path, **kwargs):
 
         if self.host != '127.0.0.1':
@@ -169,113 +227,99 @@ class ApiRpcClient(object):
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
 
-        self._remote_exec('init', self.on_print_list_result, name, os.path.realpath(path))
+        self._remote_exec('init', name, os.path.realpath(path))
 
 
-    def on_print_list_result(self, data, as_string=False):
+    def print_app_details(self, app):
 
-        if not data:
-            return ''
+        out = '\n'
 
-        if isinstance(data, basestring):
-            x = data
-        else:
-            x = PrettyTable(["Application name", "Web", "status", "cpu %", "memory", "services"], hrules=ALL)
-            for app in data:
+        x = PrettyTable(["Service name", "status", "ip",  "cpu %", "memory", "volumes", "public urls"], hrules=ALL)
 
-                volume_services = {}
+        for service in app['services']:
+            if service['created']:
+                service_status = 'ON' if service['running'] else 'OFF'
+            else:
+                service_status = 'NOT CREATED'
 
-                for service in app['services']:
-                    if service['name'].startswith('_volumes_') and service['running']:
-                        name = service['name']
-                        #if name.endswith(app['name']):
-                        #    name = name[0:-len(app['name']) - 1]
-                        name = name[9:]
-                        volume_services[name] = '%s' % (
-                            #service['ports']['22/tcp'][0]['HostIp'],
-                            service['ports']['22/tcp'][0]['HostPort'],
-                        )
+            volumes = ''
+            if service['volumes']:
+                volumes = '\n'.join(service['volumes'])
 
-                service_memory = []
-                service_cpu = []
-                services = []
-                app_cpu = 0.0
-                app_mem = 0
-                for service in app['services']:
-                    if service['name'].startswith('_volumes_'):
-                        continue
+            web = []
 
-                    name = service['name']
-                    #if name.endswith(app['name']):
-                    #    name = name[0:-len(app['name']) - 1]
-
-                    if service['created']:
-                        service_status = 'ON' if service['running'] else 'OFF'
-                    else:
-                        service_status = 'NOT CREATED'
-
-                    if service['is_web']:
-                        mark = '*'
-                    else:
-                        mark = ''
-
-                    data = '%s%s (%s)' % (name, mark, service_status)
-
-                    if service['ip']:
-                        data += ' ip: %s' % service['ip']
-
-                    if name in volume_services:
-                        data += ' vol: %s' % volume_services[name]
-                        if service['volumes']:
-                            data += ' (%s)' % ', '.join(service['volumes'])
-
-                    services.append(data)
-                    service_memory.append(str(service['memory']) + 'M')
-                    service_cpu.append(("%.2f" % float(service['cpu'])) + '%')
-
-                    app_mem += int(service['memory'])
-                    app_cpu += float(service['cpu'])
-
-                if app['running']:
-                    app_status = app['status']
-                    services_list = '\n'.join(services)
-                    services_cpu_list = '\n'.join(service_cpu) + ('\n-----\n%.2f' % app_cpu) + '%'
-                    services_memory_list = '\n'.join(service_memory) + ('\n-----\n' + str(app_mem)) + 'M'
-
-                elif app['status'] == 'error':
-                    app_status = 'ERROR'
-                    services_list = app['message']
-                    services_cpu_list = ''
-                    services_memory_list = ''
-                else:
-                    app_status = ''
-                    services_list = '\n'.join(services)
-                    services_cpu_list = ''
-                    services_memory_list = ''
-
-
-                if app['status'] != 'error':
-                    web_service_ = 'No web'
-                    if 'web_service' in app and app['web_service']:
-                        web_service_ = app['web_service']
-                        if web_service_.endswith(app['name']):
-                            web_service_ = web_service_[0:-len(app['name']) - 1]
-
-                    web = '%s -> [%s]' % (app['fullname'], web_service_)
+            if app['status'] != 'error':
+                if 'web_service' in app and app['web_service'] == service['name']:
+                    web.append(app['fullname'])
 
                     if 'public_urls' in app and app['public_urls']:
                         for url in app['public_urls']:
-                            web += '\n' + '%s -> [%s]' % (url, web_service_)
-                else:
-                    web = ''
+                            web.append(url)
 
-                x.add_row([app['name'], web, app_status, services_cpu_list, services_memory_list, services_list])
+            x.add_row([
+                service['name'],
+                service_status,
+                service['ip'],
+                ("%.2f" % float(service['cpu'])) + '%',
+                str(service['memory']) + 'M',
+                volumes,
+                '\n'.join(web)
+            ])
 
-        if not as_string:
-            print x
-        else:
-            return str(x)
+        out += str(x)
 
+
+
+        return out
+
+
+    def print_app_list(self, data):
+
+        x = PrettyTable(["Application name", "status", "cpu %", "memory", "Web"], hrules=ALL)
+        for app in data:
+
+            app_cpu = 0.0
+            app_mem = 0
+            web = ''
+
+            for service in app['services']:
+                app_mem += int(service['memory'])
+                app_cpu += float(service['cpu'])
+
+            if app['running']:
+                app_status = app['status']
+                services_cpu_list = ('%.2f' % app_cpu) + '%'
+                services_memory_list = str(app_mem) + 'M'
+
+            elif app['status'] == 'error':
+                app_status = 'ERROR: %s' % app['message']
+                web = app['message']
+                services_cpu_list = ''
+                services_memory_list = ''
+            else:
+                app_status = ''
+                services_cpu_list = ''
+                services_memory_list = ''
+
+            if app['status'] != 'error':
+                web_service_ = 'No web'
+                if 'web_service' in app and app['web_service']:
+                    web_service_ = app['web_service']
+                    if web_service_.endswith(app['name']):
+                        web_service_ = web_service_[0:-len(app['name']) - 1]
+
+                web = '%s -> [%s]' % (app['fullname'], web_service_)
+
+                if 'public_urls' in app and app['public_urls']:
+                    for url in app['public_urls']:
+                        web += '\n' + '%s -> [%s]' % (url, web_service_)
+
+            x.add_row([app['name'], app_status, services_cpu_list, services_memory_list, web])
+
+        return '\n' + str(x) + '\n'
+
+
+    @cli('List running processes')
     @inlineCallbacks
     def ps(self, follow=False, **kwargs):
         self.last_lines = 0
@@ -293,17 +337,33 @@ class ApiRpcClient(object):
         if follow:
             self.stop_reactor = False
             while follow:
-                yield self._remote_exec('list', _print)
+                ret = yield self._remote_exec('list')
+                _print(ret)
                 yield sleep(1)
         else:
-            yield self._remote_exec('list', _print)
+            ret = yield self._remote_exec('list')
+            _print(ret)
 
+
+    @cli('List registered applications', arguments=(
+        arg('name', default=None, help='Application name', nargs='?'),
+        arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
+    ))
     @inlineCallbacks
-    def list(self, follow=False, **kwargs):
+    def list(self, name=None, follow=False, **kwargs):
         self.last_lines = 0
 
         def _print(data):
-            ret = self.on_print_list_result(data, as_string=True)
+
+            ret = 'App not found.'
+
+            if not name:
+                ret = self.print_app_list(data)
+            else:
+                for app in data:
+                    if app['name'] == name:
+                        ret = self.print_app_details(app)
+                        break
 
             if self.last_lines > 0:
                 print '\033[1A' * self.last_lines
@@ -313,107 +373,113 @@ class ApiRpcClient(object):
             self.last_lines = ret.count('\n') + 2
 
         if follow:
-            self.stop_reactor = False
             while follow:
-                yield self._remote_exec('list', _print)
+                ret = yield self._remote_exec('list')
+                _print(ret)
                 yield sleep(1)
         else:
-            yield self._remote_exec('list', _print)
+            ret = yield self._remote_exec('list')
+            _print(ret)
 
+            reactor.stop()
+
+    @cli('Show container logs', arguments=(
+        arg('name', help='Container name'),
+    ))
     @inlineCallbacks
     def logs(self, name, follow=False, **kwargs):
-        def _print(data):
-            self.on_print_list_result(data)
-        yield self._remote_exec('logs', _print, name)
+        ret = yield self._remote_exec('logs', name)
+        self.on_print_list_result(ret)
 
 
 
+    @cli('Inspect container', arguments=(
+        arg('name', help='Container name'),
+        arg('service', help='Service name'),
+    ))
+    @inlineCallbacks
     def inspect(self, name, service, **kwargs):
+        data = yield self._remote_exec('inspect', name, service)
 
-        def on_result(data):
+        if not isinstance(data, dict):
+            print data
 
-            if not isinstance(data, dict):
-                print data
-
-            else:
-
-                table = Texttable(max_width=120)
-                table.set_cols_dtype(['t',  'a'])
-                table.set_cols_width([20,  100])
-
-                rows = [["Name", "Value"]]
-                for name, val in data.items():
-                    rows.append([name, pprintpp.pformat(val)])
-
-                table.add_rows(rows)
-                print table.draw() + "\\n"
-
-        self._remote_exec('inspect', on_result, name, service)
-
-
-    def dns(self, **kwargs):
-
-        def on_result(data):
+        else:
 
             table = Texttable(max_width=120)
             table.set_cols_dtype(['t',  'a'])
-            #table.set_cols_width([20,  100])
+            table.set_cols_width([20,  100])
 
             rows = [["Name", "Value"]]
             for name, val in data.items():
-                rows.append([name, val])
+                rows.append([name, pprintpp.pformat(val)])
 
             table.add_rows(rows)
             print table.draw() + "\\n"
 
-        self._remote_exec('dns', on_result)
 
+    @cli('List internal dns records')
+    @inlineCallbacks
+    def dns(self, **kwargs):
+        data = yield self._remote_exec('dns')
+
+        table = Texttable(max_width=120)
+        table.set_cols_dtype(['t',  'a'])
+        #table.set_cols_width([20,  100])
+
+        rows = [["Name", "Value"]]
+        for name, val in data.items():
+            rows.append([name, val])
+
+        table.add_rows(rows)
+        print table.draw() + "\\n"
+
+    @cli('Remove containers', arguments=(
+        arg('name', help='Container or app name'),
+    ))
+    @inlineCallbacks
     def remove(self, name, **kwargs):
+        data = yield self._remote_exec('remove', self.on_print_list_result, name)
+        print 'result: %s' % pprintpp.pformat(data)
 
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('remove', self.on_print_list_result, name)
-
+    @cli('Destroy containers', arguments=(
+        arg('name', help='Container or app name'),
+    ))
+    @inlineCallbacks
     def destroy(self, name, **kwargs):
+        data = yield self._remote_exec('destroy', self.on_print_list_result, name)
+        print 'result: %s' % pprintpp.pformat(data)
 
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('destroy', self.on_print_list_result, name)
-
+    @cli('Start containers', arguments=(
+        arg('name', help='Container or app name'),
+    ))
+    @inlineCallbacks
     def start(self, name, **kwargs):
+        data = yield self._remote_exec('start', self.on_print_list_result, name)
+        print 'result: %s' % pprintpp.pformat(data)
 
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('start', self.on_print_list_result, name)
-
+    @cli('Create containers', arguments=(
+        arg('name', help='Container or app name'),
+    ))
+    @inlineCallbacks
     def create(self, name, **kwargs):
-
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('create', self.on_print_list_result, name)
-
-    def backup(self, **kwargs):
-
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('list_volumes', self.on_print_list_result)
+        data = yield self._remote_exec('create', self.on_print_list_result, name)
+        print 'result: %s' % pprintpp.pformat(data)
 
     def format_domain(self, domain, ssl):
         if ssl:
             domain = 'https://%s' % domain
         return domain
 
+    @cli('Publish an application', arguments=(
+        arg('domain', help='Domain to publish'),
+        arg('app', help='Application name'),
+        arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
+    ))
+    @inlineCallbacks
     def publish(self, domain, app, ssl=False, **kwargs):
-
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('publish', self.on_print_list_result, self.format_domain(domain, ssl), app)
+        data = yield self._remote_exec('publish', self.on_print_list_result, self.format_domain(domain, ssl), app)
+        print 'result: %s' % pprintpp.pformat(data)
 
     def on_vars_result(self, data):
         x = PrettyTable(["variable", "value"], hrules=ALL)
@@ -421,40 +487,53 @@ class ApiRpcClient(object):
             x.add_row(line)
         print x
 
+    @cli('Set variable value', arguments=(
+        arg('name', help='Variable name'),
+        arg('val', help='Value'),
+    ))
+    @inlineCallbacks
     def set(self, name, val, **kwargs):
-        self._remote_exec('set_var', self.on_vars_result, name, val)
+        data = yield self._remote_exec('set_var', self.on_vars_result, name, val)
 
+    @cli('Unset variable value', arguments=(
+        arg('name', help='Variable name'),
+    ))
+    @inlineCallbacks
     def unset(self, name, **kwargs):
-        self._remote_exec('rm_var', self.on_vars_result, name)
+        data = yield self._remote_exec('rm_var', self.on_vars_result, name)
 
+    @cli('List variables')
+    @inlineCallbacks
     def vars(self, **kwargs):
-        self._remote_exec('list_vars', self.on_vars_result)
+        data = yield self._remote_exec('list_vars', self.on_vars_result)
 
+    @cli('Unpublish an application', arguments=(
+        arg('domain', help='Domain to publish'),
+        arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
+    ))
+    @inlineCallbacks
     def unpublish(self, domain, ssl=False, **kwargs):
+        data = yield self._remote_exec('unpublish', self.on_print_list_result, self.format_domain(domain, ssl))
+        print 'result: %s' % pprintpp.pformat(data)
 
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('unpublish', self.on_print_list_result, self.format_domain(domain, ssl))
-
+    @cli('Start application', arguments=(
+        arg('name', help='App name'),
+    ))
+    @inlineCallbacks
     def restart(self, name, **kwargs):
+        data = yield self._remote_exec('restart', self.on_print_list_result, name)
+        print 'result: %s' % pprintpp.pformat(data)
 
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('restart', self.on_print_list_result, name)
-
+    @cli('Rebuild application', arguments=(
+        arg('name', help='App name'),
+    ))
+    @inlineCallbacks
     def rebuild(self, name, **kwargs):
-
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('rebuild', self.on_print_list_result, name)
+        data = yield self._remote_exec('rebuild', self.on_print_list_result, name)
+        print 'result: %s' % pprintpp.pformat(data)
 
 
-    def resolve_volume_port(self, destination):
-
-        print destination
+    def get_volume_config(self, destination):
 
         match = re.match('^([a-z0-9]+)\.([a-z0-9]+):(.*)$', destination)
         if not match:
@@ -484,29 +563,81 @@ class ApiRpcClient(object):
 
         return d
 
+    @inlineCallbacks
+    def get_folder_snapshot(self, folder):
+        match = re.match('^([a-z0-9]+)\.([a-z0-9]+):(.*)$', folder)
+        if match:
+            service, app, volume = match.group(1), match.group(2), match.group(3)
+            print('Calculating snapshot for "%s"' % folder)
+            snap = yield self._remote_exec('volume_snapshot', app, service, volume)
+        else:
+            print('Calculating snapshot for local directory "%s"' % folder)
+            snap = directory_snapshot(folder)
 
+        defer.returnValue(snap)
+
+    @cli('Push appliction volume application', arguments=(
+        arg('source', help='Push source'),
+        arg('destination', help='Push destination'),
+    ))
     @inlineCallbacks
     def push(self, source, destination, **kwargs):
+        source_snap = yield self.get_folder_snapshot(source)
+        destination_snap = yield self.get_folder_snapshot(destination)
 
-        source = yield self.resolve_volume_port(source)
-        destination = yield self.resolve_volume_port(destination)
+        cmp = compare(source_snap, destination_snap)
 
-        command = "rsync -v -r --exclude '.git' %(local_path)s %(remote_path)s" % {
-            'local_path': source,
-            'remote_path': destination,
-        }
+        has_changes = False
 
-        print command
+        for type_, label in (('new', 'New'), ('upd', 'Updated'), ('del', 'Removed'), ):
+            if cmp[type_]:
+                print '\n'
+                print '%s\n' % label + '-' * 40
 
-        os.system(command)
+                cnt = 0
+                for file_ in cmp[type_]:
+                    print '   - ' + file_
+                    cnt += 1
+                    if cnt > 10:
+                        print 'And %s files more ...' % (len(cmp[type_]) - 11)
+                        break
 
+
+
+                has_changes = True
+
+        if has_changes:
+            print '\n'
+        else:
+            print 'Files are identical.'
+
+        reactor.stop()
+
+
+        # source = yield self.resolve_volume_port(source)
+        # destination = yield self.resolve_volume_port(destination)
+        #
+        # command = "rsync -v -r --exclude '.git' %(local_path)s %(remote_path)s" % {
+        #     'local_path': source,
+        #     'remote_path': destination,
+        # }
+        #
+        # print command
+        #
+        # os.system(command)
+
+    @cli('Run command in container', arguments=(
+        arg('service', help='Service name'),
+        arg('command', help='Command to execute', default='bash', nargs='?'),
+        arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
+    ))
+    @inlineCallbacks
     def run(self, service, command='bash', no_tty=False, **kwargs):
 
         service, app = service.split('.')
 
-        def on_result(result):
-
-            os.system("docker run -i %(options)s-v %(hosts_vol)s --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
+        result = yield self._remote_exec('run', app, service)
+        os.system("docker run -i %(options)s-v %(hosts_vol)s --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
                 'container': '%s.%s' % (service, app),
                 'image': result['image'],
                 'hosts_vol': '%s:/etc/hosts' % result['hosts_path'],
@@ -516,192 +647,13 @@ class ApiRpcClient(object):
                 'options': '-t' if not no_tty else ''
             })
 
-        self._remote_exec('run', on_result, app, service)
-
+    @cli('Stop application', arguments=(
+        arg('name', help='App name'),
+    ))
+    @inlineCallbacks
     def stop(self, name, **kwargs):
-
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        self._remote_exec('stop', self.on_print_list_result, name)
-
-
-def populate_client_parser(subparsers):
-
-
-    cmd = subparsers.add_parser('init', help='Creates a new application')
-    cmd.add_argument('name', help='App name')
-    cmd.add_argument('--user', default=None, help='Remote username')
-    cmd.add_argument('path', help='Path', nargs='?', default='.')
-    cmd.set_defaults(func='init')
-
-    cmd = subparsers.add_parser('list', help='List registered applications')
-    cmd.add_argument('-f', '--follow', default=False, action='store_true', help='Continuously run list command')
-    cmd.set_defaults(func='list')
-
-    cmd = subparsers.add_parser('ps', help='List running processes')
-    cmd.set_defaults(func='task_list')
-
-    cmd = subparsers.add_parser('remove', help='Remove application')
-    cmd.add_argument('name', help='App name')
-    cmd.set_defaults(func='remove')
-
-    cmd = subparsers.add_parser('kill', help='Kill running process')
-    cmd.add_argument('task_id', help='Task id')
-    cmd.set_defaults(func='task_kill')
-
-    cmd = subparsers.add_parser('start', help='Start application')
-    cmd.add_argument('name', help='App name')
-    cmd.set_defaults(func='start')
-
-    cmd = subparsers.add_parser('logs', help='Show container logs')
-    cmd.add_argument('name', help='Container name')
-    cmd.set_defaults(func='logs')
-
-    cmd = subparsers.add_parser('backup', help='Backup volumes')
-    cmd.set_defaults(func='backup')
-
-    cmd = subparsers.add_parser('create', help='Create application containers')
-    cmd.add_argument('name', help='App name')
-    cmd.set_defaults(func='create')
-
-    cmd = subparsers.add_parser('restart', help='Start application')
-    cmd.add_argument('name', help='App name')
-    cmd.set_defaults(func='restart')
-
-    cmd = subparsers.add_parser('rebuild', help='Start application')
-    cmd.add_argument('name', help='App name')
-    cmd.set_defaults(func='rebuild')
-
-    cmd = subparsers.add_parser('push', help='Push volume')
-    cmd.add_argument('source', help='Push source')
-    cmd.add_argument('destination', help='Push destination')
-    cmd.set_defaults(func='push')
-
-    cmd = subparsers.add_parser('publish', help='Publish an application')
-    cmd.add_argument('domain', help='Domain to publish')
-    cmd.add_argument('app', help='Application name')
-    cmd.add_argument('--ssl', default=False, action='store_true', help='Ssl protocol')
-    cmd.set_defaults(func='publish')
-
-    cmd = subparsers.add_parser('set', help='Set environment variable on server')
-    cmd.add_argument('name', help='Variable name')
-    cmd.add_argument('val', help='Value')
-    cmd.set_defaults(func='set')
-
-    cmd = subparsers.add_parser('unset', help='Unset environment variable on server')
-    cmd.add_argument('name', help='Variable name')
-    cmd.set_defaults(func='unset')
-
-    cmd = subparsers.add_parser('vars', help='List environment variables on server')
-    cmd.set_defaults(func='vars')
-
-    cmd = subparsers.add_parser('unpublish', help='Unpublish an application')
-    cmd.add_argument('domain', help='Domain to unpublish')
-    cmd.add_argument('--ssl', default=False, action='store_true', help='Ssl protocol')
-    cmd.set_defaults(func='unpublish')
-
-    cmd = subparsers.add_parser('run', help='Execute command')
-    cmd.add_argument('service', help='Service name')
-    cmd.add_argument('command', help='Command to execute', default='bash', nargs='?')
-    cmd.add_argument('--no-tty', default=False, action='store_true', help='Disable tty binding')
-    cmd.set_defaults(func='run')
-
-    cmd = subparsers.add_parser('stop', help='Stop application')
-    cmd.add_argument('name', help='App name')
-    cmd.set_defaults(func='stop')
-
-    cmd = subparsers.add_parser('destroy', help='Destroy application containers')
-    cmd.add_argument('name', help='App name')
-    cmd.set_defaults(func='destroy')
-
-    cmd = subparsers.add_parser('inspect', help='Inspect application service')
-    cmd.add_argument('name', help='App name')
-    cmd.add_argument('service', help='Service name')
-    cmd.set_defaults(func='inspect')
-
-    cmd = subparsers.add_parser('cert-gen', help='Inspect application service')
-    cmd.add_argument('username', help='Your username')
-    cmd.add_argument('service', help='Service name')
-    cmd.set_defaults(func='inspect')
-
-    cmd = subparsers.add_parser('dns', help='List dns records')
-    cmd.set_defaults(func='dns')
-
-
-    # # # mfcloud use ubuntu@myserver.com
-    # fig_cmd = subparsers.add_parser('fig', help='Executes fig commands')
-    # fig_cmd.add_argument('--env', help='Environment name', default='dev')
-    # fig_cmd.add_argument('--app-name', help='App name')
-    # fig_cmd.add_argument('fig_cmd', help='Fig command to execeute')
-    # fig_cmd.set_defaults(func=func=fig_main)
-
-
-    # 'PS1=(.env)\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\u@\h:\w\$'
-
-
-    # cmd = subparsers.add_parser('volumes', help='Show volumes of current project')
-    # cmd.add_argument('services', help='Service names', nargs='*')
-    # cmd.add_argument('--json', action='store_true', default=False)
-    # cmd.set_defaults(func='list_volumes')
-    #
-    # cmd = subparsers.add_parser('volume-push', help='Push volume to remote server')
-    # cmd.add_argument('volumes', help='Volume specs', nargs='*')
-    # cmd.set_defaults(func='push_volumes')
-    #
-    # cmd = subparsers.add_parser('volume-pull', help='Push volume to remote server')
-    # cmd.add_argument('volumes', help='Volume specs', nargs='*')
-    # cmd.set_defaults(func='pull_volumes')
-
-    # cmd = subparsers.add_parser('status', help='Show current status of services')
-    # cmd.set_defaults(func='status')
-
-
-import argparse
-
-from mfcloud import metadata
-
-
-def format_epilog():
-    """Program entry point.
-
-    :param argv: command-line arguments
-    :type argv: :class:`list`
-    """
-    author_strings = []
-    for name, email in zip(metadata.authors, metadata.emails):
-        author_strings.append('Author: {0} <{1}>'.format(name, email))
-    epilog = '''
-{project} {version}
-
-{authors}
-URL: <{url}>
-'''.format(
-        project=metadata.project,
-        version=metadata.version,
-        authors='\n'.join(author_strings),
-        url=metadata.url)
-    return epilog
-
-
-def get_argparser():
-    arg_parser = argparse.ArgumentParser(
-        prog='mfcloud',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=metadata.description,
-        epilog=format_epilog(),
-        add_help=False
-    )
-    arg_parser.add_argument('-v', '--verbose', help='Show more logs', action='store_true', default=False)
-    arg_parser.add_argument('-e', '--env', help='Environment to use', default='dev')
-    arg_parser.add_argument('-h', '--host', help='Host to use', default='127.0.0.1')
-    arg_parser.add_argument(
-        '-V', '--version',
-        action='version',
-        version='{0} {1}'.format(metadata.project, metadata.version))
-    subparsers = arg_parser.add_subparsers()
-    populate_client_parser(subparsers)
-    return arg_parser
+        data = yield self._remote_exec('stop', self.on_print_list_result, name)
+        print 'result: %s' % pprintpp.pformat(data)
 
 
 def main(argv):
@@ -716,8 +668,6 @@ def main(argv):
     root_logger.debug('Logger initialized')
 
     logging.getLogger("requests").propagate = False
-
-    arg_parser = get_argparser()
 
     args = arg_parser.parse_args()
 

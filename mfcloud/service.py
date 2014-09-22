@@ -99,6 +99,22 @@ class Service(object):
 
         return self._inspect_data['HostsPath']
 
+    def list_volumes(self):
+        if not self.is_created():
+            return None
+
+        volumes_ = self._inspect_data['Volumes']
+
+        internal_volumes = (
+            '/var/run/mfcloud',
+            '/usr/bin/@me'
+        )
+        for iv in internal_volumes:
+            if iv in volumes_:
+                del volumes_[iv]
+
+        return volumes_
+
     def public_ports(self):
         if not self.is_running():
             return None
@@ -109,7 +125,7 @@ class Service(object):
         if not self.is_running():
             return None
 
-        return self._inspect_data['Volumes'].keys()
+        return self.list_volumes().keys()
 
     def started_at(self):
         if not self.is_running():

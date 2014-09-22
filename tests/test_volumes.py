@@ -1,5 +1,7 @@
+import os
 from shutil import copystat
 from time import sleep
+from pprintpp import pprint
 from mfcloud.volumes import directory_snapshot, compare
 
 
@@ -11,13 +13,19 @@ def test_snapshot(tmpdir):
 
     ssrc = directory_snapshot(str(src))
 
+    pprint(ssrc)
+
     assert len(ssrc.values()) == 2
+    assert len(ssrc['foo/'].values()) == 3  # mtime is added here
     assert ssrc['boo.txt']['_path'] == 'boo.txt'
-    assert ssrc['foo']['_path'] == 'foo'
-    assert ssrc['foo']['boo.txt']['_path'] == 'foo/boo.txt'
+    assert ssrc['foo/']['_path'] == 'foo/'
+    assert ssrc['foo/']['boo.txt']['_path'] == 'foo/boo.txt'
 
 
-def test_compare(tmpdir):
+    assert '_path' not in ssrc
+
+
+def test_simple_compare(tmpdir):
 
     src = tmpdir.mkdir("src")
     dst = tmpdir.mkdir("dst")
@@ -48,6 +56,26 @@ def test_compare_new_file(tmpdir):
         'del': [],
     }
 
+def test_compare_new_file_gitignore(tmpdir):
+
+    src = tmpdir.mkdir("src")
+    dst = tmpdir.mkdir("dst")
+
+    os.chdir(str(src))
+    os.system('git init')
+    src.join('boo.txt').write('123')
+    src.join('boo2.txt').write('123')
+    src.join('.gitignore').write('boo2.txt')
+
+    ssrc = directory_snapshot(str(src))
+    sdst = directory_snapshot(str(dst))
+
+    assert compare(ssrc, sdst) == {
+        'new': ['boo.txt'],
+        'upd': [],
+        'del': [],
+    }
+
 
 def test_compare_later_modified_file(tmpdir):
 
@@ -55,7 +83,7 @@ def test_compare_later_modified_file(tmpdir):
     dst = tmpdir.mkdir("dst")
 
     src.join('boo.txt').write('fsafsadfa')
-    sleep(0.01)
+    sleep(0.1)
     dst.join('boo.txt').write('dsdsds')  # written later
 
     ssrc = directory_snapshot(str(src))
@@ -135,6 +163,9 @@ def test_compare_dirs(tmpdir):
     ssrc = directory_snapshot(str(src))
     sdst = directory_snapshot(str(dst))
 
+    print ssrc
+    print sdst
+
     assert compare(ssrc, sdst) == {
         'new': ['foo/'],
         'upd': [],
@@ -178,7 +209,7 @@ def test_compare_recursive_removed_dir(tmpdir):
     }
 
 
-def test_compare_recursive_updated_dir(tmpdir):
+def test_compare_recursive_updated__dir(tmpdir):
 
     src = tmpdir.mkdir("src")
     dst = tmpdir.mkdir("dst")
@@ -215,5 +246,5 @@ def test_compare_recursive_updated_dir_deeper(tmpdir):
     assert compare(ssrc, sdst) == {
         'new': ['bar/', 'bar/baz.txt'],
         'upd': ['foo/', 'foo/boo/', 'foo/boo/boo.txt'],
-        'del': ['buka/', 'bjaka.txt'],
+        'del': ['bjaka.txt', 'buka/'],
     }

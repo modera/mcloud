@@ -320,3 +320,41 @@ def test_service_api():
         yield s.destroy(ticket_id=123123)
         assert not s.is_created()
         assert not s.is_running()
+
+#
+#
+#
+# @pytest.inlineCallbacks
+# def test_volume_snapshot():
+#     from twisted.python import log
+#     log.startLogging(sys.stdout)
+#
+#     redis = yield txredisapi.Connection(dbid=2)
+#     yield redis.flushdb()
+#
+#     yield redis.set('mfcloud-ticket-id', 123122)
+#
+#     eb = EventBus(redis)
+#     yield eb.connect()
+#
+#     with injector({EventBus: eb, 'dns-server': 'local.dns', 'dns-search-suffix': 'local', IDockerClient: DockerTwistedClient()}):
+#
+#         name = 'test.foo'
+#
+#         s = Service(
+#             image_builder=DockerfileImageBuilder(os.path.join(os.path.dirname(__file__), '_files/ct_bash')),
+#             name=name,
+#             volumes=[
+#                 {'local': os.path.join(os.path.dirname(__file__), '_files/boo'), 'remote': '/var/foo'}
+#             ]
+#         )
+#
+#         yield s.create(ticket_id=123123)
+#         yield s.start(ticket_id=123123)
+#
+#         assert s.is_created()
+#         assert s.is_running()
+#
+#
+#
+#         yield s.destroy(ticket_id=123123)
