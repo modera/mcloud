@@ -60,9 +60,7 @@ def dump_file(dirname, ref, parts):
     return me
 
 from scandir import walk
-from profilestats import profile
 
-#@profile
 def directory_snapshot(dirname):
     """
     Creates tree representing directory with recursive modification times
@@ -115,7 +113,7 @@ def list_recursive(ref):
     return ret
 
 
-def compare(src_struct, dst_struct):
+def compare(src_struct, dst_struct, drift=0):
     """
     Compare two directory snapshots returning list of new paths, removed paths, changed files.
 
@@ -140,7 +138,7 @@ def compare(src_struct, dst_struct):
             dst = dst_struct[name]
 
             # updated
-            if dst['_mtime'] > src['_mtime']:
+            if dst['_mtime'] > (drift + src['_mtime']):
                 result['upd'].append(ref_path(src))
 
                 merge_result(result, compare(src, dst))

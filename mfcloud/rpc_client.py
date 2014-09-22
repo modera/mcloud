@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+from time import time
 import uuid
 from autobahn.twisted.util import sleep
 from confire import Configuration
@@ -582,10 +583,12 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def push(self, source, destination, **kwargs):
+
+        start = time()
         source_snap = yield self.get_folder_snapshot(source)
         destination_snap = yield self.get_folder_snapshot(destination)
 
-        cmp = compare(source_snap, destination_snap)
+        cmp = compare(source_snap, destination_snap, drift=(time() - start))
 
         has_changes = False
 
