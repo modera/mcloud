@@ -333,11 +333,21 @@ class TaskService(object):
         defer.returnValue(directory_snapshot(all_volumes[volume]))
 
     @inlineCallbacks
-    def task_sync_volume_file(self, ticket_id, app_name, service_name=None, volume=None):
+    def task_sync_volume(self, ticket_id, app_name, service_name=None, volume=None):
 
+        d = defer.Deferred()
 
+        def on_stream(data):
+            log.msg('Data stream in: %s' % data)
+            if data == 'end':
+                d.callback('Boooo!')
+                return
 
+            self.task_log(ticket_id, 'You wrote: %s' % data)
 
+        self.rpc_server.register_stream_listener(ticket_id, on_stream)
+
+        return d
 
     @inlineCallbacks
     def task_run(self, ticket_id, app_name, service_name):

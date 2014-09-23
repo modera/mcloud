@@ -112,6 +112,9 @@ class ApiRpcClient(object):
                 yield client.call(task, *args, **kwargs)
 
                 res = yield task.wait_result()
+                yield client.shutdown()
+                yield sleep(0.1)
+
                 defer.returnValue(res)
 
             except Exception as e:
@@ -120,7 +123,28 @@ class ApiRpcClient(object):
         except ConnectionRefusedError:
             print 'Can\'t connect to mfcloud server'
 
-        client.shutdown()
+
+    @inlineCallbacks
+    def _remote_exec_stream(self, task_name, *args, **kwargs):
+        from mfcloud.remote import Client, Task
+
+        try:
+            client = Client(host=self.host, settings=self.settings)
+            yield client.connect()
+
+            task = Task(task_name)
+            task.on_progress = self.print_progress
+
+            try:
+                yield client.call(task, *args, **kwargs)
+
+                defer.returnValue((client, task))
+
+            except Exception as e:
+                print('Failed to execute the task: %s' % e.message)
+
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mfcloud server'
 
 
     def print_progress(self, message):
@@ -142,6 +166,65 @@ class ApiRpcClient(object):
 
         except ValueError:
             print(message)
+
+
+    @cli('Push appliction volume application', arguments=(
+        arg('source', help='Push source'),
+        arg('destination', help='Push destination'),
+    ))
+    @inlineCallbacks
+    def sync(self, source, destination, **kwargs):
+
+        client, task = yield self._remote_exec_stream('sync_volume', 'booo')
+
+        client.stream_task_data(task.id,  'kuku!')
+        client.stream_task_data(task.id,  'end')
+
+        return
+
+        start = time()
+        source_snap = yield self.get_folder_snapshot(source)
+        destination_snap = yield self.get_folder_snapshot(destination)
+
+        cmp = compare(source_snap, destination_snap, drift=(time() - start))
+
+        has_changes = False
+
+        for type_, label in (('new', 'New'), ('upd', 'Updated'), ('del', 'Removed'), ):
+            if cmp[type_]:
+                print '\n'
+                print '%s\n' % label + '-' * 40
+
+                cnt = 0
+                for file_ in cmp[type_]:
+                    print '   - ' + file_
+                    cnt += 1
+                    if cnt > 10:
+                        print 'And %s files more ...' % (len(cmp[type_]) - 11)
+                        break
+
+                has_changes = True
+
+        if has_changes:
+            print '\n'
+
+        else:
+            print 'Files are identical.'
+
+        reactor.stop()
+
+
+        # source = yield self.resolve_volume_port(source)
+        # destination = yield self.resolve_volume_port(destination)
+        #
+        # command = "rsync -v -r --exclude '.git' %(local_path)s %(remote_path)s" % {
+        #     'local_path': source,
+        #     'remote_path': destination,
+        # }
+        #
+        # print command
+        #
+        # os.system(command)
 
 
     @cli('List running tasks')
@@ -577,56 +660,6 @@ class ApiRpcClient(object):
 
         defer.returnValue(snap)
 
-    @cli('Push appliction volume application', arguments=(
-        arg('source', help='Push source'),
-        arg('destination', help='Push destination'),
-    ))
-    @inlineCallbacks
-    def push(self, source, destination, **kwargs):
-
-        start = time()
-        source_snap = yield self.get_folder_snapshot(source)
-        destination_snap = yield self.get_folder_snapshot(destination)
-
-        cmp = compare(source_snap, destination_snap, drift=(time() - start))
-
-        has_changes = False
-
-        for type_, label in (('new', 'New'), ('upd', 'Updated'), ('del', 'Removed'), ):
-            if cmp[type_]:
-                print '\n'
-                print '%s\n' % label + '-' * 40
-
-                cnt = 0
-                for file_ in cmp[type_]:
-                    print '   - ' + file_
-                    cnt += 1
-                    if cnt > 10:
-                        print 'And %s files more ...' % (len(cmp[type_]) - 11)
-                        break
-
-                has_changes = True
-
-        if has_changes:
-            print '\n'
-
-        else:
-            print 'Files are identical.'
-
-        reactor.stop()
-
-
-        # source = yield self.resolve_volume_port(source)
-        # destination = yield self.resolve_volume_port(destination)
-        #
-        # command = "rsync -v -r --exclude '.git' %(local_path)s %(remote_path)s" % {
-        #     'local_path': source,
-        #     'remote_path': destination,
-        # }
-        #
-        # print command
-        #
-        # os.system(command)
 
     @cli('Run command in container', arguments=(
         arg('service', help='Service name'),
