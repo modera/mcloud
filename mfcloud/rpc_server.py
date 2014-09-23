@@ -11,6 +11,7 @@ from twisted.python import log
 
 from mfcloud.plugins.internal_api import InternalApiPlugin
 from mfcloud.plugins.metrics import MetricsPlugin
+from mfcloud.sendfile import FileIOFactory
 from mfcloud.util import txtimeout
 
 log.startLogging(sys.stdout)
@@ -23,6 +24,7 @@ def get_argparser():
 
     parser = argparse.ArgumentParser(description='Mfcloud rpc server')
     parser.add_argument('--port', type=int, default=7080, help='port number')
+    parser.add_argument('--file-port', type=int, default=7081, help='File transfer port number')
     parser.add_argument('--haproxy', default=False, action='store_true', help='Update haproxy config')
     # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
     # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
@@ -51,6 +53,7 @@ def entry_point():
 
     rpc_interface = args.interface
     rpc_port = args.port
+    file_port = args.file_port
 
     if not args.dns_server_ip:
         dns_server_ip = netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
@@ -120,9 +123,14 @@ def entry_point():
         api.tasks = tasks.collect_tasks()
 
 
-        log.msg('Starting rpc listener')
+        log.msg('Starting rpc listener on port %d' % rpc_port)
         server = Server(port=rpc_port)
         server.bind()
+
+        log.msg('Starting file listener on port %d' % file_port)
+        fileio = FileIOFactory({})
+        reactor.listenTCP(file_port, fileio)
+
 
         log.msg('Dumping resolv conf')
 

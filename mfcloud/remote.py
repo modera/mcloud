@@ -27,7 +27,6 @@ class ApiRpcServer(object):
         self.tasks = {}
         self.ticket_map = {}
         self.tasks_running = {}
-        self.tasks_stream_listeners = {}
 
         self.eb.on('log-*', self.on_log)
 
@@ -40,10 +39,6 @@ class ApiRpcServer(object):
             self.ticket_map[ticket_id].send_event('task.success.%s' % ticket_id, result)
             del self.tasks_running[ticket_id]
             del self.ticket_map[ticket_id]
-            del self.tasks_stream_listeners[ticket_id]
-
-    def register_stream_listener(self, listener, ticket_id):
-        self.tasks_stream_listeners[ticket_id] = listener
 
     def task_failed(self, error, ticket_id):
         if ticket_id in self.ticket_map:
@@ -53,17 +48,9 @@ class ApiRpcServer(object):
                 s = str(error)
 
             self.ticket_map[ticket_id].send_event('task.failure.%s' % ticket_id, s)
-            if ticket_id in self.tasks_running:
-                del self.tasks_running[ticket_id]
-            if ticket_id in self.tasks_stream_listeners:
-                del self.tasks_stream_listeners[ticket_id]
-            if ticket_id in self.ticket_map:
-                del self.ticket_map[ticket_id]
 
-    def task_stream(self, data, ticket_id):
-        if ticket_id in self.tasks_stream_listeners:
-            return self.tasks_stream_listeners[ticket_id](data)
-        return None
+            del self.tasks_running[ticket_id]
+            del self.ticket_map[ticket_id]
 
     def task_progress(self, data, ticket_id):
         if ticket_id in self.ticket_map:
@@ -211,10 +198,6 @@ class Server(object):
 
             elif data['task'] == 'list':
                 yield client.send_response(data['id'], self.rpc_server.task_list())
-
-            elif data['task'] == 'task_data':
-                response = yield self.rpc_server.task_stream(int(data['kwargs']['ticket_id']), data['kwargs']['data'])
-                yield client.send_response(data['id'], response)
 
             elif data['task'] == 'task_start':
                 ticket_id = yield self.rpc_server.task_start(client, *data['args'], **data['kwargs'])
@@ -444,12 +427,6 @@ class Client(object):
 
         if result and task_id in self.task_map:
             self.task_map[task_id].is_running = False
-
-        defer.returnValue(result)
-
-    @inlineCallbacks
-    def stream_task_data(self, task_id, data):
-        result = yield self.call_sync('task_data', ticket_id=task_id, data=data)
 
         defer.returnValue(result)
 

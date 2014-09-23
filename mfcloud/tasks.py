@@ -322,7 +322,23 @@ class TaskService(object):
 
         services = config.get_services()
 
-        log.msg(services)
+        service = services['%s.%s' % (service_name, app_name)]
+
+        all_volumes = service.list_volumes()
+        if not volume in all_volumes:
+            raise Exception('Volume with name %s no found!' % volume)
+
+        snapshot = directory_snapshot(all_volumes[volume])
+        snapshot['_id'] = ticket_id
+        defer.returnValue(snapshot)
+
+    @inlineCallbacks
+    def task_volume_apply_diff(self, ticket_id, app_name, service_name, volume, diff):
+
+        app = yield self.app_controller.get(app_name)
+        config = yield app.load()
+
+        services = config.get_services()
 
         service = services['%s.%s' % (service_name, app_name)]
 
@@ -331,23 +347,6 @@ class TaskService(object):
             raise Exception('Volume with name %s no found!' % volume)
 
         defer.returnValue(directory_snapshot(all_volumes[volume]))
-
-    @inlineCallbacks
-    def task_sync_volume(self, ticket_id, app_name, service_name=None, volume=None):
-
-        d = defer.Deferred()
-
-        def on_stream(data):
-            log.msg('Data stream in: %s' % data)
-            if data == 'end':
-                d.callback('Boooo!')
-                return
-
-            self.task_log(ticket_id, 'You wrote: %s' % data)
-
-        self.rpc_server.register_stream_listener(ticket_id, on_stream)
-
-        return d
 
     @inlineCallbacks
     def task_run(self, ticket_id, app_name, service_name):

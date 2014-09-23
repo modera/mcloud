@@ -3,11 +3,12 @@ import logging
 import sys
 from time import time
 import uuid
-from autobahn.twisted.util import sleep
-from confire import Configuration
-
 import re
 import os
+import argparse
+
+from autobahn.twisted.util import sleep
+from confire import Configuration
 import pprintpp
 from prettytable import PrettyTable, ALL
 from texttable import Texttable
@@ -16,12 +17,9 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.error import ConnectionRefusedError
 from twisted.python import log
 
-
-
-import argparse
-
 from mfcloud import metadata
-from mfcloud.volumes import directory_snapshot, compare
+from mfcloud.sendfile import VolumeStorageRemote, VolumeStorageLocal
+from mfcloud.volumes import compare
 
 
 def format_epilog():
@@ -124,29 +122,6 @@ class ApiRpcClient(object):
             print 'Can\'t connect to mfcloud server'
 
 
-    @inlineCallbacks
-    def _remote_exec_stream(self, task_name, *args, **kwargs):
-        from mfcloud.remote import Client, Task
-
-        try:
-            client = Client(host=self.host, settings=self.settings)
-            yield client.connect()
-
-            task = Task(task_name)
-            task.on_progress = self.print_progress
-
-            try:
-                yield client.call(task, *args, **kwargs)
-
-                defer.returnValue((client, task))
-
-            except Exception as e:
-                print('Failed to execute the task: %s' % e.message)
-
-        except ConnectionRefusedError:
-            print 'Can\'t connect to mfcloud server'
-
-
     def print_progress(self, message):
         try:
             data = json.loads(message)
@@ -168,6 +143,15 @@ class ApiRpcClient(object):
             print(message)
 
 
+    def get_storage(self, ref):
+        match = re.match('^([a-z0-9]+)\.([a-z0-9]+):(.*)$', ref)
+        if match:
+            service, app, volume = match.group(1), match.group(2), match.group(3)
+            return VolumeStorageRemote(service, app, volume)
+        else:
+            return VolumeStorageLocal(ref)
+
+
     @cli('Push appliction volume application', arguments=(
         arg('source', help='Push source'),
         arg('destination', help='Push destination'),
@@ -175,42 +159,41 @@ class ApiRpcClient(object):
     @inlineCallbacks
     def sync(self, source, destination, **kwargs):
 
-        client, task = yield self._remote_exec_stream('sync_volume', 'booo')
-
-        client.stream_task_data(task.id,  'kuku!')
-        client.stream_task_data(task.id,  'end')
-
-        return
-
         start = time()
-        source_snap = yield self.get_folder_snapshot(source)
-        destination_snap = yield self.get_folder_snapshot(destination)
+        src = yield self.get_storage(source)
+        dst = yield self.get_storage(destination)
 
-        cmp = compare(source_snap, destination_snap, drift=(time() - start))
+        source_snap = yield src.get_snapshot()
+        destination_snap = yield dst.get_snapshot()
+
+        volume_diff = compare(source_snap, destination_snap, drift=(time() - start))
 
         has_changes = False
 
         for type_, label in (('new', 'New'), ('upd', 'Updated'), ('del', 'Removed'), ):
-            if cmp[type_]:
+            if volume_diff[type_]:
                 print '\n'
                 print '%s\n' % label + '-' * 40
 
                 cnt = 0
-                for file_ in cmp[type_]:
+                for file_ in volume_diff[type_]:
                     print '   - ' + file_
                     cnt += 1
                     if cnt > 10:
-                        print 'And %s files more ...' % (len(cmp[type_]) - 11)
+                        print 'And %s files more ...' % (len(volume_diff[type_]) - 11)
                         break
 
                 has_changes = True
 
         if has_changes:
-            print '\n'
+            print '\nSyncing files\n'
+            yield src.sync(volume_diff, dst)
 
+            print '\nDone.\n'
         else:
             print 'Files are identical.'
 
+        yield sleep(0.1)
         reactor.stop()
 
 
@@ -646,19 +629,6 @@ class ApiRpcClient(object):
         self._remote_exec('push', on_result, app, service, volume)
 
         return d
-
-    @inlineCallbacks
-    def get_folder_snapshot(self, folder):
-        match = re.match('^([a-z0-9]+)\.([a-z0-9]+):(.*)$', folder)
-        if match:
-            service, app, volume = match.group(1), match.group(2), match.group(3)
-            print('Calculating snapshot for "%s"' % folder)
-            snap = yield self._remote_exec('volume_snapshot', app, service, volume)
-        else:
-            print('Calculating snapshot for local directory "%s"' % folder)
-            snap = directory_snapshot(folder)
-
-        defer.returnValue(snap)
 
 
     @cli('Run command in container', arguments=(
