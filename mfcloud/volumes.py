@@ -6,9 +6,23 @@ from time import time
 from pprintpp import pprint
 
 
+def is_ignored(ignore_list, path):
+    for ign in ignore_list:
+
+        if ign.endswith('/'):
+            ign = ign[0:-1]
+
+        if path == ign:
+            return True
+
+        if path.startswith(ign + '/'):
+            return True
+
+    return False
+
 def list_git_ignore(dir_):
     lines = Popen(["git", "status", '-s', '--ignored'], stderr=PIPE, stdout=PIPE, cwd=dir_).communicate()[0]
-    extra = ['.git']
+    extra = ['.git/', '.gitignore']
     ignored = extra + [x.split(' ')[1] for x in lines.strip().split('\n') if x.startswith('!! ')]
 
     return ignored
@@ -80,14 +94,9 @@ def directory_snapshot(dirname):
 
         for path_ in all_files:
             rel_path = path_[len(dirname) + 1:]
-            for ign in ignored:
-                if rel_path.startswith(ign):
-                    path_ = None
-                    break
 
-            if path_:
+            if not is_ignored(ignored, rel_path):
                 path_ = path_[len(dirname) + 1:]
-
                 dump_file(dirname, struct, path_.split(os.path.sep))
 
     return struct

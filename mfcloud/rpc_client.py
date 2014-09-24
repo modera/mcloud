@@ -142,16 +142,6 @@ class ApiRpcClient(object):
         except ValueError:
             print(message)
 
-
-    def get_storage(self, ref):
-        match = re.match('^([a-z0-9]+)\.([a-z0-9]+):(.*)$', ref)
-        if match:
-            service, app, volume = match.group(1), match.group(2), match.group(3)
-            return VolumeStorageRemote(service, app, volume)
-        else:
-            return VolumeStorageLocal(ref)
-
-
     @cli('Push appliction volume application', arguments=(
         arg('source', help='Push source'),
         arg('destination', help='Push destination'),

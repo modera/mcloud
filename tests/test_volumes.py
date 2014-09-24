@@ -2,7 +2,7 @@ import os
 from shutil import copystat
 from time import sleep
 from pprintpp import pprint
-from mfcloud.volumes import directory_snapshot, compare
+from mfcloud.volumes import directory_snapshot, compare, is_ignored
 
 
 def test_snapshot(tmpdir):
@@ -248,3 +248,17 @@ def test_compare_recursive_updated_dir_deeper(tmpdir):
         'upd': ['foo/', 'foo/boo/', 'foo/boo/boo.txt'],
         'del': ['bjaka.txt', 'buka/'],
     }
+
+
+def test_ignore():
+
+    ignore_list = ['.git/', '.env/']
+
+    assert not is_ignored(ignore_list, '.gitignore')
+    assert not is_ignored(ignore_list, '.gitmodules')
+
+    assert is_ignored(ignore_list, '.git')
+    assert is_ignored(ignore_list, '.git/')
+    assert is_ignored(ignore_list, '.git/foo')
+
+    assert is_ignored(ignore_list, '.env/lib/python2.7/site-packages/_pytest/pastebin.py')

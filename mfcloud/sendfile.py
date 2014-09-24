@@ -54,11 +54,14 @@ from binascii import crc32
 from optparse import OptionParser
 from shutil import copy, rmtree
 import sys
+from tempfile import mkdtemp
+from autobahn.twisted.util import sleep
+import re
 import os, json, pprint, datetime
 import inject
 from twisted.python import log
 from mfcloud.events import EventBus
-from mfcloud.application import ApplicationController
+from mfcloud.application import ApplicationController, Application
 
 from twisted.protocols import basic
 from twisted.internet import protocol
@@ -69,7 +72,7 @@ from twisted.protocols.basic import FileSender
 from twisted.internet import defer
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet import reactor
-from mfcloud.volumes import directory_snapshot
+from mfcloud.volumes import directory_snapshot, compare
 
 
 pp = pprint.PrettyPrinter(indent=1)
@@ -85,9 +88,7 @@ class FileUploaderTarget(object):
         """ Status object.. just a demo """
 
         def update(self, **kargs):
-            """ """
-            print '-' * 80
-            pp.pprint(kargs)
+            pass
 
     def __init__(self, protocol, base_dir):
         super(FileUploaderTarget, self).__init__()
@@ -101,67 +102,54 @@ class FileUploaderTarget(object):
         self.crc = 0
 
 
-    def start_upload(self, file_path, size, ticket_id=None):
+    def start_upload(self, file_path, size):
         self.size = int(size)
 
-        print '-----'
-        print self.base_dir
-        print ticket_id
-        print file_path
-        print '-----'
-        self.outfilename = os.path.join(self.base_dir, str(ticket_id), file_path)
+        self.outfilename = os.path.join(self.base_dir, file_path)
 
         uploaddir = os.path.dirname(self.outfilename)
         if not os.path.exists(uploaddir):
             os.makedirs(uploaddir)
 
-        print ' * Receiving into file@', self.outfilename
         try:
             self.outfile = open(self.outfilename, 'wb')
         except Exception, value:
-            print ' ! Unable to open file', self.outfilename, value
             self.protocol.transport.loseConnection()
             return
 
-        print '[[[[[ %d ]]]]]' % size
         self.remain = size
-        print ' & Entering raw mode.', self.outfile, self.remain
         self.protocol.setRawMode()
 
     def raw_data(self, data):
-        if self.remain % 10000 == 0:
-            print '   & ', self.remain, '/', self.size
+        # if self.remain % 10000 == 0:
+        #     print '   & ', self.remain, '/', self.size
+
         self.remain -= len(data)
 
         self.crc = crc32(data, self.crc)
         self.outfile.write(data)
 
     def stop(self, reason):
-        print ' - connectionLost'
         if self.outfile:
             self.outfile.close()
 
-        # print self.outfilename
-        print '>>%s<<' % self.outfilename ## open(self.outfilename).read()
-
-        # Problem uploading - tmpfile will be discarded
         if self.remain != 0:
-            print str(self.remain) + ')!=0'
-            remove_base = '--> removing tmpfile@'
-            if self.remain < 0:
-                reason = ' .. file moved too much'
-            if self.remain > 0:
-                reason = ' .. file moved too little'
+            # print str(self.remain) + ')!=0'
+            # remove_base = '--> removing tmpfile@'
+            # if self.remain < 0:
+            #     reason = ' .. file moved too much'
+            # if self.remain > 0:
+            #     reason = ' .. file moved too little'
 
             if self.outfilename:
-                print remove_base + self.outfilename + reason
+                # print remove_base + self.outfilename + reason
                 os.remove(self.outfilename)
             else:
                 pass
 
         # Success uploading - tmpfile will be saved to disk.
         else:
-            print '\n--> finished saving upload@' + self.outfilename
+            # print '\n--> finished saving upload@' + self.outfilename
 
             if hasattr(self.protocol.factory, 'controller'):
                 self.protocol.factory.controller.completed.callback(None)
@@ -198,8 +186,8 @@ class FileIOProtocol(basic.LineReceiver):
 
         self.processor = None
 
-    def resolve_file_path(self, path, app_name, service_name=None, volume=None):
-        return self.factory.file_resolver(path=path, app_name=app_name, service_name=service_name, volume=volume)
+    def resolve_file_path(self, **kwargs):
+        return self.factory.file_resolver.get_volume_path(**kwargs)
 
 
         # app = yield self.app_controller.get(app_name)
@@ -220,33 +208,56 @@ class FileIOProtocol(basic.LineReceiver):
 
     def lineReceived(self, line):
         """ """
+
         data = json.loads(line)
         # client=self.transport.getPeer().host
 
         if data['cmd'] == 'upload':
-            self.processor = FileUploaderTarget(self, self.factory.basedir)
-            self.processor.start_upload(data['path'], data['file_size'], ticket_id=data['ticket_id'])
+            self.processor = FileUploaderTarget(self, self.resolve_file_path(**data['ref']))
+            self.processor.start_upload(data['path'], data['file_size'])
+            return
+
+        elif data['cmd'] == 'snapshot':
+            file_path = self.resolve_file_path(**data['args'])
+            snapshot = directory_snapshot(file_path)
+            self.transport.write(json.dumps(snapshot) + '\r\n')
+            self.transport.loseConnection()
+            return
+
+
+        elif data['cmd'] == 'remove':
+            file_path = os.path.join(self.resolve_file_path(**data['args']['ref']), data['args']['path'])
+            os.unlink(file_path)
+            self.transport.write(json.dumps(True) + '\r\n')
+            self.transport.loseConnection()
+            return
+
+        elif data['cmd'] == 'mkdir':
+            file_path = os.path.join(self.resolve_file_path(**data['args']['ref']), data['args']['path'])
+            os.makedirs(file_path)
+            self.transport.write(json.dumps(True) + '\r\n')
+            self.transport.loseConnection()
             return
 
         elif data['cmd'] == 'download':
 
-            file_path = self.resolve_file_path(data['path'], data['app_name'], data['service_name'], data['volume'])
+            file_path = os.path.join(self.resolve_file_path(**data['ref']), data['path'])
 
             out_data = {
                 'cmd': 'upload',
                 'path': data['path'],
-                'file_size': os.path.getsize(file_path),
-                'ticket_id': data['ticket_id']
+                'file_size': os.path.getsize(file_path)
             }
             self.transport.write(json.dumps(out_data) + '\r\n')
 
-            controller = type('test', (object,), {'cancel': False, 'snap_id': data['ticket_id'], 'total_sent': 0, 'completed': Deferred()})
+            controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
             self.processor = FileUploaderSource(file_path, controller, self)
             self.processor.start()
             return
 
         else:
-            raise Exception('Unknown command: %s' % data['cmd'])
+            self.transport.write('Unknown command: %s' % data['cmd'] + '\r\n')
+            self.transport.loseConnection()
 
         # # Never happens.. just a demo.
         # if self.session.is_invalid():
@@ -261,18 +272,16 @@ class FileIOProtocol(basic.LineReceiver):
         #     return
 
 
+
     def rawDataReceived(self, data):
         self.processor.raw_data(data)
 
     def connectionMade(self):
         """ """
         basic.LineReceiver.connectionMade(self)
-        print '\n + a connection was made to server'
-        print ' * ', self.transport.getPeer()
 
     def connectionLost(self, reason):
         """ """
-        print('Losstttttt!')
         basic.LineReceiver.connectionLost(self, reason)
         if self.processor:
             self.processor.stop(reason)
@@ -289,9 +298,8 @@ class FileIOFactory(ServerFactory):
     """ file receiver factory """
     protocol = FileIOProtocol
 
-    def __init__(self, basedir, file_resolver=None):
+    def __init__(self, file_resolver=None):
         """ """
-        self.basedir = basedir
         self.file_resolver = file_resolver
 
 class FileUploaderSource(object):
@@ -319,9 +327,6 @@ class FileUploaderSource(object):
         d.addCallback(self.cbTransferCompleted)
 
     def stop(self, reason):
-
-        print ' - connectionLost\n  * ', reason.getErrorMessage()
-        print ' * finished with', self.path
         self.infile.close()
         if self.completed:
             self.controller.completed.callback(self.result)
@@ -337,8 +342,6 @@ class FileUploaderSource(object):
         # Check with controller to see if we've been cancelled and abort
         # if so.
         if self.controller.cancel:
-            print 'FileIOClient._monitor Cancelling'
-
             # Need to unregister the producer with the transport or it will
             # wait for it to finish before breaking the connection
             self.protocol.transport.unregisterProducer()
@@ -358,27 +361,29 @@ class FileUploaderSource(object):
 class FileIOUploaderClientProtocol(basic.LineReceiver):
     """ file sender """
 
-    def __init__(self, path, source_path, ticket_id):
+    def __init__(self, path, source_path, ref):
         self.path = path
         self.source_path = source_path
-        self.ticket_id = ticket_id
+        self.ref = ref
+
+        self.processor = None
 
 
     def connectionMade(self):
         """ """
         # self.ptransport.write(instruction + '\r\n')
 
-        log.msg('Bugabuga')
+        path = os.path.join(self.source_path, self.path)
 
         data = {
             'cmd': 'upload',
             'path': self.path,
-            'file_size': os.path.getsize(self.source_path),
-            'ticket_id': self.ticket_id
+            'ref': self.ref,
+            'file_size': os.path.getsize(path)
         }
         self.transport.write(json.dumps(data) + '\r\n')
 
-        self.processor = FileUploaderSource(self.source_path, self.factory.controller, self)
+        self.processor = FileUploaderSource(path, self.factory.controller, self)
         self.processor.start()
 
 
@@ -388,19 +393,17 @@ class FileIOUploaderClientProtocol(basic.LineReceiver):
         """
         from twisted.internet.error import ConnectionDone
         basic.LineReceiver.connectionLost(self, reason)
-        self.processor.stop(reason)
+        if self.processor:
+            self.processor.stop(reason)
 
 
 class FileIODownloaderClient(basic.LineReceiver):
     """ file sender """
 
-    def __init__(self, path, app_name, service_name, volume, ticket_id, basedir):
+    def __init__(self, path, target_path, ref):
         self.path = path
-        self.app_name = app_name
-        self.service_name = service_name
-        self.volume = volume
-        self.ticket_id = ticket_id
-        self.basedir = basedir
+        self.target_path = target_path
+        self.ref = ref
         self.processor = None
 
     def lineReceived(self, line):
@@ -408,11 +411,9 @@ class FileIODownloaderClient(basic.LineReceiver):
         data = json.loads(line)
         # client=self.transport.getPeer().host
 
-        print data
-
         if data['cmd'] == 'upload':
-            self.processor = FileUploaderTarget(self, self.basedir)
-            self.processor.start_upload(data['path'], data['file_size'], ticket_id=data['ticket_id'])
+            self.processor = FileUploaderTarget(self, self.target_path)
+            self.processor.start_upload(data['path'], data['file_size'])
             return
         else:
             raise Exception('Unknown command: %s' % data['cmd'])
@@ -421,10 +422,7 @@ class FileIODownloaderClient(basic.LineReceiver):
         data = {
             'cmd': 'download',
             'path': self.path,
-            'app_name': self.app_name,
-            'service_name': self.service_name,
-            'volume': self.volume,
-            'ticket_id': self.ticket_id
+            'ref': self.ref
         }
         self.transport.write(json.dumps(data) + '\r\n')
 
@@ -442,6 +440,36 @@ class FileIODownloaderClient(basic.LineReceiver):
             self.processor.stop(reason)
 
 
+class FileIOCommandClient(basic.LineReceiver):
+    """ file sender """
+
+    def __init__(self, command, args):
+        self.command = command
+        self.args = args
+
+        self.data = ''
+
+    def rawDataReceived(self, data):
+        self.data += data
+
+    def connectionMade(self):
+        data = {
+            'cmd': self.command,
+            'args': self.args
+        }
+        self.transport.write(json.dumps(data) + '\r\n')
+        self.setRawMode()
+
+    def connectionLost(self, reason):
+
+        if self.data.endswith('\r\n'):
+            self.data = self.data[0:-2]
+        self.factory.controller.completed.callback(json.loads(self.data))
+        """
+            NOTE: reason is a twisted.python.failure.Failure instance
+        """
+        from twisted.internet.error import ConnectionDone
+        basic.LineReceiver.connectionLost(self, reason)
 
 
 class FileIOClientFactory(ClientFactory):
@@ -469,69 +497,126 @@ class FileIOClientFactory(ClientFactory):
 
 class FileServer(object):
 
-    def __init__(self, basedir=None, host='0.0.0.0', port=7081, file_resolver=None):
+    def __init__(self, host='0.0.0.0', port=7081, file_resolver=None):
         super(FileServer, self).__init__()
-        self.basedir = basedir
         self.host = host
         self.port = port
         self.file_resolver = file_resolver
+        self.fileio = None
+        self.connect = None
 
     def bind(self):
-        fileio = FileIOFactory(self.basedir, file_resolver=self.file_resolver)
-        reactor.listenTCP(self.port, fileio)
+        self.fileio = FileIOFactory(file_resolver=self.file_resolver)
+        self.connect = reactor.listenTCP(self.port, self.fileio)
+
+    def stop(self):
+        if self.connect:
+            self.connect.stopListening()
 
 
 class FileClient(object):
 
-    def __init__(self, basedir=None, host='0.0.0.0', port=7081):
+    def __init__(self, host='0.0.0.0', port=7081):
         super(FileClient, self).__init__()
-        self.basedir = basedir
         self.host = host
         self.port = port
 
-    def upload(self, path, source_path, ticket_id):
+    def upload(self, path, source_path, **kwargs):
 
-        controller = type('test', (object,), {'cancel': False, 'snap_id': ticket_id, 'total_sent': 0, 'completed': Deferred()})
+        controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
 
-        protocol = FileIOUploaderClientProtocol(path, source_path, ticket_id)
+        protocol = FileIOUploaderClientProtocol(path, source_path, kwargs)
         f = FileIOClientFactory(protocol, controller)
         reactor.connectTCP(self.host, self.port, f)
 
         return controller.completed
 
-    def download(self, path, app_name, service_name=None, volume=None, ticket_id=None):
-        controller = type('test', (object,), {'cancel': False, 'snap_id': ticket_id, 'total_sent': 0, 'completed': Deferred()})
+    def download(self, path, target_path, **kwargs):
+        controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
 
-        protocol = FileIODownloaderClient(path, app_name, service_name, volume, ticket_id, self.basedir)
+        protocol = FileIODownloaderClient(path, target_path, kwargs)
         f = FileIOClientFactory(protocol, controller)
         reactor.connectTCP(self.host, self.port, f)
 
         return controller.completed
+
+    def _exec_command(self, command, args):
+        controller = type('test', (object,), {'cancel': False, 'snap_id': 0, 'total_sent': 0, 'completed': Deferred()})
+
+        protocol = FileIOCommandClient(command, args)
+        f = FileIOClientFactory(protocol, controller)
+        reactor.connectTCP(self.host, self.port, f)
+
+        return controller.completed
+
+    def snapshot(self, **kwargs):
+        return self._exec_command('snapshot', kwargs)
+
+    def remove(self, path=None, **kwargs):
+        return self._exec_command('remove', {
+            'path': path,
+            'ref': kwargs
+        })
+
+    def mkdir(self, path=None, **kwargs):
+        return self._exec_command('mkdir', {
+            'path': path,
+            'ref': kwargs
+        })
+
+
+def _remove_path(real_path):
+    if os.path.isdir(real_path):
+        rmtree(real_path)
+    else:
+        os.unlink(real_path)
 
 class VolumeStorageRemote(object):
-
-    def __init__(self, rpc_client, app, service, volume, remote_path, remote_port):
+    def __init__(self, host, port, **ref):
         super(VolumeStorageRemote, self).__init__()
 
-        self.app = app
-        self.service = service
-        self.volume = volume
-        self.rpc_client = rpc_client
+        self.ref = ref
+        for key, val in ref.items():
+            if val is None:
+                del ref[key]
+
+
+        self.host = host
+        self.port = port
 
         self.last_snapshot_id = None
 
-    @inlineCallbacks
+    def _get_client(self):
+        return FileClient(host=self.host, port=self.port)
+
     def get_snapshot(self):
-        snap = yield self.rpc_client._remote_exec('volume_snapshot', self.app, self.service, self.volume)
-        self.last_snapshot_id = snap['id_']
-        del snap['id_']
-        defer.returnValue(snap)
+        return self._get_client().snapshot(**self.ref)
 
-    def accept(self, path):
-        pass
+    def upload(self, path, base_dir):
+        if path.endswith('/'):
+            return self._get_client().mkdir(path=path, **self.ref)
+        else:
+            return self._get_client().upload(path, base_dir, **self.ref)
 
-    def sync(self, volume_diff, source):
-        pass
+    def download(self, path, base_dir):
+        target_path = os.path.join(base_dir, path)
+
+        if path.endswith('/'):
+            if not os.path.exists(target_path):
+                os.makedirs(target_path)
+        else:
+            if not os.path.exists(os.path.dirname(target_path)):
+                os.makedirs(target_path)
+
+            if os.path.exists(target_path):
+                _remove_path(target_path)
+
+            return self._get_client().download(path, base_dir, **self.ref)
+
+    def remove(self, path):
+        return self._get_client().remove(path=path, **self.ref)
+
+
 
 
 class VolumeStorageLocal(object):
@@ -542,6 +627,22 @@ class VolumeStorageLocal(object):
 
     def get_snapshot(self):
         return directory_snapshot(self.path)
+
+    @inlineCallbacks
+    def sync_to(self, storage):
+        """
+        Syncronize files with another storage
+
+        :param storage: VolumeStorageLocal|VolumeStorageRemote
+        :return:
+        """
+
+        snapshot_src = yield self.get_snapshot()
+        snapshot_dst = yield storage.get_snapshot()
+
+        diff = compare(snapshot_src, snapshot_dst)
+
+        storage.sync(diff, self)
 
     def sync(self, volume_diff, source):
 
@@ -554,28 +655,78 @@ class VolumeStorageLocal(object):
         for path in volume_diff['del']:
             self.remove(path)
 
-    def upload(self, src, path):
-        print 'U %s' % path
-        real_path = os.path.join(self.path, path)
+    def _do_copy(self, src_path, target_path):
 
-        if path.endswith('/'):
-            if not os.path.exists(real_path):
-                os.makedirs(real_path)
+        if target_path.endswith('/'):
+            if not os.path.exists(target_path):
+                os.makedirs(target_path)
         else:
-            if os.path.exists(real_path):
-                self._remove_path(real_path)
-            copy(src, real_path)
+            if not os.path.exists(os.path.dirname(target_path)):
+                os.makedirs(target_path)
 
-    def _remove_path(self, real_path):
-        if os.path.isdir(real_path):
-            rmtree(real_path)
-        else:
-            os.unlink(real_path)
+            if os.path.exists(target_path):
+                _remove_path(target_path)
+
+            copy(src_path, target_path)
+
+    def download(self, path, base_dir):
+        src_path = os.path.join(self.path, path)
+        target_path = os.path.join(base_dir, path)
+
+        self._do_copy(src_path, target_path)
+
+    def upload(self, path, base_dir):
+        target_path = os.path.join(self.path, path)
+        src_path = os.path.join(base_dir, path)
+
+        self._do_copy(src_path, target_path)
 
     def remove(self, path):
-        print 'D %s' % path
         real_path = os.path.join(self.path, path)
         if real_path.endswith('/'):
             real_path = real_path[0:-1]
-        self._remove_path(real_path)
+        _remove_path(real_path)
 
+
+def get_storage(ref):
+    match = re.match('^((%(app_regex)s)\.)?(%(service_regex)s)@([a-z0-9A-Z\-\.]+)(:([0-9]+))?(:(.*))?$' % {
+        'app_regex': Application.APP_REGEXP,
+        'service_regex': Application.SERVICE_REGEXP,
+    }, ref)
+    if match:
+        service = match.group(2)
+        app = match.group(3)
+        host = match.group(4)
+        port = match.group(6) or 7081
+        port = int(port)
+        volume = match.group(8)
+
+        return VolumeStorageRemote(host, port, app_name=app, service=service, volume=volume)
+    else:
+        return VolumeStorageLocal(ref)
+
+
+@inlineCallbacks
+def storage_sync(src, dst):
+
+    print('Generating source snapshot')
+    snapshot_src = yield src.get_snapshot()
+
+    print('Generating destination snapshot')
+    snapshot_dst = yield dst.get_snapshot()
+
+    volume_diff = compare(snapshot_src, snapshot_dst)
+
+    paths_to_upload = volume_diff['new'] + volume_diff['upd']
+
+    if len(paths_to_upload):
+        tmp_path = mkdtemp()
+
+    print('Syncing ... ')
+    for path in paths_to_upload:
+        print(path)
+        yield src.download(path, tmp_path)
+        yield dst.upload(path, tmp_path)
+
+    for path in volume_diff['del']:
+        yield dst.remove(path)
