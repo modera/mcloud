@@ -11,6 +11,9 @@ from mfcloud.util import Interface
 import re
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.protocol import Protocol
+from twisted.web._newclient import ResponseDone
+from twisted.web.http import PotentialDataLoss
 
 logger = logging.getLogger('mfcloud.docker')
 
@@ -153,6 +156,37 @@ class DockerTwistedClient(object):
         def on_result(result):
             if result.code == 200:
                 return txhttp.collect(result, on_log)
+            elif result.code == 404:
+                return self.collect_to_exception(NotFound, result)
+            else:
+                return self.collect_to_exception(CommandFailed, result)
+
+        r.addBoth(on_result)
+        return r
+
+    def attach(self, container_id):
+
+
+        class Attach(Protocol):
+
+            def dataReceived(self, data):
+                print 'Received some data:' + len(data)
+
+            def connectionLost(self, reason):
+                print 'Fcuk!'
+
+        r = self._get('containers/%s/logs' % bytes(container_id), response_handler=None, data={
+            'stream': 1,
+            'stdout': True,
+            'stdin': True
+        })
+
+        def on_result(result):
+
+            protocol = Attach()
+
+            if result.code == 200:
+                result.deliverBody(protocol)
             elif result.code == 404:
                 return self.collect_to_exception(NotFound, result)
             else:

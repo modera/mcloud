@@ -23,6 +23,13 @@ def test_images(client):
     assert result == []
 
 @pytest.inlineCallbacks
+def test_attach(client):
+
+    result = yield client.attach('6df6a3c7792ef7702a00a3280885794dab7b2bfb52c783c6bc7f7a64b3ebd6d3')
+
+    print result
+
+@pytest.inlineCallbacks
 def test_images_that_exist(client):
 
     result = yield client.images(name='base')
