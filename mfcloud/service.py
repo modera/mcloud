@@ -28,7 +28,7 @@ class Service(object):
         self.image_builder = None
         self.name = None
         self.app_name = None
-        self.volumes = None
+        self.volumes = []
         self.volumes_from = None
         self.ports = None
         self.command = None
@@ -60,9 +60,10 @@ class Service(object):
         data = yield self.client.inspect(self.name)
         self._inspect_data = data
 
-        metrics = yield self.redis.hget('metrics', self.name)
-        if metrics:
-            self.memory_usage, self.cpu_usage = metrics.split(';')
+        if not isinstance(self.redis, defer.Deferred):  # for tests
+            metrics = yield self.redis.hget('metrics', self.name)
+            if metrics:
+                self.memory_usage, self.cpu_usage = metrics.split(';')
 
         defer.returnValue(self._inspect_data)
 

@@ -4,16 +4,23 @@ import pytest
 from twisted.internet import defer
 from twisted.names import dns
 
-
+@pytest.inlineCallbacks
 def test_resolve_unknown_domain():
     resolver = Resolver(servers=[('8.8.8.8', 53)])
+
     flexmock(resolver)
-    resolver.should_receive('_lookup').and_return('foo')
+    resolver.should_receive('_lookup').never()
+
+    #redis
+    redis = flexmock()
+    redis.should_receive('hget').with_args('domain', 'boo').and_return(None)
+
+    resolver.server_factory = flexmock(redis=redis)
 
     # resolve unknown domain
-    result = resolver.lookupAddress('boo')
+    result = yield resolver.lookupAddress('boo')
 
-    assert result == 'foo'
+    assert result == ([], [], [])
 
 
 @pytest.inlineCallbacks

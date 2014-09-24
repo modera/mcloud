@@ -211,24 +211,3 @@ class YamlConfig(IConfig):
             s.volumes.append({'local': dirname(__file__) + '/api.py', 'remote': '/usr/bin/@me'})
 
             self.services[name] = s
-
-            volume_service_name = '_volumes_%s' % name
-
-            volumes = None
-
-            if path:
-                keys_path = os.path.join(path, '.mfcloud/keys.txt')
-                if os.path.exists(keys_path):
-                    volumes = [{
-                        'local': keys_path,
-                        'remote': '/root/.ssh/authorized_keys'
-                    }]
-
-            volume_service = Service(
-                volumes_from=name,
-                volumes=volumes,
-                name=volume_service_name,
-                ports=['22/tcp'],
-                image_builder=PrebuiltImageBuilder('ribozz/rsync')
-            )
-            self.services[volume_service_name] = volume_service

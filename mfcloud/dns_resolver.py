@@ -28,8 +28,8 @@ class Resolver(client.Resolver):
             value = '127.0.1.7'
             a = dns.RRHeader(name=name, type=dns.A, ttl=10)
 
-            if self.server_factory.noisy:
-                logging.debug('Asked for %s -> Resolved to: %s' % (name, value))
+            # if self.server_factory.noisy:
+            logging.debug('Asked for %s -> Resolved to: %s' % (name, value))
             a.payload = dns.Record_A(value, ttl=10)
 
             defer.returnValue(([a], [], []))
@@ -41,8 +41,8 @@ class Resolver(client.Resolver):
         else:
             a = dns.RRHeader(name=name, type=dns.A, ttl=10)
 
-            if self.server_factory.noisy:
-                logging.debug('Asked for %s -> Resolved to: %s' % (name, value))
+            # if self.server_factory.noisy:
+            logging.debug('Asked for %s -> Resolved to: %s' % (name, value))
             a.payload = dns.Record_A(value, ttl=10)
             defer.returnValue(([a], [], []))
 
