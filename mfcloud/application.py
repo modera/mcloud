@@ -203,18 +203,19 @@ class ApplicationVolumeResolver(object):
     @inlineCallbacks
     def get_volume_path(self, app_name=None, service=None, volume=None):
 
-        if not service or not volume:
-            raise Exception('service name and volume name are required parameteres')
-
         app = yield self.app_controller.get(app_name)
-        config = yield app.load()
 
-        services = config.get_services()
+        if not service or not volume:
+            defer.returnValue(app.config['path'])
+        else:
+            config = yield app.load()
 
-        service = services['%s.%s' % (service, app_name)]
+            services = config.get_services()
 
-        all_volumes = service.list_volumes()
-        if not volume in all_volumes:
-            raise Exception('Volume with name %s no found!' % volume)
+            service = services['%s.%s' % (service, app_name)]
 
-        defer.returnValue(all_volumes[volume])
+            all_volumes = service.list_volumes()
+            if not volume in all_volumes:
+                raise Exception('Volume with name %s no found!' % volume)
+
+            defer.returnValue(all_volumes[volume])

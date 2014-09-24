@@ -299,7 +299,7 @@ class ApiRpcClient(object):
 
     def print_app_list(self, data):
 
-        x = PrettyTable(["Application name", "status", "cpu %", "memory", "Web"], hrules=ALL)
+        x = PrettyTable(["Application name", "status", "cpu %", "memory", "Web", "Path"], hrules=ALL)
         for app in data:
 
             app_cpu = 0.0
@@ -338,7 +338,7 @@ class ApiRpcClient(object):
                     for url in app['public_urls']:
                         web += '\n' + '%s -> [%s]' % (url, web_service_)
 
-            x.add_row([app['name'], app_status, services_cpu_list, services_memory_list, web])
+            x.add_row([app['name'], app_status, services_cpu_list, services_memory_list, web, app['config']['path']])
 
         return '\n' + str(x) + '\n'
 

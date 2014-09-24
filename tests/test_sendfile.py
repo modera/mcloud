@@ -160,6 +160,17 @@ def test_get_storage_remote_without_service():
     assert storage.host == 'example.com'
     assert storage.port == 7081
 
+def test_get_storage_remote_without_service_me():
+
+    storage = get_storage('foo@me')
+    assert isinstance(storage, VolumeStorageRemote)
+
+    assert storage.ref == {
+        'app_name': 'foo'
+    }
+    assert storage.host == 'localhost'
+    assert storage.port == 7081
+
 
 
 @pytest.inlineCallbacks

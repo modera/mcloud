@@ -590,6 +590,8 @@ class VolumeStorageRemote(object):
             if val is None:
                 del ref[key]
 
+        if host == 'me':
+            host = 'localhost'
 
         self.host = host
         self.port = port
@@ -741,9 +743,14 @@ def storage_sync(src, dst, confirm=False, verbose=False):
 
     start = time()
 
+    if verbose:
+        print('Calculating volume differences')
+
     snapshot_src = yield src.get_snapshot()
+    if verbose: print('.')
 
     snapshot_dst = yield dst.get_snapshot()
+    if verbose: print('.')
 
     volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start))
 
