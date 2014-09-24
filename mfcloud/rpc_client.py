@@ -1,12 +1,11 @@
 import json
 import logging
 import sys
-from time import time
 import uuid
-import re
-import os
 import argparse
 
+import re
+import os
 from autobahn.twisted.util import sleep
 from confire import Configuration
 import pprintpp
@@ -16,10 +15,8 @@ from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.error import ConnectionRefusedError
 from twisted.python import log
-
 from mfcloud import metadata
-from mfcloud.sendfile import VolumeStorageRemote, VolumeStorageLocal, get_storage, storage_sync
-from mfcloud.volumes import compare
+from mfcloud.sendfile import get_storage, storage_sync
 
 
 def format_epilog():
@@ -152,11 +149,9 @@ class ApiRpcClient(object):
         src = get_storage(source)
         dst = get_storage(destination)
 
-        yield storage_sync(src, dst, confirm=True)
+        yield storage_sync(src, dst, confirm=True, verbose=True)
 
         yield sleep(0.01)
-
-        reactor.stop()
 
 
         # source = yield self.resolve_volume_port(source)
@@ -410,17 +405,12 @@ class ApiRpcClient(object):
             ret = yield self._remote_exec('list')
             _print(ret)
 
-            reactor.stop()
-
     @cli('Show container logs', arguments=(
         arg('name', help='Container name'),
     ))
     @inlineCallbacks
     def logs(self, name, follow=False, **kwargs):
         ret = yield self._remote_exec('logs', name)
-        self.on_print_list_result(ret)
-
-
 
     @cli('Inspect container', arguments=(
         arg('name', help='Container name'),
@@ -468,7 +458,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def remove(self, name, **kwargs):
-        data = yield self._remote_exec('remove', self.on_print_list_result, name)
+        data = yield self._remote_exec('remove', name)
         print 'result: %s' % pprintpp.pformat(data)
 
     @cli('Destroy containers', arguments=(
@@ -476,7 +466,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def destroy(self, name, **kwargs):
-        data = yield self._remote_exec('destroy', self.on_print_list_result, name)
+        data = yield self._remote_exec('destroy', name)
         print 'result: %s' % pprintpp.pformat(data)
 
     @cli('Start containers', arguments=(
@@ -484,7 +474,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def start(self, name, **kwargs):
-        data = yield self._remote_exec('start', self.on_print_list_result, name)
+        data = yield self._remote_exec('start', name)
         print 'result: %s' % pprintpp.pformat(data)
 
     @cli('Create containers', arguments=(
@@ -492,7 +482,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def create(self, name, **kwargs):
-        data = yield self._remote_exec('create', self.on_print_list_result, name)
+        data = yield self._remote_exec('create', name)
         print 'result: %s' % pprintpp.pformat(data)
 
     def format_domain(self, domain, ssl):
@@ -507,7 +497,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def publish(self, domain, app, ssl=False, **kwargs):
-        data = yield self._remote_exec('publish', self.on_print_list_result, self.format_domain(domain, ssl), app)
+        data = yield self._remote_exec('publish', self.format_domain(domain, ssl), app)
         print 'result: %s' % pprintpp.pformat(data)
 
     def on_vars_result(self, data):
@@ -542,7 +532,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def unpublish(self, domain, ssl=False, **kwargs):
-        data = yield self._remote_exec('unpublish', self.on_print_list_result, self.format_domain(domain, ssl))
+        data = yield self._remote_exec('unpublish', self.format_domain(domain, ssl))
         print 'result: %s' % pprintpp.pformat(data)
 
     @cli('Start application', arguments=(
@@ -550,7 +540,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def restart(self, name, **kwargs):
-        data = yield self._remote_exec('restart', self.on_print_list_result, name)
+        data = yield self._remote_exec('restart', name)
         print 'result: %s' % pprintpp.pformat(data)
 
     @cli('Rebuild application', arguments=(
@@ -558,7 +548,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def rebuild(self, name, **kwargs):
-        data = yield self._remote_exec('rebuild', self.on_print_list_result, name)
+        data = yield self._remote_exec('rebuild', name)
         print 'result: %s' % pprintpp.pformat(data)
 
 
@@ -619,7 +609,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def stop(self, name, **kwargs):
-        data = yield self._remote_exec('stop', self.on_print_list_result, name)
+        data = yield self._remote_exec('stop', name)
         print 'result: %s' % pprintpp.pformat(data)
 
 
@@ -669,7 +659,13 @@ def main(argv):
     if isinstance(args.func, str):
         log.msg('Starting task: %s' % args.func)
 
-        getattr(client, args.func)(**vars(args))
+        @inlineCallbacks
+        def do_call():
+            yield getattr(client, args.func)(**vars(args))
+            sleep(0.01)
+            reactor.stop()
+
+        do_call()
 
         reactor.run()
     else:

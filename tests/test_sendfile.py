@@ -51,6 +51,7 @@ def test_file_upload(tmpdir):
     assert baz.join('boo.txt').read() == 'test content'
 
     client = FileClient(host='localhost', port=33111)
+    print 'booo'
     yield client.upload('boo.txt', str(baz), app_name='hoho')
 
     yield sleep(0.01)

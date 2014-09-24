@@ -203,58 +203,67 @@ class FileIOProtocol(basic.LineReceiver):
         #
         # defer.returnValue(os.path.join(all_volumes[volume], path))
 
-
-    def remove_files(self, files):
-        pass
+    @inlineCallbacks
+    def do_upload(self, data):
+        path = yield self.resolve_file_path(**data['ref'])
+        self.processor = FileUploaderTarget(self, path)
+        self.processor.start_upload(data['path'], data['file_size'])
+    @inlineCallbacks
+    def do_snapshot(self, data):
+        file_path = yield self.resolve_file_path(**data['args'])
+        snapshot = directory_snapshot(file_path)
+        self.transport.write(json.dumps(snapshot) + '\r\n')
+        self.transport.loseConnection()
 
     @inlineCallbacks
+    def do_remove(self, data):
+        path = yield self.resolve_file_path(**data['args']['ref'])
+        file_path = os.path.join(path, data['args']['path'])
+        os.unlink(file_path)
+        self.transport.write(json.dumps(True) + '\r\n')
+        self.transport.loseConnection()
+
+    @inlineCallbacks
+    def do_mkdir(self, data):
+        path = yield self.resolve_file_path(**data['args']['ref'])
+        file_path = os.path.join(path, data['args']['path'])
+        os.makedirs(file_path)
+        self.transport.write(json.dumps(True) + '\r\n')
+        self.transport.loseConnection()
+
+    @inlineCallbacks
+    def do_download(self, data):
+        resolved_path = yield self.resolve_file_path(**data['ref'])
+        file_path = os.path.join(resolved_path, data['path'])
+        out_data = {
+            'cmd': 'upload',
+            'path': data['path'],
+            'file_size': os.path.getsize(file_path)
+        }
+        self.transport.write(json.dumps(out_data) + '\r\n')
+        controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
+        self.processor = FileUploaderSource(file_path, controller, self)
+        self.processor.start()
+
     def lineReceived(self, line):
         """ """
         data = json.loads(line)
         # client=self.transport.getPeer().host
 
         if data['cmd'] == 'upload':
-            path = yield self.resolve_file_path(**data['ref'])
-            self.processor = FileUploaderTarget(self, path)
-            self.processor.start_upload(data['path'], data['file_size'])
+            self.do_upload(data)
 
         elif data['cmd'] == 'snapshot':
-            file_path = yield self.resolve_file_path(**data['args'])
-            snapshot = directory_snapshot(file_path)
-            self.transport.write(json.dumps(snapshot) + '\r\n')
-            self.transport.loseConnection()
-
+            self.do_snapshot(data)
 
         elif data['cmd'] == 'remove':
-            path = yield self.resolve_file_path(**data['args']['ref'])
-            file_path = os.path.join(path, data['args']['path'])
-            os.unlink(file_path)
-            self.transport.write(json.dumps(True) + '\r\n')
-            self.transport.loseConnection()
+            self.do_remove(data)
 
         elif data['cmd'] == 'mkdir':
-            path = yield self.resolve_file_path(**data['args']['ref'])
-            file_path = os.path.join(path, data['args']['path'])
-            os.makedirs(file_path)
-            self.transport.write(json.dumps(True) + '\r\n')
-            self.transport.loseConnection()
+            self.do_mkdir(data)
 
         elif data['cmd'] == 'download':
-
-            resolved_path = yield self.resolve_file_path(**data['ref'])
-            file_path = os.path.join(resolved_path, data['path'])
-
-            out_data = {
-                'cmd': 'upload',
-                'path': data['path'],
-                'file_size': os.path.getsize(file_path)
-            }
-            self.transport.write(json.dumps(out_data) + '\r\n')
-
-            controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
-            self.processor = FileUploaderSource(file_path, controller, self)
-            self.processor.start()
-
+            self.do_download(data)
         else:
             self.transport.write('Unknown command: %s' % data['cmd'] + '\r\n')
             self.transport.loseConnection()
@@ -728,7 +737,7 @@ def diff_has_changes(volume_diff):
     return volume_diff['new'] or volume_diff['upd'] or volume_diff['del']
 
 @inlineCallbacks
-def storage_sync(src, dst, confirm=False):
+def storage_sync(src, dst, confirm=False, verbose=False):
 
     start = time()
 
@@ -739,6 +748,7 @@ def storage_sync(src, dst, confirm=False):
     volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start))
 
     if not diff_has_changes(volume_diff):
+        print('Files are in sync already.')
         return
 
     if confirm:
@@ -751,11 +761,19 @@ def storage_sync(src, dst, confirm=False):
     if len(paths_to_upload):
         tmp_path = mkdtemp()
 
-    print('Syncing ... ')
-    for path in paths_to_upload:
-        sys.stdout.write('.')
-        yield src.download(path, tmp_path)
-        yield dst.upload(path, tmp_path)
+    try:
+        if verbose:
+            log.msg('Syncing ... ')
 
-    for path in volume_diff['del']:
-        yield dst.remove(path)
+        for path in paths_to_upload:
+            if verbose:
+                print(path)
+            yield src.download(path, tmp_path)
+            yield dst.upload(path, tmp_path)
+
+        for path in volume_diff['del']:
+            yield dst.remove(path)
+
+    finally:
+        if len(paths_to_upload):
+            rmtree(tmp_path)

@@ -87,6 +87,7 @@ setup(
         'pyasn1-modules',
         'characteristic',
         'confire',
+	
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
     tests_require=[
