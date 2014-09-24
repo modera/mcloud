@@ -25,7 +25,10 @@ def test_images(client):
 @pytest.inlineCallbacks
 def test_attach(client):
 
-    result = yield client.attach('6df6a3c7792ef7702a00a3280885794dab7b2bfb52c783c6bc7f7a64b3ebd6d3')
+    def on_log(data):
+        print(data)
+    result = yield client.attach('fa05')
+    # result = yield client.attach('1a1')
 
     print result
 

@@ -169,24 +169,45 @@ class DockerTwistedClient(object):
 
         class Attach(Protocol):
 
+            def __init__(self, finished):
+                self.finished = finished
+
             def dataReceived(self, data):
-                print 'Received some data:' + len(data)
+                print data
+                print self.transport
+                # self.transport.write('a')
+
 
             def connectionLost(self, reason):
-                print 'Fcuk!'
+                print reason
+                if reason.check(ResponseDone):
+                    self.finished.callback(None)
+                elif reason.check(PotentialDataLoss):
+                    # http://twistedmatrix.com/trac/ticket/4840
+                    self.finished.callback(None)
+                else:
+                    self.finished.errback(reason)
 
-        r = self._get('containers/%s/logs' % bytes(container_id), response_handler=None, data={
+        r = self._post('containers/%s/attach' % bytes(container_id), response_handler=None, data={
+            # 'logs': 1,
             'stream': 1,
-            'stdout': True,
-            'stdin': True
+            'stdout': 1,
+            # 'stderr': 1,
+            'stdin': 1
         })
 
         def on_result(result):
 
-            protocol = Attach()
 
             if result.code == 200:
+                print('collect')
+                d = defer.Deferred()
+                protocol = Attach(d)
                 result.deliverBody(protocol)
+                return d
+                # def on_log(dat):
+                #     print dat
+                # return txhttp.collect(result, on_log)
             elif result.code == 404:
                 return self.collect_to_exception(NotFound, result)
             else:
