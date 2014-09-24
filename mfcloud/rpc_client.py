@@ -18,7 +18,7 @@ from twisted.internet.error import ConnectionRefusedError
 from twisted.python import log
 
 from mfcloud import metadata
-from mfcloud.sendfile import VolumeStorageRemote, VolumeStorageLocal
+from mfcloud.sendfile import VolumeStorageRemote, VolumeStorageLocal, get_storage, storage_sync
 from mfcloud.volumes import compare
 
 
@@ -149,41 +149,13 @@ class ApiRpcClient(object):
     @inlineCallbacks
     def sync(self, source, destination, **kwargs):
 
-        start = time()
-        src = yield self.get_storage(source)
-        dst = yield self.get_storage(destination)
+        src = get_storage(source)
+        dst = get_storage(destination)
 
-        source_snap = yield src.get_snapshot()
-        destination_snap = yield dst.get_snapshot()
+        yield storage_sync(src, dst, confirm=True)
 
-        volume_diff = compare(source_snap, destination_snap, drift=(time() - start))
+        yield sleep(0.01)
 
-        has_changes = False
-
-        for type_, label in (('new', 'New'), ('upd', 'Updated'), ('del', 'Removed'), ):
-            if volume_diff[type_]:
-                print '\n'
-                print '%s\n' % label + '-' * 40
-
-                cnt = 0
-                for file_ in volume_diff[type_]:
-                    print '   - ' + file_
-                    cnt += 1
-                    if cnt > 10:
-                        print 'And %s files more ...' % (len(volume_diff[type_]) - 11)
-                        break
-
-                has_changes = True
-
-        if has_changes:
-            print '\nSyncing files\n'
-            yield src.sync(volume_diff, dst)
-
-            print '\nDone.\n'
-        else:
-            print 'Files are identical.'
-
-        yield sleep(0.1)
         reactor.stop()
 
 

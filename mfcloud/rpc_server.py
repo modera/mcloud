@@ -3,6 +3,7 @@ import sys
 import netifaces
 
 import inject
+from mfcloud.application import ApplicationVolumeResolver
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
@@ -11,7 +12,7 @@ from twisted.python import log
 
 from mfcloud.plugins.internal_api import InternalApiPlugin
 from mfcloud.plugins.metrics import MetricsPlugin
-from mfcloud.sendfile import FileIOFactory
+from mfcloud.sendfile import FileIOFactory, FileServer
 from mfcloud.util import txtimeout
 
 log.startLogging(sys.stdout)
@@ -122,15 +123,13 @@ def entry_point():
         tasks = inject.instance(TaskService)
         api.tasks = tasks.collect_tasks()
 
-
         log.msg('Starting rpc listener on port %d' % rpc_port)
         server = Server(port=rpc_port)
         server.bind()
 
         log.msg('Starting file listener on port %d' % file_port)
-        fileio = FileIOFactory({})
-        reactor.listenTCP(file_port, fileio)
-
+        file_server = FileServer(host='localhost', port=file_port, file_resolver=ApplicationVolumeResolver())
+        file_server.bind()
 
         log.msg('Dumping resolv conf')
 

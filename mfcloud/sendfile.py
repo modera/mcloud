@@ -56,6 +56,7 @@ from shutil import copy, rmtree
 import sys
 from tempfile import mkdtemp
 from autobahn.twisted.util import sleep
+from mfcloud.util import query_yes_no
 import re
 import os, json, pprint, datetime
 import inject
@@ -73,7 +74,7 @@ from twisted.internet import defer
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet import reactor
 from mfcloud.volumes import directory_snapshot, compare
-
+from time import time
 
 pp = pprint.PrettyPrinter(indent=1)
 
@@ -206,42 +207,42 @@ class FileIOProtocol(basic.LineReceiver):
     def remove_files(self, files):
         pass
 
+    @inlineCallbacks
     def lineReceived(self, line):
         """ """
-
         data = json.loads(line)
         # client=self.transport.getPeer().host
 
         if data['cmd'] == 'upload':
-            self.processor = FileUploaderTarget(self, self.resolve_file_path(**data['ref']))
+            path = yield self.resolve_file_path(**data['ref'])
+            self.processor = FileUploaderTarget(self, path)
             self.processor.start_upload(data['path'], data['file_size'])
-            return
 
         elif data['cmd'] == 'snapshot':
-            file_path = self.resolve_file_path(**data['args'])
+            file_path = yield self.resolve_file_path(**data['args'])
             snapshot = directory_snapshot(file_path)
             self.transport.write(json.dumps(snapshot) + '\r\n')
             self.transport.loseConnection()
-            return
 
 
         elif data['cmd'] == 'remove':
-            file_path = os.path.join(self.resolve_file_path(**data['args']['ref']), data['args']['path'])
+            path = yield self.resolve_file_path(**data['args']['ref'])
+            file_path = os.path.join(path, data['args']['path'])
             os.unlink(file_path)
             self.transport.write(json.dumps(True) + '\r\n')
             self.transport.loseConnection()
-            return
 
         elif data['cmd'] == 'mkdir':
-            file_path = os.path.join(self.resolve_file_path(**data['args']['ref']), data['args']['path'])
+            path = yield self.resolve_file_path(**data['args']['ref'])
+            file_path = os.path.join(path, data['args']['path'])
             os.makedirs(file_path)
             self.transport.write(json.dumps(True) + '\r\n')
             self.transport.loseConnection()
-            return
 
         elif data['cmd'] == 'download':
 
-            file_path = os.path.join(self.resolve_file_path(**data['ref']), data['path'])
+            resolved_path = yield self.resolve_file_path(**data['ref'])
+            file_path = os.path.join(resolved_path, data['path'])
 
             out_data = {
                 'cmd': 'upload',
@@ -253,11 +254,11 @@ class FileIOProtocol(basic.LineReceiver):
             controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
             self.processor = FileUploaderSource(file_path, controller, self)
             self.processor.start()
-            return
 
         else:
             self.transport.write('Unknown command: %s' % data['cmd'] + '\r\n')
             self.transport.loseConnection()
+
 
         # # Never happens.. just a demo.
         # if self.session.is_invalid():
@@ -706,16 +707,44 @@ def get_storage(ref):
         return VolumeStorageLocal(ref)
 
 
-@inlineCallbacks
-def storage_sync(src, dst):
+def print_diff(volume_diff):
 
-    print('Generating source snapshot')
+    for type_, label in (('new', 'New'), ('upd', 'Updated'), ('del', 'Removed'), ):
+        if volume_diff[type_]:
+            print '\n'
+            print '%s\n' % label + '-' * 40
+
+            cnt = 0
+            for file_ in volume_diff[type_]:
+                print '   - ' + file_
+                cnt += 1
+                if cnt > 10:
+                    print 'And %s files more ...' % (len(volume_diff[type_]) - 11)
+                    break
+
+            has_changes = True
+
+def diff_has_changes(volume_diff):
+    return volume_diff['new'] or volume_diff['upd'] or volume_diff['del']
+
+@inlineCallbacks
+def storage_sync(src, dst, confirm=False):
+
+    start = time()
+
     snapshot_src = yield src.get_snapshot()
 
-    print('Generating destination snapshot')
     snapshot_dst = yield dst.get_snapshot()
 
-    volume_diff = compare(snapshot_src, snapshot_dst)
+    volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start))
+
+    if not diff_has_changes(volume_diff):
+        return
+
+    if confirm:
+        print_diff(volume_diff)
+        if not query_yes_no('Apply changes?', default='no'):
+            return
 
     paths_to_upload = volume_diff['new'] + volume_diff['upd']
 
@@ -724,7 +753,7 @@ def storage_sync(src, dst):
 
     print('Syncing ... ')
     for path in paths_to_upload:
-        print(path)
+        sys.stdout.write('.')
         yield src.download(path, tmp_path)
         yield dst.upload(path, tmp_path)
 

@@ -2,7 +2,7 @@ from filecmp import dircmp
 import os
 from uuid import uuid1
 from autobahn.twisted.util import sleep
-from twisted.internet import reactor
+from twisted.internet import defer
 from mfcloud.sendfile import FileServer, FileClient, VolumeStorageLocal, get_storage, VolumeStorageRemote, storage_sync
 
 import pytest

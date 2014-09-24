@@ -194,3 +194,27 @@ class ApplicationController(object):
         results = yield defer.gatherResults(all_apps, consumeErrors=True)
 
         defer.returnValue(results)
+
+
+class ApplicationVolumeResolver(object):
+
+    app_controller = inject.attr(ApplicationController)
+
+    @inlineCallbacks
+    def get_volume_path(self, app_name=None, service=None, volume=None):
+
+        if not service or not volume:
+            raise Exception('service name and volume name are required parameteres')
+
+        app = yield self.app_controller.get(app_name)
+        config = yield app.load()
+
+        services = config.get_services()
+
+        service = services['%s.%s' % (service, app_name)]
+
+        all_volumes = service.list_volumes()
+        if not volume in all_volumes:
+            raise Exception('Volume with name %s no found!' % volume)
+
+        defer.returnValue(all_volumes[volume])
