@@ -7,7 +7,7 @@ from flexmock import flexmock
 from mfcloud.config import YamlConfig
 from mfcloud.container import DockerfileImageBuilder
 from mfcloud.service import Service
-from mfcloud.test_utils import real_docker
+from mfcloud.test_utils import real_docker, fake_inject
 import pytest
 from twisted.internet import defer
 import txredisapi
@@ -107,12 +107,20 @@ def test_is_inspected():
 @pytest.inlineCallbacks
 def test_create():
 
+    redis = flexmock()
+    redis.should_receive('hgetall').and_return([])
+
+    fake_inject({
+        txredisapi.Connection: redis
+    })
+
     s = Service()
     s.name = 'my_service'
     flexmock(s)
 
     s.image_builder = flexmock()
-    s.image_builder.should_receive('build_image').with_args(ticket_id=123123).ordered().once().and_return(defer.succeed('boo'))
+    s.image_builder.should_receive('build_image').with_args(ticket_id=123123).ordered().once()\
+        .and_return(defer.succeed('boo'))
 
     s.client = flexmock()
     s.client.should_receive('create_container').with_args({
@@ -228,17 +236,35 @@ def test_start_ports():
         assert r == 'baz'
 
 
+@pytest.inlineCallbacks
 def test_generate_config():
+
+    redis = flexmock()
+    redis.should_receive('hgetall').and_return([])
+
+    fake_inject({
+        txredisapi.Connection: redis
+    })
 
     s = Service()
     s.name = 'my_service'
 
-    assert s._generate_config('foo') == {
+    config = yield s._generate_config('foo')
+
+    assert config == {
         "Hostname": 'my_service',
         "Image": 'foo'
     }
 
+@pytest.inlineCallbacks
 def test_generate_config_volumes():
+
+    redis = flexmock()
+    redis.should_receive('hgetall').and_return([])
+
+    fake_inject({
+        txredisapi.Connection: redis
+    })
 
     s = Service()
     s.name = 'my_service'
@@ -248,7 +274,8 @@ def test_generate_config_volumes():
         {'local': '/base/path/foo3', 'remote': '/bar3'}
     ]
 
-    assert s._generate_config('foo') == {
+    config = yield s._generate_config('foo')
+    assert config == {
         "Hostname": 'my_service',
         "Image": 'foo',
         "Volumes": {
@@ -258,13 +285,22 @@ def test_generate_config_volumes():
         }
     }
 
+@pytest.inlineCallbacks
 def test_generate_config_env():
+
+    redis = flexmock()
+    redis.should_receive('hgetall').and_return({})
+
+    fake_inject({
+        txredisapi.Connection: redis
+    })
 
     s = Service()
     s.name = 'my_service'
     s.env = {'FOO': 'bar', 'BAZ': 'foo'}
 
-    assert s._generate_config('foo') == {
+    config = yield s._generate_config('foo')
+    assert config == {
         "Hostname": 'my_service',
         "Image": 'foo',
         "Env": ['FOO=bar', 'BAZ=foo']
@@ -274,7 +310,6 @@ def test_generate_config_env():
 @pytest.inlineCallbacks
 def test_service_api():
     from twisted.python import log
-    log.startLogging(sys.stdout)
 
     redis = yield txredisapi.Connection(dbid=2)
     yield redis.flushdb()
@@ -284,42 +319,52 @@ def test_service_api():
     eb = EventBus(redis)
     yield eb.connect()
 
-    with injector({EventBus: eb, 'dns-server': 'local.dns', 'dns-search-suffix': 'local', IDockerClient: DockerTwistedClient()}):
+    redis = flexmock()
+    redis.should_receive('hgetall').and_return({})
+    redis.should_receive('hget').and_return(None)
 
-        name = 'test.foo'
+    fake_inject({
+        EventBus: eb,
+        'dns-server': 'local.dns',
+        'dns-search-suffix': 'local',
+        IDockerClient: DockerTwistedClient(),
+        txredisapi.Connection: redis
+    })
 
-        s = Service(
-            image_builder=DockerfileImageBuilder(os.path.join(os.path.dirname(__file__), '_files/ct_bash')),
-            name=name
-        )
+    name = 'test.foo'
 
-        class Printer(object):
-            def publish(self, *args):
-                print args
+    s = Service(
+        image_builder=DockerfileImageBuilder(os.path.join(os.path.dirname(__file__), '_files/ct_bash')),
+        name=name
+    )
 
-        s.client.message_publisher = Printer()
+    class Printer(object):
+        def publish(self, *args):
+            print args
 
-        yield s.inspect()
+    s.client.message_publisher = Printer()
 
-        assert not s.is_created()
-        assert not s.is_running()
+    yield s.inspect()
 
-        yield s.create(ticket_id=123123)
-        assert s.is_created()
-        assert not s.is_running()
+    assert not s.is_created()
+    assert not s.is_running()
 
-        yield s.start(ticket_id=123123)
-        assert s.is_created()
-        assert s.is_running()
+    yield s.create(ticket_id=123123)
+    assert s.is_created()
+    assert not s.is_running()
+
+    yield s.start(ticket_id=123123)
+    assert s.is_created()
+    assert s.is_running()
 
 
-        yield s.stop(ticket_id=123123)
-        assert s.is_created()
-        assert not s.is_running()
+    yield s.stop(ticket_id=123123)
+    assert s.is_created()
+    assert not s.is_running()
 
-        yield s.destroy(ticket_id=123123)
-        assert not s.is_created()
-        assert not s.is_running()
+    yield s.destroy(ticket_id=123123)
+    assert not s.is_created()
+    assert not s.is_running()
 
 #
 #

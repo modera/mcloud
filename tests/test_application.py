@@ -6,6 +6,7 @@ from mfcloud.config import YamlConfig
 from mfcloud.container import DockerfileImageBuilder, PrebuiltImageBuilder
 from mfcloud.service import Service
 from mfcloud.test_utils import real_docker
+from mfcloud.txdocker import IDockerClient, DockerTwistedClient
 from mfcloud.util import inject_services, txtimeout
 import os
 import pytest
@@ -22,7 +23,20 @@ def test_new_app_instance():
 @pytest.inlineCallbacks
 def test_app_load():
 
-    with real_docker():
+
+    def timeout():
+        print('Can not connect to redis!')
+        reactor.stop()
+
+    redis = yield txtimeout(txredisapi.Connection(dbid=2), 2, timeout)
+    yield redis.flushdb()
+
+
+    def configure(binder):
+        binder.bind(txredisapi.Connection, redis)
+        binder.bind(IDockerClient, DockerTwistedClient())
+
+    with inject_services(configure):
         app = Application({'path': os.path.realpath(os.path.dirname(__file__) + '/../')}, name='myapp')
         config = yield app.load()
 
@@ -39,7 +53,20 @@ def test_app_load():
 @pytest.inlineCallbacks
 def test_app_load_source():
 
-    with real_docker():
+
+    def timeout():
+        print('Can not connect to redis!')
+        reactor.stop()
+
+    redis = yield txtimeout(txredisapi.Connection(dbid=2), 2, timeout)
+    yield redis.flushdb()
+
+
+    def configure(binder):
+        binder.bind(txredisapi.Connection, redis)
+        binder.bind(IDockerClient, DockerTwistedClient())
+
+    with inject_services(configure):
         app = Application({'source': '''
 controller:
   image: foo/bar

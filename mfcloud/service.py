@@ -60,10 +60,12 @@ class Service(object):
         data = yield self.client.inspect(self.name)
         self._inspect_data = data
 
-        if not isinstance(self.redis, defer.Deferred):  # for tests
+        try:
             metrics = yield self.redis.hget('metrics', self.name)
             if metrics:
                 self.memory_usage, self.cpu_usage = metrics.split(';')
+        except inject.InjectorException:
+            pass
 
         defer.returnValue(self._inspect_data)
 
@@ -246,7 +248,8 @@ class Service(object):
         if self.env:
             vlist.update(self.env)
 
-        config['Env'] = ['%s=%s' % x for x in vlist.items()]
+        if len(vlist) > 0:
+            config['Env'] = ['%s=%s' % x for x in vlist.items()]
 
         if self.ports:
             config['ExposedPorts'] = dict([(port, {}) for port in self.ports])

@@ -24,21 +24,10 @@ def test_images(client):
     assert result == []
 
 @pytest.inlineCallbacks
-def test_attach(client):
-
-    yield attach_to_container('a478')
-    # def on_log(data):
-    #     print(data)
-    # result = yield client.attach('a478')
-    # result = yield client.attach('1a1')
-
-    # print result
-
-@pytest.inlineCallbacks
 def test_images_that_exist(client):
 
-    result = yield client.images(name='base')
-    assert 'base:latest' in result[0]['RepoTags']
+    result = yield client.images(name='ubuntu')
+    assert 'ubuntu:latest' in result[0]['RepoTags']
 
 @pytest.inlineCallbacks
 def test_images_all(client):

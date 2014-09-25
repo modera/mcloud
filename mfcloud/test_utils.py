@@ -4,6 +4,12 @@ import inject
 from mfcloud.txdocker import IDockerClient, DockerTwistedClient
 
 
+def fake_inject(services):
+    def configurator(binder):
+        for key, item in services.items():
+            binder.bind(key, item)
+    inject.clear_and_configure(configurator)
+
 @contextmanager
 def real_docker():
     def configurator(binder):
