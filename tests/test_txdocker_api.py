@@ -27,7 +27,7 @@ def test_images(client):
 def test_images_that_exist(client):
 
     result = yield client.images(name='ubuntu')
-    assert 'ubuntu:latest' in result[0]['RepoTags']
+    assert result[0]['RepoTags'][0].startswith('ubuntu:')
 
 @pytest.inlineCallbacks
 def test_images_all(client):
