@@ -3,6 +3,7 @@ import logging
 import sys
 import uuid
 import argparse
+from mfcloud.attach import Terminal, AttachStdinProtocol
 
 import re
 import os
@@ -11,7 +12,7 @@ from confire import Configuration
 import pprintpp
 from prettytable import PrettyTable, ALL
 from texttable import Texttable
-from twisted.internet import reactor, defer
+from twisted.internet import reactor, defer, stdio
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.error import ConnectionRefusedError
 from twisted.python import log
@@ -138,6 +139,55 @@ class ApiRpcClient(object):
 
         except ValueError:
             print(message)
+
+
+    @inlineCallbacks
+    def _exec_remote_with_pty(self, task_name, *args):
+        stream_proto = AttachStdinProtocol()
+        stdio.StandardIO(stream_proto)
+
+        from mfcloud.remote import Client, Task
+
+        client = Client(host=self.host, settings=self.settings)
+        try:
+            yield client.connect()
+
+            task = Task(task_name)
+            task.on_progress = self.print_progress
+            task.on_stdout = stream_proto.write
+            stream_proto.listener = task.on_stdin
+
+            try:
+                yield client.call(task, *args)
+
+                res = yield task.wait_result()
+                yield client.shutdown()
+                yield sleep(0.1)
+
+                defer.returnValue(res)
+
+            except Exception as e:
+                print('Failed to execute the task: %s' % e.message)
+
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mfcloud server'
+
+        finally:
+            stream_proto.stop()
+
+    @cli('Attach to container', arguments=(
+        arg('container_id', help='Container name'),
+    ))
+    def attach(self, container_id, **kwargs):
+        return self._exec_remote_with_pty('attach', container_id)
+
+    @cli('Run a command inside container', arguments=(
+        arg('name', help='Container name'),
+        arg('command', help='Command to execute', default='/bin/bash', nargs='?'),
+        arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
+    ))
+    def run(self, name, command, no_tty=True, **kwargs):
+        return self._exec_remote_with_pty('run', name, command)
 
     @cli('Push appliction volume application', arguments=(
         arg('source', help='Push source'),
@@ -582,27 +632,27 @@ class ApiRpcClient(object):
 
         return d
 
-
-    @cli('Run command in container', arguments=(
-        arg('service', help='Service name'),
-        arg('command', help='Command to execute', default='bash', nargs='?'),
-        arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
-    ))
-    @inlineCallbacks
-    def run(self, service, command='bash', no_tty=False, **kwargs):
-
-        service, app = service.split('.')
-
-        result = yield self._remote_exec('run', app, service)
-        os.system("docker run -i %(options)s-v %(hosts_vol)s --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
-                'container': '%s.%s' % (service, app),
-                'image': result['image'],
-                'hosts_vol': '%s:/etc/hosts' % result['hosts_path'],
-                'dns-server': result['dns-server'],
-                'dns-suffix': '%s.%s' % (app, result['dns-suffix']),
-                'command': command,
-                'options': '-t' if not no_tty else ''
-            })
+    #
+    # @cli('Run command in container', arguments=(
+    #     arg('service', help='Service name'),
+    #     arg('command', help='Command to execute', default='bash', nargs='?'),
+    #
+    # ))
+    # @inlineCallbacks
+    # def run(self, service, command='bash', no_tty=False, **kwargs):
+    #
+    #     service, app = service.split('.')
+    #
+    #     result = yield self._remote_exec('run', app, service)
+    #     os.system("docker run -i %(options)s-v %(hosts_vol)s --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
+    #             'container': '%s.%s' % (service, app),
+    #             'image': result['image'],
+    #             'hosts_vol': '%s:/etc/hosts' % result['hosts_path'],
+    #             'dns-server': result['dns-server'],
+    #             'dns-suffix': '%s.%s' % (app, result['dns-suffix']),
+    #             'command': command,
+    #             'options': '-t' if not no_tty else ''
+    #         })
 
     @cli('Stop application', arguments=(
         arg('name', help='App name'),

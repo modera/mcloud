@@ -151,6 +151,40 @@ class Service(object):
         return not self._inspect_data is None
 
     @inlineCallbacks
+    def run(self, ticket_id, command):
+
+        image_name = yield self.image_builder.build_image(ticket_id=ticket_id)
+
+        config = yield self._generate_config(image_name, for_run=True)
+
+        config['Cmd'] = command
+        config['Tty'] = True
+        config['AttachStdin'] = True
+        config['AttachStdout'] = True
+        config['OpenStdin'] = True
+
+        name = '%s_pty_%s' % (self.name, ticket_id)
+
+        yield self.client.create_container(config, name, ticket_id=ticket_id)
+
+        run_config = {
+            "Dns": [self.dns_server],
+            "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
+        }
+
+        run_config['VolumesFrom'] = self.name
+
+        if self.ports:
+            run_config['PortBindings'] = dict([(port, [{}]) for port in self.ports])
+
+        if self.volumes and len(self.volumes):
+            run_config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
+
+        yield self.client.start_container(name, ticket_id=ticket_id, config=run_config)
+
+        yield self.client.attach(name, ticket_id)
+
+    @inlineCallbacks
     def start(self, ticket_id):
         id_ = yield self.client.find_container_by_name(self.name)
 
@@ -202,9 +236,8 @@ class Service(object):
         defer.returnValue(ret)
 
     @inlineCallbacks
-    def _generate_config(self, image_name):
+    def _generate_config(self, image_name, for_run=False):
         config = {
-            "Hostname": self.name,
             "Image": image_name,
         }
 
@@ -213,18 +246,22 @@ class Service(object):
         if self.env:
             vlist.update(self.env)
 
-        if self.command:
-            config['Cmd'] = self.command.split(' ')
-
         config['Env'] = ['%s=%s' % x for x in vlist.items()]
 
         if self.ports:
             config['ExposedPorts'] = dict([(port, {}) for port in self.ports])
 
-        if self.volumes and len(self.volumes):
-            config['Volumes'] = dict([
-                (x['remote'], {}) for x in self.volumes
-            ])
+
+        if not for_run:
+            config['Hostname'] = self.name
+
+            if self.command:
+                config['Cmd'] = self.command.split(' ')
+
+            if self.volumes and len(self.volumes):
+                config['Volumes'] = dict([
+                    (x['remote'], {}) for x in self.volumes
+                ])
 
         defer.returnValue(config)
 

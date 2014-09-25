@@ -24,7 +24,7 @@ class EventBus(object):
         if not isinstance(data, basestring):
             data = 'j:' + json.dumps(data)
         else:
-            data = str(data)
+            data = 'b:' + str(data)
 
         return self.redis.publish(event_name, data)
 
@@ -40,6 +40,12 @@ class EventBus(object):
             raise Exception('Event bus is not connected yet!')
         self.protocol.on(pattern, callback)
         log.msg('Registered %s for channel: %s' % (callback, pattern))
+
+    def cancel(self, pattern, callback):
+        if not self.protocol:
+            raise Exception('Event bus is not connected yet!')
+        self.protocol.cancel(pattern, callback)
+        log.msg('unRegistered %s for channel: %s' % (callback, pattern))
 
     def once(self, pattern, callback):
         if not self.protocol:

@@ -1,4 +1,5 @@
 import json
+from mfcloud.attach import attach_to_container
 import os
 from flexmock import flexmock
 from mfcloud import txhttp
@@ -25,12 +26,13 @@ def test_images(client):
 @pytest.inlineCallbacks
 def test_attach(client):
 
-    def on_log(data):
-        print(data)
-    result = yield client.attach('fa05')
+    yield attach_to_container('a478')
+    # def on_log(data):
+    #     print(data)
+    # result = yield client.attach('a478')
     # result = yield client.attach('1a1')
 
-    print result
+    # print result
 
 @pytest.inlineCallbacks
 def test_images_that_exist(client):

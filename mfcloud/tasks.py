@@ -102,6 +102,36 @@ class TaskService(object):
 
 
     @inlineCallbacks
+    def task_attach(self, ticket_id, container_id):
+
+        try:
+            client = inject.instance(IDockerClient)
+            yield client.attach(container_id, ticket_id)
+        except NotFound:
+            self.task_log(ticket_id, 'Container not found by name.')
+
+
+    @inlineCallbacks
+    def task_run(self, ticket_id, name, command):
+
+        service_name, app_name = name.split('.')
+
+        try:
+            app = yield self.app_controller.get(app_name)
+
+            config = yield app.load()
+
+            services = config.get_services()
+
+            service = services['%s.%s' % (service_name, app_name)]
+
+            yield service.run(ticket_id, command)
+
+        except NotFound:
+            self.task_log(ticket_id, 'Container not found by name.')
+
+
+    @inlineCallbacks
     def task_status(self, ticket_id, name):
         app = yield self.app_controller.get(name)
         config = yield app.load()
@@ -313,22 +343,6 @@ class TaskService(object):
         ret = 'Done.'
         defer.returnValue(ret)
 
-    @inlineCallbacks
-    def task_run(self, ticket_id, app_name, service_name):
-
-        app = yield self.app_controller.get(app_name)
-        config = yield app.load()
-
-        service_name = '%s.%s' % (service_name, app_name)
-
-        service = config.get_services()[service_name]
-
-        defer.returnValue({
-            'image': service.image(),
-            'hosts_path': service.hosts_path(),
-            'dns-server': self.dns_server,
-            'dns-suffix': self.dns_search_suffix,
-        })
 
     @inlineCallbacks
     def task_stop(self, ticket_id, name):

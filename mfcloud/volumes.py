@@ -1,9 +1,8 @@
-from copy import copy
-import json
-import os
 from subprocess import Popen, PIPE
 from time import time
-from pprintpp import pprint
+from scandir import walk
+
+import os
 
 
 def is_ignored(ignore_list, path):
@@ -72,8 +71,6 @@ def dump_file(dirname, ref, parts):
                 me['_mtime'] = child['_mtime']
 
     return me
-
-from scandir import walk
 
 def directory_snapshot(dirname):
     """

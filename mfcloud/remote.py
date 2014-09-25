@@ -54,8 +54,13 @@ class ApiRpcServer(object):
 
     def task_progress(self, data, ticket_id):
         if ticket_id in self.ticket_map:
-            log.msg('Progress: %s' % data)
+            # log.msg('Progress: %s' % data)
             self.ticket_map[ticket_id].send_event('task.progress.%s' % ticket_id, data)
+
+    def task_stdout(self, data, ticket_id):
+        if ticket_id in self.ticket_map:
+            # log.msg('Progress: %s' % data)
+            self.ticket_map[ticket_id].send_event('task.stdout.%s' % ticket_id, data)
 
     def task_kill(self, ticket_id):
 
@@ -149,19 +154,19 @@ class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
         self.factory.server.on_client_disconnect(self, wasClean, code, reason)
 
     def onMessage(self, payload, isBinary):
-        log.msg('Websocket server in: %s' % payload)
+        # log.msg('Websocket server in: %s' % payload)
         # print(self.factory.server.on_message())
 
         reactor.callLater(0, self.factory.server.on_message, self, payload, isBinary)
 
     def send_event(self, event_name, data=None):
         data_ = {'type': 'event', 'name': event_name, 'data': data}
-        log.msg('Sent out event: %s' % event_name)
+        # log.msg('Sent out event: %s' % event_name)
         return self.sendMessage(json.dumps(data_))
 
     def send_response(self, request_id, response, success=True):
         data_ = {'type': 'response', 'id': request_id, 'success': success, 'response': response}
-        log.msg('Sent out response: %s' % request_id)
+        # log.msg('Sent out response: %s' % request_id)
         return self.sendMessage(json.dumps(data_))
 
 
@@ -184,7 +189,7 @@ class Server(object):
         #"""
         #ticket_id = yield self.redis.incr('mfcloud-ticket-id')
 
-        log.msg('Incomming message: %s' % payload)
+        # log.msg('Incomming message: %s' % payload)
 
         try:
             data = json.loads(payload)
@@ -195,6 +200,9 @@ class Server(object):
             elif data['task'] == 'kill':
                 success = self.rpc_server.task_kill(int(data['kwargs']['ticket_id']))
                 yield client.send_response(data['id'], success)
+
+            elif data['task'] == 'stdin':
+                yield self.eb.fire_event('task.stdin.%s' % int(data['kwargs']['ticket_id']), data['kwargs']['data'])
 
             elif data['task'] == 'list':
                 yield client.send_response(data['id'], self.rpc_server.task_list())
@@ -357,7 +365,7 @@ class Client(object):
 
         if data['type'] == 'event':
 
-            events = ['progress', 'failure', 'success']
+            events = ['progress', 'failure', 'success', 'stdout']
 
             if data['name'].startswith('task.'):
 
@@ -371,7 +379,7 @@ class Client(object):
                 if task_id in self.task_map:
                     method = 'on_%s' % etype
                     try:
-                        # call one of on_progress, on_failure, on_success
+                        # call one of on_progress, on_failure, on_success, on_stdin
                         getattr(self.task_map[task_id], method)(data['data'])
                     except AlreadyCalledError:
                         log.msg('Callback alredy called: %s. Skipping' % method)
@@ -430,6 +438,11 @@ class Client(object):
 
         defer.returnValue(result)
 
+    @inlineCallbacks
+    def task_stdin(self, task_id, data):
+        result = yield self.call_sync('stdin', ticket_id=task_id, data=data)
+        defer.returnValue(result)
+
     def task_list(self):
         return self.call_sync('list')
 
@@ -439,12 +452,16 @@ class Client(object):
         result = yield self.call_sync('task_start', task.name, *args, **kwargs)
         result = json.loads(result)
 
+        print result
+
         if result['success']:
             task.id = result['id']
         else:
             raise ApiError(result['error'])
 
         task.is_running = True
+
+        task.client = self
 
         self.task_map[task.id] = task
 
@@ -468,9 +485,14 @@ class Task(object):
         self.failure = False
 
         self.wait = None
+        self.client = None
 
     def on_progress(self, data):
         self.data.append(data)
+
+    def on_stdin(self, data):
+        open('foo.txt', 'w+').write(data)
+        return self.client.task_stdin(self.id, data)
 
     def on_success(self, result):
         self.response = result

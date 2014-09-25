@@ -20,6 +20,8 @@ defaults
         log     global
         mode    http
         option  httplog
+        option  httpclose
+        option  forwardfor
         option  dontlognull
         contimeout 5000
         clitimeout 50000

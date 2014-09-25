@@ -1,7 +1,9 @@
 import json
 import logging
 from urllib import urlencode
+import sys
 from mfcloud import txhttp
+from mfcloud.attach import Attach, AttachFactory, Terminal, AttachStdinProtocol
 
 from mfcloud.events import EventBus
 from mfcloud.remote import ApiRpcServer
@@ -9,9 +11,11 @@ import os
 import inject
 from mfcloud.util import Interface
 import re
-from twisted.internet import defer
+from twisted.conch import stdio
+from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Protocol
+from twisted.protocols import basic
 from twisted.web._newclient import ResponseDone
 from twisted.web.http import PotentialDataLoss
 
@@ -43,6 +47,9 @@ class DockerTwistedClient(object):
 
     def task_log(self, ticket_id, message):
         self.rpc_server.task_progress(message, ticket_id)
+
+    def task_stdout(self, ticket_id, data):
+        self.rpc_server.task_stdout(data, ticket_id)
 
     def __init__(self, url=None):
         super(DockerTwistedClient, self).__init__()
@@ -164,57 +171,30 @@ class DockerTwistedClient(object):
         r.addBoth(on_result)
         return r
 
-    def attach(self, container_id):
+    @inlineCallbacks
+    def attach(self, container_id, ticket_id):
 
+        d = defer.Deferred()
+        protocol = Attach(d, container_id)
 
-        class Attach(Protocol):
+        try:
+            def stdout_write(data):
+                self.task_stdout(ticket_id, data)
+            protocol.stdout_write = stdout_write
 
-            def __init__(self, finished):
-                self.finished = finished
+            def stdin_on_input(channel, data):
+                protocol.stdin_on_input(data)
 
-            def dataReceived(self, data):
-                print data
-                print self.transport
-                # self.transport.write('a')
+            self.eb.on('task.stdin.%s' % int(ticket_id), stdin_on_input)
 
+            f = AttachFactory(protocol)
+            reactor.connectUNIX('/var/run/docker.sock', f)
 
-            def connectionLost(self, reason):
-                print reason
-                if reason.check(ResponseDone):
-                    self.finished.callback(None)
-                elif reason.check(PotentialDataLoss):
-                    # http://twistedmatrix.com/trac/ticket/4840
-                    self.finished.callback(None)
-                else:
-                    self.finished.errback(reason)
+            yield d
 
-        r = self._post('containers/%s/attach' % bytes(container_id), response_handler=None, data={
-            # 'logs': 1,
-            'stream': 1,
-            'stdout': 1,
-            # 'stderr': 1,
-            'stdin': 1
-        })
+        finally:
+            self.eb.cancel('task.stdin.%s' % int(ticket_id), stdin_on_input)
 
-        def on_result(result):
-
-
-            if result.code == 200:
-                print('collect')
-                d = defer.Deferred()
-                protocol = Attach(d)
-                result.deliverBody(protocol)
-                return d
-                # def on_log(dat):
-                #     print dat
-                # return txhttp.collect(result, on_log)
-            elif result.code == 404:
-                return self.collect_to_exception(NotFound, result)
-            else:
-                return self.collect_to_exception(CommandFailed, result)
-
-        r.addBoth(on_result)
-        return r
 
     def events(self, on_event):
         r = self._get('events', response_handler=None)
