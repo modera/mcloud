@@ -1,13 +1,7 @@
-import json
-from flexmock import flexmock
 import inject
 from mfcloud.events import EventBus
-from mfcloud.util import inject_services
 import pytest
 from twisted.internet import reactor
-from txzmq import ZmqPubConnection
-
-
 
 import txredisapi as redis
 

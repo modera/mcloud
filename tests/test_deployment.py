@@ -7,7 +7,7 @@ from mfcloud.util import inject_services
 import pytest
 from twisted.internet import defer
 import txredisapi
-from txzmq import ZmqPubConnection
+
 
 @pytest.mark.xfail
 def test_deployment_new_instance():

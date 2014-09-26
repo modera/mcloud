@@ -128,7 +128,7 @@ def entry_point():
         server.bind()
 
         log.msg('Starting file listener on port %d' % file_port)
-        file_server = FileServer(host='localhost', port=file_port, file_resolver=ApplicationVolumeResolver())
+        file_server = FileServer(host='0.0.0.0', port=file_port, file_resolver=ApplicationVolumeResolver())
         file_server.bind()
 
         log.msg('Dumping resolv conf')

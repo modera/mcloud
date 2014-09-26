@@ -60,6 +60,7 @@ from mfcloud.util import query_yes_no
 import re
 import os, json, pprint, datetime
 import inject
+from twisted.internet.base import BlockingResolver
 from twisted.python import log
 from mfcloud.events import EventBus
 from mfcloud.application import ApplicationController, Application
@@ -528,8 +529,8 @@ class FileClient(object):
 
     def __init__(self, host='0.0.0.0', port=7081):
         super(FileClient, self).__init__()
-        self.host = host
         self.port = port
+        self.host = host
 
     def upload(self, path, source_path, **kwargs):
 
@@ -537,7 +538,7 @@ class FileClient(object):
 
         protocol = FileIOUploaderClientProtocol(path, source_path, kwargs)
         f = FileIOClientFactory(protocol, controller)
-        reactor.connectTCP(self.host, self.port, f)
+        reactor.connectTCP(self.host, self.port, f, timeout=2)
 
         return controller.completed
 
@@ -546,7 +547,7 @@ class FileClient(object):
 
         protocol = FileIODownloaderClient(path, target_path, kwargs)
         f = FileIOClientFactory(protocol, controller)
-        reactor.connectTCP(self.host, self.port, f)
+        reactor.connectTCP(self.host, self.port, f, timeout=2)
 
         return controller.completed
 
@@ -555,7 +556,7 @@ class FileClient(object):
 
         protocol = FileIOCommandClient(command, args)
         f = FileIOClientFactory(protocol, controller)
-        reactor.connectTCP(self.host, self.port, f)
+        reactor.connectTCP(self.host, self.port, f, timeout=2)
 
         return controller.completed
 
@@ -712,6 +713,9 @@ def get_storage(ref):
         port = match.group(6) or 7081
         port = int(port)
         volume = match.group(8)
+
+        # if not re.match('^[0-9\.]+$', host):
+        #     host = BlockingResolver().getHostByName(host)
 
         return VolumeStorageRemote(host, port, app_name=app, service=service, volume=volume)
     else:

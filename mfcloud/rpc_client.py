@@ -14,6 +14,7 @@ from prettytable import PrettyTable, ALL
 from texttable import Texttable
 from twisted.internet import reactor, defer, stdio
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.error import TimeoutError
 from twisted.internet.error import ConnectionRefusedError
 from twisted.python import log
 from mfcloud import metadata
@@ -199,22 +200,14 @@ class ApiRpcClient(object):
         src = get_storage(source)
         dst = get_storage(destination)
 
-        yield storage_sync(src, dst, confirm=True, verbose=True)
+        try:
+            yield storage_sync(src, dst, confirm=True, verbose=True)
+        except TimeoutError:
+            print ('Can\'t connect to remote port. Connection problem or wrong hostname?')
+            reactor.stop()
+            return
 
         yield sleep(0.01)
-
-
-        # source = yield self.resolve_volume_port(source)
-        # destination = yield self.resolve_volume_port(destination)
-        #
-        # command = "rsync -v -r --exclude '.git' %(local_path)s %(remote_path)s" % {
-        #     'local_path': source,
-        #     'remote_path': destination,
-        # }
-        #
-        # print command
-        #
-        # os.system(command)
 
 
     @cli('List running tasks')
@@ -232,11 +225,8 @@ class ApiRpcClient(object):
         except ConnectionRefusedError:
             print 'Can\'t connect to mfcloud server'
 
-        client.shutdown()
+        yield client.shutdown()
         yield sleep(0.01)
-
-        if self.stop_reactor:
-            reactor.stop()
 
     @cli('Kills task', arguments=(
         arg('task_id', help='Id of the task'),
@@ -391,33 +381,6 @@ class ApiRpcClient(object):
             x.add_row([app['name'], app_status, services_cpu_list, services_memory_list, web, app['config']['path']])
 
         return '\n' + str(x) + '\n'
-
-
-    @cli('List running processes')
-    @inlineCallbacks
-    def ps(self, follow=False, **kwargs):
-        self.last_lines = 0
-
-        def _print(data):
-            ret = self.on_print_list_result(data, as_string=True)
-
-            if self.last_lines > 0:
-                print '\033[1A' * self.last_lines
-
-            print ret
-
-            self.last_lines = ret.count('\n') + 2
-
-        if follow:
-            self.stop_reactor = False
-            while follow:
-                ret = yield self._remote_exec('list')
-                _print(ret)
-                yield sleep(1)
-        else:
-            ret = yield self._remote_exec('list')
-            _print(ret)
-
 
     @cli('List registered applications', arguments=(
         arg('name', default=None, help='Application name', nargs='?'),
@@ -632,28 +595,6 @@ class ApiRpcClient(object):
 
         return d
 
-    #
-    # @cli('Run command in container', arguments=(
-    #     arg('service', help='Service name'),
-    #     arg('command', help='Command to execute', default='bash', nargs='?'),
-    #
-    # ))
-    # @inlineCallbacks
-    # def run(self, service, command='bash', no_tty=False, **kwargs):
-    #
-    #     service, app = service.split('.')
-    #
-    #     result = yield self._remote_exec('run', app, service)
-    #     os.system("docker run -i %(options)s-v %(hosts_vol)s --dns=%(dns-server)s --dns-search=%(dns-suffix)s --volumes-from=%(container)s %(image)s %(command)s" % {
-    #             'container': '%s.%s' % (service, app),
-    #             'image': result['image'],
-    #             'hosts_vol': '%s:/etc/hosts' % result['hosts_path'],
-    #             'dns-server': result['dns-server'],
-    #             'dns-suffix': '%s.%s' % (app, result['dns-suffix']),
-    #             'command': command,
-    #             'options': '-t' if not no_tty else ''
-    #         })
-
     @cli('Stop application', arguments=(
         arg('name', help='App name'),
     ))
@@ -712,7 +653,6 @@ def main(argv):
         @inlineCallbacks
         def do_call():
             yield getattr(client, args.func)(**vars(args))
-            sleep(0.01)
             reactor.stop()
 
         do_call()

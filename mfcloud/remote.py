@@ -452,8 +452,6 @@ class Client(object):
         result = yield self.call_sync('task_start', task.name, *args, **kwargs)
         result = json.loads(result)
 
-        print result
-
         if result['success']:
             task.id = result['id']
         else:
