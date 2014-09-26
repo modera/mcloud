@@ -75,7 +75,6 @@ setup(
         'voluptuous',
         'pprintpp',
         'prettytable',
-        'docker-py',
         'treq',
         'pyOpenSSL',
         'PyYAML',

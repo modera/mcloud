@@ -1,5 +1,3 @@
-setuptools>=2.1
-# Runtime requirements
 pytest-pythonpath
 pytest
 pytest-cov
@@ -12,18 +10,4 @@ pytest-twisted
 flexmock
 sphinxcontrib-plantuml
 sphinx-argparse
-jinja2
-texttable
-twisted
-txredisapi
-inject
-voluptuous
-pprintpp
-prettytable
-docker-py
 treq
-pyOpenSSL
-PyYAML
-txsockjs
-service-identity
-netifaces
