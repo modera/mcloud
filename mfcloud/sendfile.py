@@ -475,7 +475,16 @@ class FileIOCommandClient(basic.LineReceiver):
 
         if self.data.endswith('\r\n'):
             self.data = self.data[0:-2]
-        self.factory.controller.completed.callback(json.loads(self.data))
+
+        try:
+            data_decoded = json.loads(self.data)
+
+            self.factory.controller.completed.callback(data_decoded)
+        except ValueError as e:
+            print ('Incorrect data received: %s of len %d' % (self.data, len(self.data)))
+            self.factory.controller.completed.errback(e)
+
+
         """
             NOTE: reason is a twisted.python.failure.Failure instance
         """
@@ -556,7 +565,7 @@ class FileClient(object):
 
         protocol = FileIOCommandClient(command, args)
         f = FileIOClientFactory(protocol, controller)
-        reactor.connectTCP(self.host, self.port, f, timeout=2)
+        reactor.connectTCP(self.host, self.port, f, timeout=4)
 
         return controller.completed
 
@@ -640,22 +649,6 @@ class VolumeStorageLocal(object):
 
     def get_snapshot(self):
         return directory_snapshot(self.path)
-
-    @inlineCallbacks
-    def sync_to(self, storage):
-        """
-        Syncronize files with another storage
-
-        :param storage: VolumeStorageLocal|VolumeStorageRemote
-        :return:
-        """
-
-        snapshot_src = yield self.get_snapshot()
-        snapshot_dst = yield storage.get_snapshot()
-
-        diff = compare(snapshot_src, snapshot_dst)
-
-        storage.sync(diff, self)
 
     def sync(self, volume_diff, source):
 
@@ -751,10 +744,14 @@ def storage_sync(src, dst, confirm=False, verbose=False):
         print('Calculating volume differences')
 
     snapshot_src = yield src.get_snapshot()
-    if verbose: print('.')
+    if verbose:
+        print('.')
 
     snapshot_dst = yield dst.get_snapshot()
-    if verbose: print('.')
+
+
+    if verbose:
+        print('.')
 
     volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start))
 
@@ -784,7 +781,6 @@ def storage_sync(src, dst, confirm=False, verbose=False):
 
         for path in volume_diff['del']:
             yield dst.remove(path)
-
     finally:
         if len(paths_to_upload):
             rmtree(tmp_path)

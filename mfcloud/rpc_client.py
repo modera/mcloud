@@ -200,15 +200,7 @@ class ApiRpcClient(object):
         src = get_storage(source)
         dst = get_storage(destination)
 
-        try:
-            yield storage_sync(src, dst, confirm=True, verbose=True)
-        except TimeoutError:
-            print ('Can\'t connect to remote port. Connection problem or wrong hostname?')
-            reactor.stop()
-            return
-
-        yield sleep(0.01)
-
+        yield storage_sync(src, dst, confirm=True, verbose=True)
 
     @cli('List running tasks')
     @inlineCallbacks
@@ -650,12 +642,16 @@ def main(argv):
     if isinstance(args.func, str):
         log.msg('Starting task: %s' % args.func)
 
-        @inlineCallbacks
-        def do_call():
-            yield getattr(client, args.func)(**vars(args))
+        def ok(result):
             reactor.stop()
 
-        do_call()
+        def err(failure):
+            print 'Unhandled failure: %s' % failure
+            reactor.stop()
+
+        d = getattr(client, args.func)(**vars(args))
+        d.addCallback(ok)
+        d.addErrback(err)
 
         reactor.run()
     else:

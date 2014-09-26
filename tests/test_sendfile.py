@@ -1,3 +1,4 @@
+# coding=utf-8
 from filecmp import dircmp
 import os
 from uuid import uuid1
@@ -89,6 +90,27 @@ def test_file_download(tmpdir):
 
     server.stop()
 
+
+@pytest.inlineCallbacks
+def test_remote_snapshot_unicode(tmpdir):
+    resolver = flexmock()
+    resolver.should_receive('get_volume_path').with_args(app_name='hoho').and_return(os.path.dirname(__file__) + '/_files/snap_unicode')
+
+    server = FileServer(host='localhost', port=33112, file_resolver=resolver)
+    server.bind()
+
+    yield sleep(0.01)
+
+    client = FileClient(host='localhost', port=33112)
+    snapshot = yield client.snapshot(app_name='hoho')
+
+    yield sleep(0.01)
+
+    filename = u'хуйюй мухуюй.txt'
+    assert filename in snapshot
+    assert snapshot[filename]['_path'] == filename
+
+    server.stop()
 
 @pytest.inlineCallbacks
 def test_remote_snapshot(tmpdir):

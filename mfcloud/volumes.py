@@ -87,7 +87,7 @@ def directory_snapshot(dirname):
 
     for root, dirs, files in walk(dirname):
 
-        all_files = [os.path.join(root, f) + '/' for f in dirs] + [os.path.join(root, f) for f in files]
+        all_files = [os.path.join(root.decode('utf-8'), f.decode('utf-8')) + '/' for f in dirs] + [os.path.join(root.decode('utf-8'), f.decode('utf-8')) for f in files]
 
         for path_ in all_files:
             rel_path = path_[len(dirname) + 1:]

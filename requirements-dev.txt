@@ -10,4 +10,3 @@ pytest-twisted
 flexmock
 sphinxcontrib-plantuml
 sphinx-argparse
-treq
