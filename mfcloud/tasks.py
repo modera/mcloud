@@ -102,7 +102,7 @@ class TaskService(object):
 
 
     @inlineCallbacks
-    def task_attach(self, ticket_id, container_id):
+    def task_attach(self, ticket_id, container_id, size=None):
 
         try:
             client = inject.instance(IDockerClient)
@@ -112,7 +112,7 @@ class TaskService(object):
 
 
     @inlineCallbacks
-    def task_run(self, ticket_id, name, command):
+    def task_run(self, ticket_id, name, command, size=None):
 
         service_name, app_name = name.split('.')
 
@@ -125,7 +125,7 @@ class TaskService(object):
 
             service = services['%s.%s' % (service_name, app_name)]
 
-            yield service.run(ticket_id, command)
+            yield service.run(ticket_id, command, size=size)
 
         except NotFound:
             self.task_log(ticket_id, 'Container not found by name.')

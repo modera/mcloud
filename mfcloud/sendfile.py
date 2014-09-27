@@ -736,7 +736,7 @@ def diff_has_changes(volume_diff):
     return volume_diff['new'] or volume_diff['upd'] or volume_diff['del']
 
 @inlineCallbacks
-def storage_sync(src, dst, confirm=False, verbose=False):
+def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
 
     start = time()
 
@@ -754,6 +754,9 @@ def storage_sync(src, dst, confirm=False, verbose=False):
         print('.')
 
     volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start))
+
+    if not remove:
+        volume_diff['del'] = []
 
     if not diff_has_changes(volume_diff):
         print('Files are in sync already.')

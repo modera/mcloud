@@ -236,6 +236,14 @@ class DockerTwistedClient(object):
         r = yield self.collect_json_or_none(r)
         defer.returnValue(r)
 
+    @inlineCallbacks
+    def resize(self, container_id, width, height):
+        assert not id is None
+        r = yield self._post(str("containers/%s/resize" % container_id), params={'h': height, 'w': width})
+        logger.info({'h': height, 'w': width})
+        r = yield txhttp.content(r)
+        defer.returnValue(r)
+
     def list(self):
         r = self._get('containers/json')
         r.addCallback(self.collect_json_or_none)
