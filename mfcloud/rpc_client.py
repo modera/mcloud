@@ -193,14 +193,15 @@ class ApiRpcClient(object):
     @cli('Push appliction volume application', arguments=(
         arg('source', help='Push source'),
         arg('destination', help='Push destination'),
+        arg('--no-remove', default=False, action='store_true', help='Skip file removal'),
     ))
     @inlineCallbacks
-    def sync(self, source, destination, **kwargs):
+    def sync(self, source, destination, no_remove, **kwargs):
 
         src = get_storage(source)
         dst = get_storage(destination)
 
-        yield storage_sync(src, dst, confirm=True, verbose=True)
+        yield storage_sync(src, dst, confirm=True, verbose=True, no_remove=True)
 
     @cli('List running tasks')
     @inlineCallbacks
@@ -283,7 +284,7 @@ class ApiRpcClient(object):
         def on_result(data):
             print 'result: %s' % pprintpp.pformat(data)
 
-        self._remote_exec('init', name, os.path.realpath(path))
+        return self._remote_exec('init', name, os.path.realpath(path))
 
 
     def print_app_details(self, app):
@@ -306,11 +307,11 @@ class ApiRpcClient(object):
 
             if app['status'] != 'error':
                 if 'web_service' in app and app['web_service'] == service['name']:
-                    web.append(app['fullname'])
+                    web.append('http://' + app['fullname'])
 
                     if 'public_urls' in app and app['public_urls']:
                         for url in app['public_urls']:
-                            web.append(url)
+                            web.append('http://' + url)
 
             x.add_row([
                 service['name'],
