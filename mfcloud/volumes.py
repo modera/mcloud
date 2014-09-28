@@ -31,7 +31,7 @@ def dump_node(path, relpath):
 
     return {
         '_path': relpath,
-        '_mtime': time() - os.path.getmtime(path),
+        '_mtime': time() - os.path.getmtime(path.encode('utf-8')),
     }
 
 
@@ -54,7 +54,7 @@ def dump_file(dirname, ref, parts):
             path_rel = base_name
 
         # skip all links
-        if os.path.islink(path_full):
+        if os.path.islink(path_full.encode('utf-8')):
             return
 
         me = dump_node(path_full, path_rel)

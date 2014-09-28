@@ -227,8 +227,9 @@ class FileIOProtocol(basic.LineReceiver):
     @inlineCallbacks
     def do_mkdir(self, data):
         path = yield self.resolve_file_path(**data['args']['ref'])
-        file_path = os.path.join(path, data['args']['path'])
-        os.makedirs(file_path)
+        file_path = os.path.join(path, data['args']['path']).decode('utf-8')
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
         self.transport.write(json.dumps(True) + '\r\n')
         self.transport.loseConnection()
 
