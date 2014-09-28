@@ -519,19 +519,22 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def set(self, name, val, **kwargs):
-        data = yield self._remote_exec('set_var', self.on_vars_result, name, val)
+        data = yield self._remote_exec('set_var', name, val)
+        self.on_vars_result(data)
 
     @cli('Unset variable value', arguments=(
         arg('name', help='Variable name'),
     ))
     @inlineCallbacks
     def unset(self, name, **kwargs):
-        data = yield self._remote_exec('rm_var', self.on_vars_result, name)
+        data = yield self._remote_exec('rm_var', name)
+        self.on_vars_result(data)
 
     @cli('List variables')
     @inlineCallbacks
     def vars(self, **kwargs):
-        data = yield self._remote_exec('list_vars', self.on_vars_result)
+        data = yield self._remote_exec('list_vars')
+        self.on_vars_result(data)
 
     @cli('Unpublish an application', arguments=(
         arg('domain', help='Domain to publish'),
