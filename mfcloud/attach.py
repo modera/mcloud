@@ -31,28 +31,6 @@ import struct
 from twisted.internet.protocol import Protocol
 
 
-def size(fd):
-    """
-    Return a tuple (rows,cols) representing the size of the TTY `fd`.
-
-    The provided file descriptor should be the stdout stream of the TTY.
-
-    If the TTY size cannot be determined, returns None.
-    """
-
-    if not os.isatty(fd.fileno()):
-        return None
-
-    try:
-        dims = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, 'hhhh'))
-    except:
-        try:
-            dims = (os.environ['LINES'], os.environ['COLUMNS'])
-        except:
-            return None
-
-    return dims
-
 
 class Terminal(object):
     """
@@ -96,6 +74,19 @@ class Terminal(object):
 
         self.stop()
 
+    def get_size(self):
+        if not os.isatty(self.fd.fileno()):
+            return None
+
+        try:
+            dims = struct.unpack('hh', fcntl.ioctl(self.fd, termios.TIOCGWINSZ, 'hhhh'))
+        except:
+            try:
+                dims = (os.environ['LINES'], os.environ['COLUMNS'])
+            except:
+                return None
+        print dims
+        return dims
 
     def israw(self):
         """
@@ -103,7 +94,6 @@ class Terminal(object):
         """
 
         return self.raw
-
 
     def start(self):
         """

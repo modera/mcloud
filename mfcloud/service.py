@@ -153,7 +153,7 @@ class Service(object):
         return not self._inspect_data is None
 
     @inlineCallbacks
-    def run(self, ticket_id, command):
+    def run(self, ticket_id, command, size=None):
 
         image_name = yield self.image_builder.build_image(ticket_id=ticket_id)
 
@@ -184,6 +184,7 @@ class Service(object):
 
         yield self.client.start_container(name, ticket_id=ticket_id, config=run_config)
 
+        yield self.client.resize(name, width=size[1], height=size[0])
         yield self.client.attach(name, ticket_id)
 
     @inlineCallbacks

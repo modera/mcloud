@@ -227,8 +227,8 @@ class FileIOProtocol(basic.LineReceiver):
     @inlineCallbacks
     def do_mkdir(self, data):
         path = yield self.resolve_file_path(**data['args']['ref'])
-        file_path = os.path.join(path, data['args']['path'])
-        if os.path.exists(file_path.decode('utf-8')):
+        file_path = os.path.join(path, data['args']['path']).decode('utf-8')
+        if not os.path.exists(file_path):
             os.makedirs(file_path)
         self.transport.write(json.dumps(True) + '\r\n')
         self.transport.loseConnection()
@@ -727,7 +727,7 @@ def print_diff(volume_diff):
             for file_ in volume_diff[type_]:
                 print '   - ' + file_
                 cnt += 1
-                if cnt > 100:
+                if cnt > 10:
                     print 'And %s files more ...' % (len(volume_diff[type_]) - 11)
                     break
 
@@ -737,7 +737,7 @@ def diff_has_changes(volume_diff):
     return volume_diff['new'] or volume_diff['upd'] or volume_diff['del']
 
 @inlineCallbacks
-def storage_sync(src, dst, confirm=False, verbose=False, no_remove=False):
+def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
 
     start = time()
 
@@ -756,7 +756,7 @@ def storage_sync(src, dst, confirm=False, verbose=False, no_remove=False):
 
     volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start))
 
-    if no_remove:
+    if not remove:
         volume_diff['del'] = []
 
     if not diff_has_changes(volume_diff):
