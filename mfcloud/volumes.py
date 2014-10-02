@@ -80,6 +80,8 @@ def directory_snapshot(dirname):
     :return:
     """
 
+    if not os.path.exists(dirname):
+        raise ValueError('Directory %s does not exist' % dirname)
     dirname = os.path.realpath(dirname)
 
     struct = {}

@@ -3,7 +3,7 @@ from shutil import copystat
 from time import sleep
 from pprintpp import pprint
 from mfcloud.volumes import directory_snapshot, compare, is_ignored
-
+import pytest
 
 def test_snapshot(tmpdir):
 
@@ -23,6 +23,12 @@ def test_snapshot(tmpdir):
 
 
     assert '_path' not in ssrc
+
+
+def test_snapshot_no_dir(tmpdir):
+
+    with pytest.raises(ValueError):
+        directory_snapshot('boooooo')
 
 
 def test_simple_compare(tmpdir):

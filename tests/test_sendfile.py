@@ -91,6 +91,7 @@ def test_file_download(tmpdir):
     server.stop()
 
 
+
 @pytest.inlineCallbacks
 def test_remote_snapshot_unicode(tmpdir):
     resolver = flexmock()
