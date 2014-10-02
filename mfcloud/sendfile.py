@@ -1,54 +1,3 @@
-""" file: filesender.py
-
-    Adapted from: Steven Wang's <steven.zdwang at gmail.com> post at:
-          http://twistedmatrix.com/pipermail/twisted-python/2007-July/015738.html
-
-    Usage: filesender.py [options]
-       Options:
-         -h, --help         show this help message and exit
-         --port=PORT        Which port to use. (default "1234")
-         --address=ADDRESS  Which address to use. (default "localhost")
-         --server           Use server
-         --client           Use client
-
-    Examples:
-
-      filesender.py --server <upload_save_directory>
-      filesender.py --client <file_to_send>
-
-    Example Output:
-
-      Server:
-                shell$ python ~/code/filesender.py --server --port 1234 /tmp
-                    Listening on port 1234 ..
-
-                     + a connection was made
-                     *  IPv4Address(TCP, '127.0.0.1', 44621)
-                     ~ lineReceived:
-                            {"original_file_path": "/home/matt/Videos/hutter-ai.avi", "file_size": 218266926}
-                     * Using upload dir: /tmp
-                     * Receiving into file@ /tmp/data.out
-                     & Entering raw mode. <open file '/tmp/data.out', mode 'wb' at 0x1fb01c8> 218266926
-                     - connectionLost
-
-                    --> finished saving upload@/tmp/data.out
-                    --------------------------------------------------------------------------------
-                    {'client': '127.0.0.1',
-                     'crc': 1713872441,
-                     'file_metadata': ' RIFF (little-endian) data, AVI, 720 x 480, ~30 fps, video',
-                     'file_size': 218266926,
-                     'new_file': '/tmp/data.out',
-                     'original_file': u'/home/matt/Videos/hutter-ai.avi',
-                     'upload_time': datetime.datetime(2010, 10, 16, 22, 27, 18, 683145)}
-
-      Client:
-                shell$ python ~/code/filesender.py --client ~/Videos/hutter.avi
-                    + building protocol
-                    - connectionLost
-                     *  Connection was closed cleanly.
-                    * finished with /home/matt/Videos/hutter-ai.avi
-
-"""
 
 from binascii import crc32
 from optparse import OptionParser
@@ -163,12 +112,10 @@ class FileUploaderTarget(object):
 
 class FileIOProtocol(basic.LineReceiver):
     """ File Receiver """
-
-
+    app_controller = inject.attr(ApplicationController)
     """
     @type app_controller: ApplicationController
     """
-    app_controller = inject.attr(ApplicationController)
     event_bus = inject.attr(EventBus)
 
     class Session(object):
@@ -310,6 +257,8 @@ class FileIOFactory(ServerFactory):
     """ file receiver factory """
     protocol = FileIOProtocol
 
+    noisy = False
+
     def __init__(self, file_resolver=None):
         """ """
         self.file_resolver = file_resolver
@@ -372,6 +321,8 @@ class FileUploaderSource(object):
 
 class FileIOUploaderClientProtocol(basic.LineReceiver):
     """ file sender """
+
+
 
     def __init__(self, path, source_path, ref):
         self.path = path
@@ -495,6 +446,9 @@ class FileIOCommandClient(basic.LineReceiver):
 
 class FileIOClientFactory(ClientFactory):
     """ file sender factory """
+
+    noisy = False
+
     def __init__(self, protocol, controller):
         """ """
         self.protocol = protocol

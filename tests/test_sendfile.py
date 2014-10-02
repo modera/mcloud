@@ -331,7 +331,7 @@ def test_storage_sync_local_to_local(tmpdir):
     src = get_storage(str(basedir))
     dst = get_storage(str(another))
 
-    yield storage_sync(src, dst)
+    yield storage_sync(src, dst, remove=True)
 
     assert directories_synced(basedir, another)
 
@@ -360,7 +360,7 @@ def test_storage_sync_remote_to_remote(tmpdir):
     src = get_storage('hoho@localhost:33116')
     dst = get_storage('hoho@localhost:33117')
 
-    yield storage_sync(src, dst)
+    yield storage_sync(src, dst, remove=True)
 
     assert directories_synced(remote1, remote2)
 
@@ -383,7 +383,7 @@ def test_storage_sync_remote_to_local(tmpdir):
     src = get_storage('hoho@localhost:33118')
     dst = get_storage(str(another))
 
-    yield storage_sync(src, dst)
+    yield storage_sync(src, dst, remove=True)
 
     assert directories_synced(remote1, another)
 
@@ -406,7 +406,7 @@ def test_storage_sync_local_to_remote(tmpdir):
     src = get_storage(str(another))
     dst = get_storage('hoho@localhost:33119')
 
-    yield storage_sync(src, dst)
+    yield storage_sync(src, dst, remove=True)
 
     assert directories_synced(another, remote1)
 
@@ -442,7 +442,7 @@ def test_on_mfcloud_dir_local_to_remote(tmpdir):
     src = get_storage(remote1)
     dst = get_storage('hoho@localhost:33121')
 
-    yield storage_sync(src, dst)
+    yield storage_sync(src, dst, remove=True)
 
     assert directories_synced(remote1, remote2, ignore=list_git_ignore(remote1))
 
@@ -488,7 +488,7 @@ def test_on_mfcloud_dir_remote_to_local(tmpdir):
     src = get_storage(str(remote2))
     dst = get_storage('hoho@localhost:33122')
 
-    yield storage_sync(dst, src)
+    yield storage_sync(dst, src, remove=True)
 
     yield sleep(0.01)
 
@@ -519,7 +519,7 @@ def test_on_mfcloud_dir_remote_to_local(tmpdir):
     src = get_storage('hoho@localhost:33123')
     dst = get_storage('hoho@localhost:33124')
 
-    yield storage_sync(src, dst)
+    yield storage_sync(src, dst, remove=True)
 
     yield sleep(0.01)
 
