@@ -4,7 +4,8 @@ import os
 from uuid import uuid1
 from autobahn.twisted.util import sleep
 from twisted.internet import defer
-from mfcloud.sendfile import FileServer, FileClient, VolumeStorageLocal, get_storage, VolumeStorageRemote, storage_sync
+from mfcloud.sendfile import FileServer, FileClient, VolumeStorageLocal, get_storage, VolumeStorageRemote, storage_sync, \
+    archive, unarchive, CrcCheckFailed
 
 import pytest
 from flexmock import flexmock
@@ -32,6 +33,22 @@ def directories_synced(dir1, dir2, ignore=None):
     return True
 
 
+def test_archive_unarchive(tmpdir):
+
+    baz = tmpdir.mkdir('baz')
+    baz.join('boo.txt').write('test content')
+    baz.mkdir('foo').join('baz.txt').write('test content')
+
+    tar = archive(str(baz), ['boo.txt', 'foo/', 'foo/baz.txt'])
+
+    assert os.path.exists(tar)
+
+    boo = tmpdir.mkdir('boo')
+    unarchive(str(boo), tar)
+
+    assert directories_synced(str(boo), str(baz))
+
+
 
 @pytest.inlineCallbacks
 def test_file_upload(tmpdir):
@@ -52,14 +69,39 @@ def test_file_upload(tmpdir):
     assert baz.join('boo.txt').read() == 'test content'
 
     client = FileClient(host='localhost', port=33111)
-    print 'booo'
-    yield client.upload('boo.txt', str(baz), app_name='hoho')
+    yield client.upload(['boo.txt'], str(baz), app_name='hoho')
 
     yield sleep(0.01)
 
     assert basedir.join('boo.txt').exists()
     assert basedir.join('boo.txt').size() > 0
     assert basedir.join('boo.txt').read() == 'test content'
+
+    server.stop()
+
+@pytest.inlineCallbacks
+def test_file_upload_bad_crc(tmpdir, monkeypatch):
+
+    basedir = tmpdir.mkdir('foo')
+
+    resolver = flexmock()
+    resolver.should_receive('get_volume_path').with_args(app_name="hoho").and_return(str(basedir))
+
+    server = FileServer(host='localhost', port=33211, file_resolver=resolver)
+    server.bind()
+
+    yield sleep(0.01)
+
+    baz = tmpdir.mkdir('baz')
+    baz.join('boo.txt').write('test content')
+
+    assert baz.join('boo.txt').read() == 'test content'
+
+    client = FileClient(host='localhost', port=33211)
+    monkeypatch.setattr(client, 'file_crc', lambda path: 'invalid-crc')
+
+    with pytest.raises(CrcCheckFailed):
+        yield client.upload(['boo.txt'], str(baz), app_name='hoho')
 
     server.stop()
 
@@ -81,7 +123,7 @@ def test_file_download(tmpdir):
     baz = tmpdir.mkdir('baz')
 
     client = FileClient(host='localhost', port=33112)
-    yield client.download('boo.txt', str(baz), app_name='hoho')
+    yield client.download(['boo.txt'], str(baz), app_name='hoho')
 
     yield sleep(0.01)
 
@@ -268,7 +310,7 @@ def test_storage_upload_remote(tmpdir):
 
     storage = get_storage('hoho@localhost:33114')
 
-    yield storage.upload('boo.txt', str(basedir))
+    yield storage.upload(['boo.txt'], str(basedir))
     yield sleep(0.01)
 
     assert another.join('boo.txt').exists()
@@ -444,6 +486,13 @@ def test_on_mfcloud_dir_local_to_remote(tmpdir):
     dst = get_storage('hoho@localhost:33121')
 
     yield storage_sync(src, dst, remove=True)
+
+    print ('Remote 1 ---------')
+    os.system('ls -la %s' % remote1)
+    print ('-----')
+    print ('Remote 2 ---------')
+    os.system('ls -la %s' % remote2)
+    print ('-----')
 
     assert directories_synced(remote1, remote2, ignore=list_git_ignore(remote1))
 

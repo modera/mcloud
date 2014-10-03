@@ -2,8 +2,10 @@
 from binascii import crc32
 from optparse import OptionParser
 from shutil import copy, rmtree
+import shutil
 import sys
-from tempfile import mkdtemp
+import tarfile
+from tempfile import mkdtemp, NamedTemporaryFile
 from autobahn.twisted.util import sleep
 from mfcloud.util import query_yes_no
 import re
@@ -22,16 +24,27 @@ from twisted.internet.protocol import ClientFactory
 from twisted.protocols.basic import FileSender
 from twisted.internet import defer
 from twisted.internet.defer import Deferred, inlineCallbacks
-from twisted.internet import reactor
+from twisted.internet import reactor, threads
 from mfcloud.volumes import directory_snapshot, compare
 from time import time
 
 pp = pprint.PrettyPrinter(indent=1)
 
+class CrcCheckFailed(ValueError):
+    pass
 
 class TransferCancelled(Exception):
     """ Exception for a user cancelling a transfer """
     pass
+
+def file_crc(path):
+        crc = 0
+        with open(path) as f:
+            data = f.read(1024)
+            while data != "":
+                crc = crc32(data, crc)
+                data = f.read(1024)
+        return crc
 
 class FileUploaderTarget(object):
 
@@ -41,7 +54,7 @@ class FileUploaderTarget(object):
         def update(self, **kargs):
             pass
 
-    def __init__(self, protocol, base_dir):
+    def __init__(self, protocol, base_dir, expected_crc):
         super(FileUploaderTarget, self).__init__()
 
         self.protocol = protocol
@@ -51,63 +64,49 @@ class FileUploaderTarget(object):
         self.remain = None
         self.size = None
         self.crc = 0
+        self.expected_crc = expected_crc
 
-
-    def start_upload(self, file_path, size):
+    def start_upload(self, size):
         self.size = int(size)
 
-        self.outfilename = os.path.join(self.base_dir, file_path)
-
-        uploaddir = os.path.dirname(self.outfilename)
-        if not os.path.exists(uploaddir):
-            os.makedirs(uploaddir)
-
-        try:
-            self.outfile = open(self.outfilename, 'wb')
-        except Exception, value:
-            self.protocol.transport.loseConnection()
-            return
+        self.outfile = NamedTemporaryFile(delete=False)
 
         self.remain = size
         self.protocol.setRawMode()
 
-    def raw_data(self, data):
-        # if self.remain % 10000 == 0:
-        #     print '   & ', self.remain, '/', self.size
+    @inlineCallbacks
+    def extract(self):
+        try:
+            if self.crc != self.expected_crc:
+                yield self.protocol.transport.write('crc\r\n')
+                yield sleep(0.1)
+            else:
+                yield threads.deferToThread(unarchive, self.base_dir, self.outfile.name)
+                yield self.protocol.transport.write('ok\r\n')
 
+            os.unlink(self.outfile.name)
+            self.outfile = None
+        except:
+            log.err()
+
+        self.protocol.transport.loseConnection()
+
+    def raw_data(self, data):
         self.remain -= len(data)
 
         self.crc = crc32(data, self.crc)
         self.outfile.write(data)
 
+        if self.remain == 0:
+            self.extract()
+
+
     def stop(self, reason):
         if self.outfile:
             self.outfile.close()
 
-        if self.remain != 0:
-            # print str(self.remain) + ')!=0'
-            # remove_base = '--> removing tmpfile@'
-            # if self.remain < 0:
-            #     reason = ' .. file moved too much'
-            # if self.remain > 0:
-            #     reason = ' .. file moved too little'
-
-            if self.outfilename:
-                # print remove_base + self.outfilename + reason
-                os.remove(self.outfilename)
-            else:
-                pass
-
-        # Success uploading - tmpfile will be saved to disk.
-        else:
-            # print '\n--> finished saving upload@' + self.outfilename
-
-            if hasattr(self.protocol.factory, 'controller'):
-                self.protocol.factory.controller.completed.callback(None)
-            # self.status.update(crc=self.crc,
-            #                    file_size=self.size,
-            #                    new_file=self.outfilename,
-            #                    upload_time=datetime.datetime.now())
+        if hasattr(self.protocol.factory, 'controller'):
+            self.protocol.factory.controller.completed.callback(None)
 
 
 class FileIOProtocol(basic.LineReceiver):
@@ -154,8 +153,9 @@ class FileIOProtocol(basic.LineReceiver):
     @inlineCallbacks
     def do_upload(self, data):
         path = yield self.resolve_file_path(**data['ref'])
-        self.processor = FileUploaderTarget(self, path)
-        self.processor.start_upload(data['path'], data['file_size'])
+        self.processor = FileUploaderTarget(self, path, data['file_crc'])
+        self.processor.start_upload(data['file_size'])
+
     @inlineCallbacks
     def do_snapshot(self, data):
         file_path = yield self.resolve_file_path(**data['args'])
@@ -180,18 +180,23 @@ class FileIOProtocol(basic.LineReceiver):
         self.transport.write(json.dumps(True) + '\r\n')
         self.transport.loseConnection()
 
+
     @inlineCallbacks
     def do_download(self, data):
         resolved_path = yield self.resolve_file_path(**data['ref'])
-        file_path = os.path.join(resolved_path, data['path'])
+
+        tar = yield threads.deferToThread(archive, resolved_path, data['paths'])
+
+        crc = file_crc(tar)
+
         out_data = {
             'cmd': 'upload',
-            'path': data['path'],
-            'file_size': os.path.getsize(file_path)
+            'file_size': os.path.getsize(tar),
+            'file_crc': crc
         }
         self.transport.write(json.dumps(out_data) + '\r\n')
         controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
-        self.processor = FileUploaderSource(file_path, controller, self)
+        self.processor = FileUploaderSource(tar, controller, self)
         self.processor.start()
 
     def lineReceived(self, line):
@@ -242,6 +247,7 @@ class FileIOProtocol(basic.LineReceiver):
     def connectionLost(self, reason):
         """ """
         basic.LineReceiver.connectionLost(self, reason)
+
         if self.processor:
             self.processor.stop(reason)
 
@@ -277,22 +283,31 @@ class FileUploaderSource(object):
         self.result = None
         self.completed = False
 
+        self.wait_result = False
+
         self.controller.file_sent = 0
         self.controller.file_size = self.insize
 
     def start(self):
         sender = FileSender()
         sender.CHUNK_SIZE = 2 ** 16
-        d = sender.beginFileTransfer(self.infile, self.protocol.transport,
-                                     self._monitor)
+        d = sender.beginFileTransfer(self.infile, self.protocol.transport, self._monitor)
         d.addCallback(self.cbTransferCompleted)
+
+    def lineReceived(self, line):
+        if line.strip() == 'ok':
+            self.controller.completed.callback('ok')
+        elif line.strip() == 'crc':
+            self.controller.completed.errback(CrcCheckFailed())
+        else:
+            self.controller.completed.errback(Exception('Unknown error: %s' % line))
+
 
     def stop(self, reason):
         self.infile.close()
-        if self.completed:
-            self.controller.completed.callback(self.result)
-        else:
-            self.controller.completed.errback(reason)
+
+        if not self.controller.completed.called:
+            self.controller.completed.errback(CrcCheckFailed())
 
 
     def _monitor(self, data):
@@ -315,8 +330,10 @@ class FileUploaderSource(object):
 
     def cbTransferCompleted(self, lastsent):
         """ """
-        self.completed = True
-        self.protocol.transport.loseConnection()
+        # self.completed = True
+        # self.protocol.transport.loseConnection()
+
+        self.protocol.setLineMode()
 
 
 class FileIOUploaderClientProtocol(basic.LineReceiver):
@@ -324,30 +341,31 @@ class FileIOUploaderClientProtocol(basic.LineReceiver):
 
 
 
-    def __init__(self, path, source_path, ref):
+    def __init__(self, path, crc, ref):
         self.path = path
-        self.source_path = source_path
         self.ref = ref
+        self.crc = crc
 
         self.processor = None
 
 
     def connectionMade(self):
         """ """
-        # self.ptransport.write(instruction + '\r\n')
-
-        path = os.path.join(self.source_path, self.path)
 
         data = {
             'cmd': 'upload',
-            'path': self.path,
             'ref': self.ref,
-            'file_size': os.path.getsize(path)
+            'file_size': os.path.getsize(self.path),
+            'file_crc': self.crc,
         }
         self.transport.write(json.dumps(data) + '\r\n')
 
-        self.processor = FileUploaderSource(path, self.factory.controller, self)
+        self.processor = FileUploaderSource(self.path, self.factory.controller, self)
         self.processor.start()
+
+    def lineReceived(self, line):
+        if self.processor:
+            self.processor.lineReceived(line)
 
 
     def connectionLost(self, reason):
@@ -356,6 +374,7 @@ class FileIOUploaderClientProtocol(basic.LineReceiver):
         """
         from twisted.internet.error import ConnectionDone
         basic.LineReceiver.connectionLost(self, reason)
+
         if self.processor:
             self.processor.stop(reason)
 
@@ -363,8 +382,8 @@ class FileIOUploaderClientProtocol(basic.LineReceiver):
 class FileIODownloaderClient(basic.LineReceiver):
     """ file sender """
 
-    def __init__(self, path, target_path, ref):
-        self.path = path
+    def __init__(self, paths, target_path, ref):
+        self.paths = paths
         self.target_path = target_path
         self.ref = ref
         self.processor = None
@@ -375,8 +394,8 @@ class FileIODownloaderClient(basic.LineReceiver):
         # client=self.transport.getPeer().host
 
         if data['cmd'] == 'upload':
-            self.processor = FileUploaderTarget(self, self.target_path)
-            self.processor.start_upload(data['path'], data['file_size'])
+            self.processor = FileUploaderTarget(self, self.target_path, data['file_crc'])
+            self.processor.start_upload(data['file_size'])
             return
         else:
             raise Exception('Unknown command: %s' % data['cmd'])
@@ -384,7 +403,7 @@ class FileIODownloaderClient(basic.LineReceiver):
     def connectionMade(self):
         data = {
             'cmd': 'download',
-            'path': self.path,
+            'paths': self.paths,
             'ref': self.ref
         }
         self.transport.write(json.dumps(data) + '\r\n')
@@ -495,21 +514,35 @@ class FileClient(object):
         super(FileClient, self).__init__()
         self.port = port
         self.host = host
+        self.file_crc = file_crc
 
-    def upload(self, path, source_path, **kwargs):
+    @inlineCallbacks
+    def upload(self, paths, source_path, **kwargs):
+        if not isinstance(paths, list) and not isinstance(paths, tuple):
+            paths = [paths]
 
         controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
 
-        protocol = FileIOUploaderClientProtocol(path, source_path, kwargs)
+        tar = yield threads.deferToThread(archive, source_path, paths)
+
+        crc = self.file_crc(tar)
+
+        protocol = FileIOUploaderClientProtocol(tar, crc, kwargs)
         f = FileIOClientFactory(protocol, controller)
         reactor.connectTCP(self.host, self.port, f, timeout=2)
 
-        return controller.completed
+        yield controller.completed
 
-    def download(self, path, target_path, **kwargs):
+        os.unlink(tar)
+
+
+    def download(self, paths, target_path, **kwargs):
+        if not isinstance(paths, list) and not isinstance(paths, tuple):
+            paths = [paths]
+
         controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
 
-        protocol = FileIODownloaderClient(path, target_path, kwargs)
+        protocol = FileIODownloaderClient(paths, target_path, kwargs)
         f = FileIOClientFactory(protocol, controller)
         reactor.connectTCP(self.host, self.port, f, timeout=2)
 
@@ -569,30 +602,16 @@ class VolumeStorageRemote(object):
     def get_snapshot(self):
         return self._get_client().snapshot(**self.ref)
 
-    def upload(self, path, base_dir):
-        if path.endswith('/'):
-            return self._get_client().mkdir(path=path, **self.ref)
-        else:
-            return self._get_client().upload(path, base_dir, **self.ref)
 
-    def download(self, path, base_dir):
-        target_path = os.path.join(base_dir, path)
+    @inlineCallbacks
+    def upload(self, paths, base_dir):
+        yield self._get_client().upload(paths, base_dir, **self.ref)
 
-        if path.endswith('/'):
-            if not os.path.exists(target_path):
-                os.makedirs(target_path)
-        else:
-            if not os.path.exists(os.path.dirname(target_path)):
-                os.makedirs(target_path)
-
-            if os.path.exists(target_path):
-                _remove_path(target_path)
-
-            return self._get_client().download(path, base_dir, **self.ref)
+    def download(self, paths, base_dir):
+        return self._get_client().download(paths, base_dir, **self.ref)
 
     def remove(self, path):
         return self._get_client().remove(path=path, **self.ref)
-
 
 
 
@@ -630,17 +649,25 @@ class VolumeStorageLocal(object):
 
             copy(src_path, target_path)
 
-    def download(self, path, base_dir):
-        src_path = os.path.join(self.path, path)
-        target_path = os.path.join(base_dir, path)
+    def download(self, paths, base_dir):
+        if not isinstance(paths, list) and not isinstance(paths, tuple):
+            paths = [paths]
 
-        self._do_copy(src_path, target_path)
+        for path in paths:
+            src_path = os.path.join(self.path, path)
+            target_path = os.path.join(base_dir, path)
 
-    def upload(self, path, base_dir):
-        target_path = os.path.join(self.path, path)
-        src_path = os.path.join(base_dir, path)
+            self._do_copy(src_path, target_path)
 
-        self._do_copy(src_path, target_path)
+    def upload(self, paths, base_dir):
+        if not isinstance(paths, list) and not isinstance(paths, tuple):
+            paths = [paths]
+            
+        for path in paths:
+            target_path = os.path.join(self.path, path)
+            src_path = os.path.join(base_dir, path)
+
+            self._do_copy(src_path, target_path)
 
     def remove(self, path):
         real_path = os.path.join(self.path, path)
@@ -704,7 +731,6 @@ def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
 
     snapshot_dst = yield dst.get_snapshot()
 
-
     if verbose:
         print('.')
 
@@ -727,18 +753,39 @@ def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
     if len(paths_to_upload):
         tmp_path = mkdtemp()
 
-    try:
-        if verbose:
-            log.msg('Syncing ... ')
-
-        for path in paths_to_upload:
+        try:
             if verbose:
-                print(path)
-            yield src.download(path, tmp_path)
-            yield dst.upload(path, tmp_path)
+                log.msg('Syncing ... ')
 
-        for path in volume_diff['del']:
-            yield dst.remove(path)
-    finally:
-        if len(paths_to_upload):
-            rmtree(tmp_path)
+            yield src.download(paths_to_upload, tmp_path)
+            yield dst.upload(paths_to_upload, tmp_path)
+
+        finally:
+            if len(paths_to_upload):
+                rmtree(tmp_path)
+
+    for path in volume_diff['del']:
+        yield dst.remove(path)
+
+
+def archive(base_path, paths):
+    f = NamedTemporaryFile(delete=False)
+    f.close()
+
+    os.chdir(base_path)
+
+    tar = tarfile.open(f.name, "w")
+    for path in paths:
+        tar.add(path, recursive=False)
+    tar.close()
+
+    return f.name
+
+
+def unarchive(base_path, tar):
+    os.chdir(base_path)
+
+    tar = tarfile.open(tar)
+    tar.extractall()
+
+    tar.close()
