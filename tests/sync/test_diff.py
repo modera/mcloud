@@ -1,9 +1,9 @@
-import os
-from shutil import copystat
 from time import sleep
-from pprintpp import pprint
-from mfcloud.volumes import directory_snapshot, compare, is_ignored
+
+import os
+from mfcloud.sync.diff import directory_snapshot, compare, is_ignored
 import pytest
+
 
 def test_snapshot(tmpdir):
 
@@ -12,8 +12,6 @@ def test_snapshot(tmpdir):
     src.mkdir('foo').join('boo.txt').write('123')
 
     ssrc = directory_snapshot(str(src))
-
-    pprint(ssrc)
 
     assert len(ssrc.values()) == 2
     assert len(ssrc['foo/'].values()) == 3  # mtime is added here
@@ -168,9 +166,6 @@ def test_compare_dirs(tmpdir):
 
     ssrc = directory_snapshot(str(src))
     sdst = directory_snapshot(str(dst))
-
-    print ssrc
-    print sdst
 
     assert compare(ssrc, sdst) == {
         'new': ['foo/'],

@@ -12,44 +12,6 @@ from flexmock import flexmock
 from mfcloud.volumes import directory_snapshot, list_git_ignore
 
 
-def directories_synced(dir1, dir2, ignore=None):
-    if ignore:
-        ignore = [x[0:-1] if x.endswith('/') else x for x in ignore]
-
-    diff = dircmp(str(dir1), str(dir2), ignore, ignore)
-
-    diff_size = len(diff.left_only) + len(diff.diff_files) + len(diff.right_only) + len(diff.funny_files)
-
-    if diff_size > 0:
-
-        print '\n' + '*' * 40 + '\n'
-        print 'Diff report'
-        print '\n' + '*' * 40 + '\n'
-        print diff.report()
-        print '\n' + '*' * 40 + '\n'
-
-        return False
-
-    return True
-
-
-def test_archive_unarchive(tmpdir):
-
-    baz = tmpdir.mkdir('baz')
-    baz.join('boo.txt').write('test content')
-    baz.mkdir('foo').join('baz.txt').write('test content')
-
-    tar = archive(str(baz), ['boo.txt', 'foo/', 'foo/baz.txt'])
-
-    assert os.path.exists(tar)
-
-    boo = tmpdir.mkdir('boo')
-    unarchive(str(boo), tar)
-
-    assert directories_synced(str(boo), str(baz))
-
-
-
 @pytest.inlineCallbacks
 def test_file_upload(tmpdir):
 
