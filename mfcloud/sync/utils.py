@@ -5,13 +5,20 @@ import os
 import tarfile
 
 
-def file_crc(path):
+def file_crc(path, buffer_size=1024):
+    """
+    Calculates cumulative file crc32 by reading it by blocks of size specified.
+
+    :param buffer_size: Amount of block for loading into memory.
+    :param path:
+    :return:
+    """
     crc = 0
     with open(path) as f:
-        data = f.read(1024)
+        data = f.read(buffer_size)
         while data != "":
             crc = crc32(data, crc)
-            data = f.read(1024)
+            data = f.read(buffer_size)
     return crc
 
 
@@ -23,6 +30,14 @@ def fileinfo(fname):
 
 
 def archive(base_path, paths):
+    """
+    Creates archive in temporary directory with files specified
+     and returns filename of resulting archive.
+
+    :param base_path: Root path
+    :param paths: files to archive
+    :return:
+    """
     f = NamedTemporaryFile(delete=False)
     f.close()
 
@@ -37,6 +52,12 @@ def archive(base_path, paths):
 
 
 def unarchive(base_path, tar):
+    """
+    Extract archive into folder specified.
+
+    :param base_path:
+    :param tar: Full file-path
+    """
     os.chdir(base_path)
 
     tar = tarfile.open(tar)

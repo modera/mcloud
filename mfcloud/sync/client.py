@@ -6,6 +6,7 @@ from twisted.internet import threads, reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.protocol import ClientFactory
 from twisted.protocols import basic
+from twisted.python import log
 
 
 class FileIOUploaderClientProtocol(basic.LineReceiver):
@@ -62,7 +63,11 @@ class FileIODownloaderClient(basic.LineReceiver):
 
     def lineReceived(self, line):
         """ """
-        data = json.loads(line)
+        try:
+            data = json.loads(line)
+        except ValueError:
+            log.err()
+            return
         # client=self.transport.getPeer().host
 
         if data['cmd'] == 'upload':

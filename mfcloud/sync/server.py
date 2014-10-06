@@ -10,6 +10,7 @@ from twisted.internet import threads, reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.protocol import ServerFactory
 from twisted.protocols import basic
+from twisted.python import log
 
 
 class FileIOProtocol(basic.LineReceiver):
@@ -61,10 +62,14 @@ class FileIOProtocol(basic.LineReceiver):
 
     @inlineCallbacks
     def do_snapshot(self, data):
-        file_path = yield self.resolve_file_path(**data['args'])
-        snapshot = directory_snapshot(file_path)
-        self.transport.write(json.dumps(snapshot) + '\r\n')
-        self.transport.loseConnection()
+        try:
+            file_path = yield self.resolve_file_path(**data['args'])
+            snapshot = directory_snapshot(file_path)
+
+            self.transport.write(json.dumps(snapshot) + '\r\n')
+            self.transport.loseConnection()
+        except:
+            log.err()
 
     @inlineCallbacks
     def do_remove(self, data):
@@ -102,9 +107,19 @@ class FileIOProtocol(basic.LineReceiver):
         self.processor = FileUploaderSource(tar, controller, self)
         self.processor.start()
 
+        yield controller.completed
+
     def lineReceived(self, line):
         """ """
-        data = json.loads(line)
+        try:
+            data = json.loads(line)
+        except ValueError:
+            """
+            Seems to be JSON is not valid, there. Most likely its "ok" or "crc"
+            messages from client - we DON't need to react anyhow.
+            """
+            return
+
         # client=self.transport.getPeer().host
 
         if data['cmd'] == 'upload':

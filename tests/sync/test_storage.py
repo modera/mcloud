@@ -286,7 +286,7 @@ def test_storage_sync_local_to_remote(tmpdir):
 @pytest.inlineCallbacks
 def test_on_mfcloud_dir_local_to_local(tmpdir):
 
-    mfcloud_dir = os.path.dirname(os.path.dirname(__file__))
+    mfcloud_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     another = tmpdir.mkdir('baz')
 
     src = get_storage(mfcloud_dir)
@@ -301,7 +301,7 @@ def test_on_mfcloud_dir_local_to_local(tmpdir):
 @pytest.inlineCallbacks
 def test_on_mfcloud_dir_local_to_remote(tmpdir):
 
-    remote1 = os.path.dirname(os.path.dirname(__file__))
+    remote1 = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
     remote2 = tmpdir.mkdir('remote2')
     remote2.join('hoho.txt').write('here i am')
@@ -331,7 +331,7 @@ def test_on_mfcloud_dir_local_to_remote(tmpdir):
 @pytest.inlineCallbacks
 def test_on_mfcloud_dir_remote_snapshot(tmpdir):
 
-    remote1 = os.path.dirname(os.path.dirname(__file__))
+    remote1 = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
     remote2 = tmpdir.mkdir('remote2')
     remote2.join('hoho.txt').write('here i am')
@@ -354,7 +354,7 @@ def test_on_mfcloud_dir_remote_snapshot(tmpdir):
 @pytest.inlineCallbacks
 def test_on_mfcloud_dir_remote_to_local(tmpdir):
 
-    remote1 = os.path.dirname(os.path.dirname(__file__))
+    remote1 = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
     remote2 = tmpdir.mkdir('remote2')
     remote2.join('hoho.txt').write('here i am')
@@ -379,7 +379,7 @@ def test_on_mfcloud_dir_remote_to_local(tmpdir):
 @pytest.inlineCallbacks
 def test_on_mfcloud_dir_remote_to_local(tmpdir):
 
-    remote1 = os.path.dirname(os.path.dirname(__file__))
+    remote1 = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
     remote2 = tmpdir.mkdir('remote2')
     remote2.join('hoho.txt').write('here i am')

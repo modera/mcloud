@@ -119,15 +119,22 @@ def test_remote_snapshot(tmpdir):
     basedir = tmpdir.mkdir('foo')
     basedir.join('boo.txt').write('here i am')
 
+    print 'Brfore snapshot'
+
     resolver = flexmock()
     resolver.should_receive('get_volume_path').with_args(app_name='hoho').and_return(str(basedir))
+
+
 
     server = FileServer(host='localhost', port=33112, file_resolver=resolver)
     server.bind()
 
+
+
     yield sleep(0.01)
 
     client = FileClient(host='localhost', port=33112)
+
     snapshot = yield client.snapshot(app_name='hoho')
 
     yield sleep(0.01)

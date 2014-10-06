@@ -1,16 +1,24 @@
+from binascii import crc32
 from tempfile import NamedTemporaryFile
+from autobahn.twisted.util import sleep
+from mfcloud.sync.utils import unarchive
+import os
+from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks
+from twisted.protocols.basic import FileSender
+from twisted.python import log
 
 
 class CrcCheckFailed(ValueError):
     pass
 
+
 class TransferCancelled(Exception):
     """ Exception for a user cancelling a transfer """
     pass
 
-class FileUploaderTarget(object):
 
+class FileUploaderTarget(object):
     class Status(object):
         """ Status object.. just a demo """
 
@@ -72,9 +80,7 @@ class FileUploaderTarget(object):
             self.protocol.factory.controller.completed.callback(None)
 
 
-
 class FileUploaderSource(object):
-
     def __init__(self, path, controller, protocol):
         super(FileUploaderSource, self).__init__()
         self.protocol = protocol
@@ -106,13 +112,11 @@ class FileUploaderSource(object):
         else:
             self.controller.completed.errback(Exception('Unknown error: %s' % line))
 
-
     def stop(self, reason):
         self.infile.close()
 
         if not self.controller.completed.called:
-            self.controller.completed.errback(CrcCheckFailed())
-
+            self.controller.completed.callback('ok')
 
     def _monitor(self, data):
         """ """
