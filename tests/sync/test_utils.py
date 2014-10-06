@@ -1,3 +1,5 @@
+import os
+from mfcloud.sync.utils import archive, unarchive, directories_synced
 
 
 def test_archive_unarchive(tmpdir):

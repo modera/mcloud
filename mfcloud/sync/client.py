@@ -1,7 +1,15 @@
+import json
+from mfcloud.sync.transfer import FileUploaderSource, FileUploaderTarget
+from mfcloud.sync.utils import file_crc, archive
+import os
+from twisted.internet import threads, reactor
+from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.protocol import ClientFactory
+from twisted.protocols import basic
+
 
 class FileIOUploaderClientProtocol(basic.LineReceiver):
     """ file sender """
-
 
 
     def __init__(self, path, crc, ref):
@@ -36,6 +44,7 @@ class FileIOUploaderClientProtocol(basic.LineReceiver):
             NOTE: reason is a twisted.python.failure.Failure instance
         """
         from twisted.internet.error import ConnectionDone
+
         basic.LineReceiver.connectionLost(self, reason)
 
         if self.processor:
@@ -80,6 +89,7 @@ class FileIODownloaderClient(basic.LineReceiver):
             NOTE: reason is a twisted.python.failure.Failure instance
         """
         from twisted.internet.error import ConnectionDone
+
         basic.LineReceiver.connectionLost(self, reason)
         if self.processor:
             self.processor.stop(reason)
@@ -118,11 +128,11 @@ class FileIOCommandClient(basic.LineReceiver):
             print ('Incorrect data received: %s of len %d' % (self.data, len(self.data)))
             self.factory.controller.completed.errback(e)
 
-
         """
             NOTE: reason is a twisted.python.failure.Failure instance
         """
         from twisted.internet.error import ConnectionDone
+
         basic.LineReceiver.connectionLost(self, reason)
 
 
@@ -153,7 +163,6 @@ class FileIOClientFactory(ClientFactory):
 
 
 class FileClient(object):
-
     def __init__(self, host='0.0.0.0', port=7081):
         super(FileClient, self).__init__()
         self.port = port
