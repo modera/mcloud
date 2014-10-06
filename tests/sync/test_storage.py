@@ -125,6 +125,22 @@ def test_storage_upload_local(tmpdir):
 
 
 @pytest.inlineCallbacks
+def test_storage_upload_local_non_existent_directory(tmpdir):
+
+    basedir = tmpdir.mkdir('foo')
+    basedir.join('boo.txt').write('here i am')
+
+    another = tmpdir.mkdir('baz')
+
+    src = get_storage(str(another) + '/123')
+
+    yield src.upload('boo.txt', str(basedir))
+
+    assert another.join('123/boo.txt').exists()
+    assert another.join('123/boo.txt').read() == 'here i am'
+
+
+@pytest.inlineCallbacks
 def test_storage_upload_remote(tmpdir):
 
     basedir = tmpdir.mkdir('foo')

@@ -81,7 +81,8 @@ def directory_snapshot(dirname):
     """
 
     if not os.path.exists(dirname):
-        raise ValueError('Directory %s does not exist' % dirname)
+        return {}
+
     dirname = os.path.realpath(dirname)
 
     struct = {}

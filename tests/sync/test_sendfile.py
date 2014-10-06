@@ -1,6 +1,6 @@
 # coding=utf-8
 from flexmock import flexmock
-from mfcloud.sync.client import FileClient
+from mfcloud.sync.client import FileClient, FileServerError
 from mfcloud.sync.server import FileServer
 from mfcloud.sync.transfer import CrcCheckFailed
 import os
@@ -143,4 +143,31 @@ def test_remote_snapshot(tmpdir):
     assert snapshot['boo.txt']['_path'] == 'boo.txt'
 
     server.stop()
+
+
+
+@pytest.inlineCallbacks
+def test_remote_snapshot_unknown_dir(tmpdir):
+
+    basedir = tmpdir.mkdir('foo')
+    basedir.join('boo.txt').write('here i am')
+
+    print 'Brfore snapshot'
+
+    resolver = flexmock()
+    resolver.should_receive('get_volume_path').with_args(app_name='hoho').and_raise(Exception)
+
+    server = FileServer(host='localhost', port=33112, file_resolver=resolver)
+    server.bind()
+
+
+    yield sleep(0.01)
+
+    client = FileClient(host='localhost', port=33112)
+
+    with pytest.raises(FileServerError):
+        snapshot = yield client.snapshot(app_name='hoho')
+
+    server.stop()
+
 

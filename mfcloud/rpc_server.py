@@ -9,11 +9,11 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
 import txredisapi
 from twisted.python import log
-
 from mfcloud.plugins.internal_api import InternalApiPlugin
 from mfcloud.plugins.metrics import MetricsPlugin
-from mfcloud.sendfile import FileIOFactory, FileServer
+from mfcloud.sync.server import FileServer
 from mfcloud.util import txtimeout
+
 
 log.startLogging(sys.stdout)
 

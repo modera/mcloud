@@ -25,8 +25,7 @@ def test_snapshot(tmpdir):
 
 def test_snapshot_no_dir(tmpdir):
 
-    with pytest.raises(ValueError):
-        directory_snapshot('boooooo')
+    assert directory_snapshot('boooooo') == {}
 
 
 def test_simple_compare(tmpdir):

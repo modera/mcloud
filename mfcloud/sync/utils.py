@@ -4,6 +4,8 @@ from tempfile import NamedTemporaryFile
 import os
 import tarfile
 
+class VolumeNotFound(ValueError):
+    pass
 
 def file_crc(path, buffer_size=1024):
     """

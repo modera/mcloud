@@ -3,6 +3,7 @@ import json
 import logging
 import inject
 from mfcloud.config import YamlConfig, ConfigParseError
+from mfcloud.sync.utils import VolumeNotFound
 import os
 from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks
@@ -216,6 +217,6 @@ class ApplicationVolumeResolver(object):
 
             all_volumes = service.list_volumes()
             if not volume in all_volumes:
-                raise Exception('Volume with name %s no found!' % volume)
+                raise VolumeNotFound('Volume with name %s no found!' % volume)
 
             defer.returnValue(all_volumes[volume])

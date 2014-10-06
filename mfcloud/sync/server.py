@@ -13,6 +13,7 @@ from twisted.protocols import basic
 from twisted.python import log
 
 
+
 class FileIOProtocol(basic.LineReceiver):
     """ File Receiver """
     app_controller = inject.attr(ApplicationController)
@@ -62,14 +63,11 @@ class FileIOProtocol(basic.LineReceiver):
 
     @inlineCallbacks
     def do_snapshot(self, data):
-        try:
-            file_path = yield self.resolve_file_path(**data['args'])
-            snapshot = directory_snapshot(file_path)
+        file_path = yield self.resolve_file_path(**data['args'])
+        snapshot = directory_snapshot(file_path)
 
-            self.transport.write(json.dumps(snapshot) + '\r\n')
-            self.transport.loseConnection()
-        except:
-            log.err()
+        self.transport.write(json.dumps(snapshot) + '\r\n')
+        self.transport.loseConnection()
 
     @inlineCallbacks
     def do_remove(self, data):
@@ -109,6 +107,33 @@ class FileIOProtocol(basic.LineReceiver):
 
         yield controller.completed
 
+    @inlineCallbacks
+    def handle_msg(self, data):
+
+        try:
+            if data['cmd'] == 'upload':
+                yield self.do_upload(data)
+
+            elif data['cmd'] == 'snapshot':
+                yield self.do_snapshot(data)
+
+            elif data['cmd'] == 'remove':
+                yield self.do_remove(data)
+
+            elif data['cmd'] == 'mkdir':
+                yield self.do_mkdir(data)
+
+            elif data['cmd'] == 'download':
+                yield self.do_download(data)
+            else:
+                self.transport.write('err: Unknown command: %s' % data['cmd'] + '\r\n')
+                self.transport.loseConnection()
+
+        except Exception as e:
+            self.transport.write('err: %s\r\n' % str(e.message))
+            self.transport.loseConnection()
+
+
     def lineReceived(self, line):
         """ """
         try:
@@ -122,37 +147,7 @@ class FileIOProtocol(basic.LineReceiver):
 
         # client=self.transport.getPeer().host
 
-        if data['cmd'] == 'upload':
-            self.do_upload(data)
-
-        elif data['cmd'] == 'snapshot':
-            self.do_snapshot(data)
-
-        elif data['cmd'] == 'remove':
-            self.do_remove(data)
-
-        elif data['cmd'] == 'mkdir':
-            self.do_mkdir(data)
-
-        elif data['cmd'] == 'download':
-            self.do_download(data)
-        else:
-            self.transport.write('Unknown command: %s' % data['cmd'] + '\r\n')
-            self.transport.loseConnection()
-
-
-        # # Never happens.. just a demo.
-        # if self.session.is_invalid():
-        #     print 'FileIOProtocol:lineReceived Invalid session'
-        #     self.transport.loseConnection()
-        #     return
-        #
-        # # Never happens.. just a demo.
-        # if self.session.is_stale():
-        #     print 'FileIOProtocol:lineReceived Stale session'
-        #     self.transport.loseConnection()
-        #     return
-
+        self.handle_msg(data)
 
 
     def rawDataReceived(self, data):

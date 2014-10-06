@@ -4,6 +4,8 @@ import sys
 import uuid
 import argparse
 from mfcloud.attach import Terminal, AttachStdinProtocol
+from mfcloud.sync.client import FileServerError
+from mfcloud.sync.storage import get_storage, storage_sync
 
 import re
 import os
@@ -18,7 +20,6 @@ from twisted.internet.error import TimeoutError
 from twisted.internet.error import ConnectionRefusedError
 from twisted.python import log
 from mfcloud import metadata
-from mfcloud.sendfile import get_storage, storage_sync
 
 
 def format_epilog():
@@ -202,7 +203,11 @@ class ApiRpcClient(object):
         src = get_storage(source)
         dst = get_storage(destination)
 
-        yield storage_sync(src, dst, confirm=not force, verbose=True, remove=remove)
+        try:
+            yield storage_sync(src, dst, confirm=not force, verbose=True, remove=remove)
+        except FileServerError as e:
+            print '------------------------'
+            print e.message
 
     @cli('List running tasks')
     @inlineCallbacks
@@ -648,17 +653,19 @@ def main(argv):
         log.msg('Starting task: %s' % args.func)
 
         def ok(result):
-            reactor.stop()
+            reactor.callFromThread(reactor.stop)
 
         def err(failure):
             print 'Unhandled failure: %s' % failure
-            reactor.stop()
+            reactor.callFromThread(reactor.stop)
 
         d = getattr(client, args.func)(**vars(args))
+
         d.addCallback(ok)
         d.addErrback(err)
-
         reactor.run()
+
+
     else:
         args.func(**vars(args))
 

@@ -9,6 +9,13 @@ from twisted.protocols import basic
 from twisted.python import log
 
 
+class FileServerError(Exception):
+    """
+    Exception is thrown when volume can not be resolved.
+    """
+
+    pass
+
 class FileIOUploaderClientProtocol(basic.LineReceiver):
     """ file sender """
 
@@ -121,6 +128,10 @@ class FileIOCommandClient(basic.LineReceiver):
         self.setRawMode()
 
     def connectionLost(self, reason):
+
+        if self.data.startswith('err:'):
+            self.factory.controller.completed.errback(FileServerError(self.data))
+            return
 
         if self.data.endswith('\r\n'):
             self.data = self.data[0:-2]

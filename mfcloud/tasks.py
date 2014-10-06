@@ -1,19 +1,16 @@
 import inspect
-import re
 
+import re
 from autobahn.twisted.util import sleep
 import inject
 from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks
-from twisted.python import log
 import txredisapi
-
 from mfcloud.txdocker import IDockerClient, NotFound
 from mfcloud.application import ApplicationController
 from mfcloud.deployment import DeploymentController
 from mfcloud.events import EventBus
 from mfcloud.remote import ApiRpcServer
-from mfcloud.volumes import directory_snapshot
 
 
 class TaskService(object):
