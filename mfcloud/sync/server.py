@@ -22,6 +22,10 @@ class FileIOProtocol(basic.LineReceiver):
     """
     event_bus = inject.attr(EventBus)
 
+    read_len = 0
+    read_clb = None
+    read_data = None
+
     class Session(object):
         """ Session object, just a demo """
 
@@ -54,6 +58,14 @@ class FileIOProtocol(basic.LineReceiver):
         #     raise Exception('Volume with name %s no found!' % volume)
         #
         # defer.returnValue(os.path.join(all_volumes[volume], path))
+
+    def _read(self, len):
+        self.read_clb = Deferred()
+        self.read_len = len
+        self.read_data = ''
+
+        return self.read_clb
+
 
     @inlineCallbacks
     def do_upload(self, data):
@@ -91,7 +103,15 @@ class FileIOProtocol(basic.LineReceiver):
     def do_download(self, data):
         resolved_path = yield self.resolve_file_path(**data['ref'])
 
-        tar = yield threads.deferToThread(archive, resolved_path, data['paths'])
+        self.setRawMode()
+
+        paths = yield self._read(data['paths_len'])
+        paths = json.loads(paths)
+
+        log.msg('Creating file archive')
+        print('Archiving')
+        tar = yield threads.deferToThread(archive, resolved_path, paths)
+
 
         crc = file_crc(tar)
 
@@ -100,6 +120,9 @@ class FileIOProtocol(basic.LineReceiver):
             'file_size': os.path.getsize(tar),
             'file_crc': crc
         }
+
+        print('Initiating file transfer. %s MB' % (out_data['file_size'] / (1024 * 1024)))
+
         self.transport.write(json.dumps(out_data) + '\r\n')
         controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
         self.processor = FileUploaderSource(tar, controller, self)
@@ -107,8 +130,12 @@ class FileIOProtocol(basic.LineReceiver):
 
         yield controller.completed
 
+        print('File transfer completed.')
+
     @inlineCallbacks
     def handle_msg(self, data):
+
+        log.msg(data)
 
         try:
             if data['cmd'] == 'upload':
@@ -130,6 +157,7 @@ class FileIOProtocol(basic.LineReceiver):
                 self.transport.loseConnection()
 
         except Exception as e:
+            log.err()
             self.transport.write('err: %s\r\n' % str(e.message))
             self.transport.loseConnection()
 
@@ -151,7 +179,15 @@ class FileIOProtocol(basic.LineReceiver):
 
 
     def rawDataReceived(self, data):
-        self.processor.raw_data(data)
+
+        if self.read_len > 0:
+            self.read_data += data
+            self.read_len -= len(data)
+
+            if self.read_len < 1:
+                self.read_clb.callback(self.read_data)
+        else:
+            self.processor.raw_data(data)
 
     def connectionMade(self):
         """ """
@@ -159,6 +195,10 @@ class FileIOProtocol(basic.LineReceiver):
 
     def connectionLost(self, reason):
         """ """
+
+        if self.read_len > 0:
+            self.read_clb.errback('Not all data recieved')
+
         basic.LineReceiver.connectionLost(self, reason)
 
         if self.processor:

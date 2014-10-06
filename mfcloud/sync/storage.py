@@ -1,6 +1,8 @@
+import pipes
 from shutil import rmtree, copy
 from tempfile import mkdtemp
 from time import time
+import shutil
 from mfcloud.application import Application
 from mfcloud.sync.client import FileClient
 from mfcloud.sync.diff import directory_snapshot, compare
@@ -45,11 +47,13 @@ class VolumeStorageRemote(object):
     def upload(self, paths, base_dir):
         yield self._get_client().upload(paths, base_dir, **self.ref)
 
+    @inlineCallbacks
     def download(self, paths, base_dir):
-        return self._get_client().download(paths, base_dir, **self.ref)
+        yield self._get_client().download(paths, base_dir, **self.ref)
 
+    @inlineCallbacks
     def remove(self, path):
-        return self._get_client().remove(path=path, **self.ref)
+        yield self._get_client().remove(path=path, **self.ref)
 
 
 
@@ -57,7 +61,8 @@ class VolumeStorageLocal(object):
     def __init__(self, path):
         super(VolumeStorageLocal, self).__init__()
 
-        self.path = path
+        self.path = os.path.realpath(path)
+
 
     def get_snapshot(self):
         return directory_snapshot(self.path)
@@ -98,14 +103,10 @@ class VolumeStorageLocal(object):
             self._do_copy(src_path, target_path)
 
     def upload(self, paths, base_dir):
-        if not isinstance(paths, list) and not isinstance(paths, tuple):
-            paths = [paths]
+        # if not isinstance(paths, list) and not isinstance(paths, tuple):
+        #     paths = [paths]
 
-        for path in paths:
-            target_path = os.path.join(self.path, path)
-            src_path = os.path.join(base_dir, path)
-
-            self._do_copy(src_path, target_path)
+        os.system('cp -rf %s %s' % (pipes.quote(base_dir), pipes.quote(self.path)))
 
     def remove(self, path):
         real_path = os.path.join(self.path, path)
@@ -201,6 +202,7 @@ def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
         finally:
             if len(paths_to_upload):
                 rmtree(tmp_path)
+            pass
 
     for path in volume_diff['del']:
         yield dst.remove(path)

@@ -85,7 +85,6 @@ class Terminal(object):
                 dims = (os.environ['LINES'], os.environ['COLUMNS'])
             except:
                 return None
-        print dims
         return dims
 
     def israw(self):

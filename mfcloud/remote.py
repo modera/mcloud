@@ -489,7 +489,6 @@ class Task(object):
         self.data.append(data)
 
     def on_stdin(self, data):
-        open('foo.txt', 'w+').write(data)
         return self.client.task_stdin(self.id, data)
 
     def on_success(self, result):

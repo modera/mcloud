@@ -1,4 +1,5 @@
 import json
+from time import sleep
 from mfcloud.sync.transfer import FileUploaderSource, FileUploaderTarget
 from mfcloud.sync.utils import file_crc, archive
 import os
@@ -85,12 +86,15 @@ class FileIODownloaderClient(basic.LineReceiver):
             raise Exception('Unknown command: %s' % data['cmd'])
 
     def connectionMade(self):
+        paths = json.dumps(self.paths)
         data = {
             'cmd': 'download',
-            'paths': self.paths,
+            'paths_len': len(paths),
             'ref': self.ref
         }
         self.transport.write(json.dumps(data) + '\r\n')
+        reactor.callLater(0.1, self.transport.write, paths)
+
 
 
     def rawDataReceived(self, data):
@@ -126,6 +130,7 @@ class FileIOCommandClient(basic.LineReceiver):
         }
         self.transport.write(json.dumps(data) + '\r\n')
         self.setRawMode()
+
 
     def connectionLost(self, reason):
 
@@ -192,6 +197,7 @@ class FileClient(object):
 
         controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
 
+        print('Creating archive')
         tar = yield threads.deferToThread(archive, source_path, paths)
 
         crc = self.file_crc(tar)

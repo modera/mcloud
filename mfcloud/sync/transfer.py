@@ -1,3 +1,4 @@
+from __future__ import print_function
 from binascii import crc32
 from tempfile import NamedTemporaryFile
 from autobahn.twisted.util import sleep
@@ -43,10 +44,13 @@ class FileUploaderTarget(object):
         self.outfile = NamedTemporaryFile(delete=False)
 
         self.remain = size
+
+        print('Starting upload of %s MB' % (size / (1024 * 1024)))
         self.protocol.setRawMode()
 
     @inlineCallbacks
     def extract(self):
+        log.msg('Transfer done. Extracting files.')
         try:
             if self.crc != self.expected_crc:
                 yield self.protocol.transport.write('crc\r\n')
@@ -73,11 +77,19 @@ class FileUploaderTarget(object):
 
 
     def stop(self, reason):
+
         if self.outfile:
             self.outfile.close()
 
         if hasattr(self.protocol.factory, 'controller'):
-            self.protocol.factory.controller.completed.callback(None)
+            if self.remain == 0:
+                print('File transfer done.')
+                self.protocol.factory.controller.completed.callback(None)
+            else:
+                self.protocol.factory.controller.completed.errback(Exception('Still some date rmaining untransferred: %s' % self.remain))
+        else:
+            if not self.remain == 0:
+                raise Exception('Still some date rmaining untranferred: %s' % self.remain)
 
 
 class FileUploaderSource(object):
@@ -120,6 +132,10 @@ class FileUploaderSource(object):
 
     def _monitor(self, data):
         """ """
+
+        # if self.controller.total_sent > 0:
+        #     print('%%%s' % (self.controller.file_size / self.controller.total_sent))
+
         self.controller.file_sent += len(data)
         self.controller.total_sent += len(data)
 
