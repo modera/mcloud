@@ -1,4 +1,5 @@
 import json
+from shutil import rmtree
 from mfcloud.sync.utils import archive, file_crc
 import os
 import inject
@@ -86,7 +87,12 @@ class FileIOProtocol(basic.LineReceiver):
     def do_remove(self, data):
         path = yield self.resolve_file_path(**data['args']['ref'])
         file_path = os.path.join(path, data['args']['path'])
-        os.unlink(file_path)
+
+        if os.path.isdir(file_path):
+            rmtree(file_path, ignore_errors=True)
+        else:
+            os.unlink(file_path)
+
         self.transport.write(json.dumps(True) + '\r\n')
         self.transport.loseConnection()
 

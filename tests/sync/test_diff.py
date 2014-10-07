@@ -14,17 +14,36 @@ def test_snapshot(tmpdir):
 
     ssrc = directory_snapshot(str(src))
 
-    print ssrc
-
-    assert len(ssrc.values()) == 2
+    assert len(ssrc.values()) == 3
     assert len(ssrc['foo/'].values()) == 3  # mtime is added here
     assert ssrc['boo.txt']['_path'] == 'boo.txt'
     assert ssrc['foo/']['_path'] == 'foo/'
     assert ssrc['foo/']['boo.txt']['_path'] == 'foo/boo.txt'
 
-
-
     assert '_path' not in ssrc
+
+
+def test_snapshot_access_denied(tmpdir, capsys):
+
+    src = tmpdir.mkdir("src")
+    src.join('boo.txt').write('123')
+    src.mkdir('foo').join('boo.txt').write('123')
+    foodir = src.mkdir('baz')
+    os.chmod(str(foodir), 0000)
+
+    ssrc = directory_snapshot(str(src))
+
+    assert len(ssrc.values()) == 4
+    assert len(ssrc['foo/'].values()) == 3  # mtime is added here
+    assert ssrc['boo.txt']['_path'] == 'boo.txt'
+    assert ssrc['foo/']['_path'] == 'foo/'
+    assert ssrc['foo/']['boo.txt']['_path'] == 'foo/boo.txt'
+    assert 'baz/' in ssrc
+    assert len(ssrc['baz/']) == 2  # only directory records, no content
+
+    out, err = capsys.readouterr()
+
+    assert 'Warning: access denied: %s' % str(foodir) in err
 
 
 def test_snapshot_no_dir(tmpdir):
@@ -76,6 +95,31 @@ def test_compare_new_file_gitignore(tmpdir):
 
     ssrc = directory_snapshot(str(src))
     sdst = directory_snapshot(str(dst))
+
+    assert compare(ssrc, sdst) == {
+        'new': ['boo.txt'],
+        'upd': [],
+        'del': [],
+    }
+
+def test_compare_removed_file_gitignore(tmpdir):
+
+    src = tmpdir.mkdir("src")
+    dst = tmpdir.mkdir("dst")
+
+    os.chdir(str(src))
+    os.system('git init')
+    src.join('boo.txt').write('123')
+    src.join('boo2.txt').write('123')
+    src.join('.gitignore').write('boo2.txt')
+
+    dst.join('boo2.txt').write('123')
+
+    ssrc = directory_snapshot(str(src))
+    sdst = directory_snapshot(str(dst))
+
+    print ssrc
+    print sdst
 
     assert compare(ssrc, sdst) == {
         'new': ['boo.txt'],

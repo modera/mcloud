@@ -194,17 +194,17 @@ class ApiRpcClient(object):
     @cli('Push appliction volume application', arguments=(
         arg('source', help='Push source'),
         arg('destination', help='Push destination'),
-        arg('--remove', help='Allow to remove files', default=False, action='store_true'),
+        arg('--no-remove', help='Disable remove files', default=False, action='store_true'),
         arg('--force', help='Don\'t ask confirmation', default=False, action='store_true'),
     ))
     @inlineCallbacks
-    def sync(self, source, destination, remove, force, **kwargs):
+    def sync(self, source, destination, no_remove, force, **kwargs):
 
         src = get_storage(source)
         dst = get_storage(destination)
 
         try:
-            yield storage_sync(src, dst, confirm=not force, verbose=True, remove=remove)
+            yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove)
         except FileServerError as e:
             print '------------------------'
             print e.message

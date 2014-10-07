@@ -1,5 +1,6 @@
 from distutils.dir_util import copy_tree
 import pipes
+import pydoc
 from shutil import rmtree, copy
 from tempfile import mkdtemp
 from time import time
@@ -144,28 +145,24 @@ def get_storage(ref):
 
 
 def print_diff(volume_diff):
-
+    cnt = 0
+    diff = ''
     for type_, label in (('new', 'New'), ('upd', 'Updated'), ('del', 'Removed'), ):
         if volume_diff[type_]:
-            print '\n'
-            print '%s\n' % label + '-' * 40
+            diff += '\n\n'
+            diff += '\n%s\n' % label + '-' * 40
 
-            cnt = 0
             for file_ in volume_diff[type_]:
-                print '   - ' + file_
                 cnt += 1
-                if cnt > 10:
-                    print 'And %s files more ...' % (len(volume_diff[type_]) - 11)
-                    break
+                diff += '\n   - ' + file_
 
-            has_changes = True
+    return cnt, diff
 
 def diff_has_changes(volume_diff):
     return volume_diff['new'] or volume_diff['upd'] or volume_diff['del']
 
 @inlineCallbacks
 def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
-
     start = time()
 
     if verbose:
@@ -190,7 +187,13 @@ def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
         return
 
     if confirm:
-        print_diff(volume_diff)
+        diff_len, diff = print_diff(volume_diff)
+        if diff_len > 30:
+            if query_yes_no('Too much changes - can\'t print. Open with less?', default='yes'):
+                pydoc.pager('Changes to be applied (press q for exit, and then confirm with y/n):%s' % diff)
+        else:
+            print diff
+
         if not query_yes_no('Apply changes?', default='no'):
             return
 
@@ -212,6 +215,7 @@ def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
             pass
 
     for path in volume_diff['del']:
+        print('Removing %s' % path)
         yield dst.remove(path)
 
 

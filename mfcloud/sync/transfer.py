@@ -50,10 +50,11 @@ class Monitor(object):
         downloaded = self.size - self.remain
         percent = round((downloaded / float(self.size)) * 100, 0)
 
-        sys.stdout.write('\r%s   Transfer %s%% (%s). Speed: %s/s                                ' % (
+        sys.stdout.write('\r%s   Transfer %s%% (%s of %s). Speed: %s/s                                ' % (
             ('|', '/', '-', '\\')[self.spinner],
             percent,
             self.format_measure(downloaded),
+            self.format_measure(self.size),
             self.format_measure(self.speed))
         )
         sys.stdout.flush()
@@ -105,8 +106,6 @@ class FileUploaderTarget(object):
             self.loop = task.LoopingCall(self.monitor_loop)
             self.loop.start(0.25)
 
-
-        print('Starting upload of %s MB' % (size / (1024 * 1024)))
         self.protocol.setRawMode()
 
     @inlineCallbacks
@@ -147,7 +146,7 @@ class FileUploaderTarget(object):
 
         if hasattr(self.protocol.factory, 'controller'):
             if self.remain == 0:
-                print('File transfer done.')
+                print('\nFile transfer done.')
                 self.protocol.factory.controller.completed.callback(None)
             else:
                 self.protocol.factory.controller.completed.errback(Exception('Still some date rmaining untransferred: %s' % self.remain))

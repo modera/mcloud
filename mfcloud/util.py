@@ -3,6 +3,7 @@ from abc import ABCMeta
 import inject
 import os
 from twisted.internet import reactor
+from twisted.internet.defer import Deferred
 
 
 class Interface(object):
@@ -81,3 +82,34 @@ def query_yes_no(question, default="yes"):
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
+
+
+from twisted.internet import protocol
+from twisted.internet import reactor
+
+
+class LessLongTextProtocol(protocol.ProcessProtocol):
+    def __init__(self, long_text, on_exit):
+        self.long_text = long_text
+        self.on_exit = on_exit
+
+    def connectionMade(self):
+        print "Connected"
+        # self.transport.write(self.long_text.encode('utf-8'))
+        self.transport.write('kuku')
+        self.transport.closeStdin()
+
+
+
+    def errReceived(self, data):
+        protocol.ProcessProtocol.errReceived(self, data)
+        print(data)
+
+    def outReceived(self, data):
+        protocol.ProcessProtocol.outReceived(self, data)
+
+        print data
+
+
+    def processEnded(self, reason):
+        self.on_exit.callback(True)
