@@ -343,12 +343,13 @@ def test_storage_sync_lot_of_files_local_to_remote(tmpdir):
 
     another = tmpdir.mkdir('baz')
 
-    remote1 = tmpdir.mkdir('remote1')
-
     # generate 20 mb file
     for i in range(1, 2000):
-        with open(str(remote1.join('hoho_%s.txt' % i)), 'w+') as f:
+        with open(str(another.join('hoho_%s.txt' % i)), 'w+') as f:
             f.write(os.urandom(128))
+
+    remote1 = tmpdir.mkdir('remote1')
+    remote1.join('hoho.txt').write('here i am')
 
 
     resolver1 = flexmock()
