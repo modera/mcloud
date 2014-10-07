@@ -70,6 +70,7 @@ class FileIOProtocol(basic.LineReceiver):
     @inlineCallbacks
     def do_upload(self, data):
         path = yield self.resolve_file_path(**data['ref'])
+        yield self.transport.write('go\r\n')
         self.processor = FileUploaderTarget(self, path, data['file_crc'])
         self.processor.start_upload(data['file_size'])
 

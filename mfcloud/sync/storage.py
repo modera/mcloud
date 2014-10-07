@@ -214,3 +214,6 @@ def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
     for path in volume_diff['del']:
         yield dst.remove(path)
 
+
+    print('\nDone.')
+

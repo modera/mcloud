@@ -1,6 +1,6 @@
 import json
 from time import sleep
-from mfcloud.sync.transfer import FileUploaderSource, FileUploaderTarget
+from mfcloud.sync.transfer import FileUploaderSource, FileUploaderTarget, Monitor
 from mfcloud.sync.utils import file_crc, archive
 import os
 from twisted.internet import threads, reactor
@@ -21,12 +21,15 @@ class FileIOUploaderClientProtocol(basic.LineReceiver):
     """ file sender """
 
 
-    def __init__(self, path, crc, ref):
+    def __init__(self, path, crc, ref, monitor=None):
         self.path = path
         self.ref = ref
         self.crc = crc
 
         self.processor = None
+        self.monitor = monitor
+
+        self.downloading = False
 
 
     def connectionMade(self):
@@ -40,12 +43,15 @@ class FileIOUploaderClientProtocol(basic.LineReceiver):
         }
         self.transport.write(json.dumps(data) + '\r\n')
 
-        self.processor = FileUploaderSource(self.path, self.factory.controller, self)
-        self.processor.start()
-
     def lineReceived(self, line):
-        if self.processor:
+        if not self.downloading and line.strip() == 'go':
+            self.downloading = True
+            self.processor = FileUploaderSource(self.path, self.factory.controller, self, monitor=self.monitor)
+            self.processor.start()
+        elif self.downloading and self.processor:
             self.processor.lineReceived(line)
+        else:
+            raise Exception('Unexpected data received: %s' % line)
 
 
     def connectionLost(self, reason):
@@ -63,11 +69,12 @@ class FileIOUploaderClientProtocol(basic.LineReceiver):
 class FileIODownloaderClient(basic.LineReceiver):
     """ file sender """
 
-    def __init__(self, paths, target_path, ref):
+    def __init__(self, paths, target_path, ref, monitor=None):
         self.paths = paths
         self.target_path = target_path
         self.ref = ref
         self.processor = None
+        self.monitor = monitor
 
     def lineReceived(self, line):
         """ """
@@ -78,8 +85,13 @@ class FileIODownloaderClient(basic.LineReceiver):
             return
         # client=self.transport.getPeer().host
 
+        # if data['cmd'] == 'out':
+        #     if self.monitor:
+        #         self.monitor.out(data['msg'])
+
         if data['cmd'] == 'upload':
-            self.processor = FileUploaderTarget(self, self.target_path, data['file_crc'])
+
+            self.processor = FileUploaderTarget(self, self.target_path, data['file_crc'], monitor=self.monitor)
             self.processor.start_upload(data['file_size'])
             return
         else:
@@ -92,6 +104,7 @@ class FileIODownloaderClient(basic.LineReceiver):
             'paths_len': len(paths),
             'ref': self.ref
         }
+        print('Preparing file archive ...')
         self.transport.write(json.dumps(data) + '\r\n')
         reactor.callLater(0.1, self.transport.write, paths)
 
@@ -204,7 +217,7 @@ class FileClient(object):
 
         # print tar
 
-        protocol = FileIOUploaderClientProtocol(tar, crc, kwargs)
+        protocol = FileIOUploaderClientProtocol(tar, crc, kwargs, monitor=Monitor())
         f = FileIOClientFactory(protocol, controller)
         reactor.connectTCP(self.host, self.port, f, timeout=2)
 
@@ -219,7 +232,7 @@ class FileClient(object):
 
         controller = type('test', (object,), {'cancel': False, 'total_sent': 0, 'completed': Deferred()})
 
-        protocol = FileIODownloaderClient(paths, target_path, kwargs)
+        protocol = FileIODownloaderClient(paths, target_path, kwargs, monitor=Monitor())
         f = FileIOClientFactory(protocol, controller)
         reactor.connectTCP(self.host, self.port, f, timeout=2)
 

@@ -1,7 +1,7 @@
 from subprocess import Popen, PIPE
 from time import time
-from profilestats import profile
-from scandir import walk, scandir
+# from profilestats import profile
+from scandir import scandir
 
 import os
 
