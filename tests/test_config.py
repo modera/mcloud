@@ -1,4 +1,3 @@
-
 from flexmock import flexmock
 from mfcloud.config import YamlConfig, Service, UnknownServiceError, ConfigParseError
 from mfcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
@@ -9,44 +8,74 @@ def test_not_existent_file():
     with pytest.raises(ValueError):
         YamlConfig(file='Not existent path')
 
+
 def test_none_to_parser():
     YamlConfig()
 
 
-def test_load_config(tmpdir):
+def test_load_config_prepare(tmpdir):
+    config = {
+        'foo': {
+            'image': 'foo',
+            'env': {
+                'bar': 'baz'
+            },
+            'cmd': 'some'
+        },
 
+        'bar': {
+            'extend': 'foo',
+            'cmd': 'other'
+        }
+    }
+
+    yc = YamlConfig()
+
+    yc.prepare(config)
+
+    assert config['bar'] == {
+        'image': 'foo',
+        'env': {
+            'bar': 'baz'
+        },
+        'cmd': 'other'
+    }
+
+
+def test_load_config(tmpdir):
     p = tmpdir.join('mfcloud.yml')
     p.write('foo: bar')
 
     config = YamlConfig(file=p.realpath(), app_name='myapp')
 
+    flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=p.dirname, app_name='myapp').once()
     config.load()
 
 
-
 def test_load_config_from_config():
-
     config = YamlConfig(source='foo: bar', app_name='myapp')
 
+    flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=None, app_name='myapp').once()
     config.load()
 
 
 def test_load_config_not_valid(tmpdir):
-
     p = tmpdir.join('mfcloud.yml')
     p.write('foo: bar')
 
     config = YamlConfig(file=p.realpath(), app_name='myapp')
 
+    flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once().and_raise(ValueError('boo'))
     flexmock(config).should_receive('process').times(0)
 
     with pytest.raises(ConfigParseError):
         config.load()
+
 
 @pytest.mark.parametrize("config", [
 
@@ -87,6 +116,7 @@ def test_validate_valid(config):
     c = YamlConfig()
     assert c.validate(config)
 
+
 @pytest.mark.parametrize("config", [
 
     # no services
@@ -119,15 +149,14 @@ def test_process():
     c.should_receive('process_command_build').once()
 
     c.process({
-        'nginx': {'foo': 'bar'}
-    }, path='foo')
+                  'nginx': {'foo': 'bar'}
+              }, path='foo')
 
     assert isinstance(c.services['nginx'], Service)
     assert c.services['nginx'].name == 'nginx'
 
 
 def test_process_with_app_name():
-
     c = YamlConfig()
 
     flexmock(c)
@@ -137,39 +166,38 @@ def test_process_with_app_name():
     c.should_receive('process_command_build').once()
 
     c.process({
-        'nginx': {'foo': 'bar'}
-    }, path='foo', app_name='myapp')
+                  'nginx': {'foo': 'bar'}
+              }, path='foo', app_name='myapp')
 
     assert isinstance(c.services['nginx.myapp'], Service)
     assert c.services['nginx.myapp'].name == 'nginx.myapp'
 
 
 def test_build_command_empty():
-
     s = Service()
     c = YamlConfig()
 
     c.process_command_build(s, {}, '/base/path')
     assert s.command == None
 
-def test_build_command_none():
 
+def test_build_command_none():
     s = Service()
     c = YamlConfig()
 
     c.process_command_build(s, {'cmd': None}, '/base/path')
     assert s.command == None
 
-def test_build_command_empty_string():
 
+def test_build_command_empty_string():
     s = Service()
     c = YamlConfig()
 
     c.process_command_build(s, {'cmd': ''}, '/base/path')
     assert s.command == None
 
-def test_build_command_ok():
 
+def test_build_command_ok():
     s = Service()
     c = YamlConfig()
 
@@ -178,7 +206,6 @@ def test_build_command_ok():
 
 
 def test_build_build_volumes_empty():
-
     s = Service()
     c = YamlConfig()
 
@@ -187,7 +214,6 @@ def test_build_build_volumes_empty():
 
 
 def test_build_build_volumes_none():
-
     s = Service()
     c = YamlConfig()
 
@@ -196,7 +222,6 @@ def test_build_build_volumes_none():
 
 
 def test_build_build_volumes_several():
-
     s = Service()
     c = YamlConfig()
 
@@ -214,7 +239,6 @@ def test_build_build_volumes_several():
 
 
 def test_build_build_env_empty():
-
     s = Service()
     c = YamlConfig()
 
@@ -223,7 +247,6 @@ def test_build_build_env_empty():
 
 
 def test_build_build_env_none():
-
     s = Service()
     c = YamlConfig()
 
@@ -232,7 +255,6 @@ def test_build_build_env_none():
 
 
 def test_build_build_env_several():
-
     s = Service()
     c = YamlConfig()
 
@@ -250,7 +272,6 @@ def test_build_build_env_several():
 
 
 def test_build_image_image():
-
     s = Service()
     c = YamlConfig()
 
@@ -261,7 +282,6 @@ def test_build_image_image():
 
 
 def test_build_image_dockerfile():
-
     s = Service()
     c = YamlConfig()
 
@@ -272,7 +292,6 @@ def test_build_image_dockerfile():
 
 
 def test_build_image_dockerfile_no_path():
-
     s = Service()
     c = YamlConfig()
 
@@ -281,9 +300,8 @@ def test_build_image_dockerfile_no_path():
 
 
 def test_build_image_empty():
-
     s = Service()
-    c = YamlConfig() 
+    c = YamlConfig()
 
     with pytest.raises(ValueError) as e:
         c.process_image_build(s, {}, '/base/path')
@@ -293,6 +311,7 @@ def test_get_service():
     c = YamlConfig()
     c.services = {'foo': 'bar'}
     assert c.get_service('foo') == 'bar'
+
 
 def test_get_service_no():
     c = YamlConfig()

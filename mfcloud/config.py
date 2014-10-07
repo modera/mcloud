@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from copy import deepcopy
 from logging import info
 from abc import abstractmethod
 from mfcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
@@ -109,6 +110,8 @@ class YamlConfig(IConfig):
                 cfg = yaml.load(self._source, OrderedDictYAMLLoader)
                 path = None
 
+            self.prepare(config=cfg)
+
             self.validate(config=cfg)
 
             self.process(config=cfg, path=path, app_name=self.app_name)
@@ -117,6 +120,21 @@ class YamlConfig(IConfig):
         except ValueError as e:
             raise ConfigParseError('Failed to parse %s: %s' % (self._file, e.message))
 
+    def prepare(self, config):
+        """
+        Apply preprocessing to yaml config
+
+        :param config:
+        :return:
+        """
+
+        for service, cfg in config.items():
+            if 'extend' in cfg:
+                new_config = deepcopy(config[cfg['extend']])
+                new_config.update(cfg)
+                del new_config['extend']
+
+                config[service] = new_config
 
     def validate(self, config):
         try:

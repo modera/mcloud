@@ -1,6 +1,7 @@
 from binascii import crc32
 from filecmp import dircmp
 from tempfile import NamedTemporaryFile
+from mfcloud.util import safe_chdir
 import os
 import tarfile
 
@@ -43,12 +44,12 @@ def archive(base_path, paths):
     f = NamedTemporaryFile(delete=False)
     f.close()
 
-    os.chdir(base_path)
+    with safe_chdir(base_path):
 
-    tar = tarfile.open(f.name, "w")
-    for path in paths:
-        tar.add(path, recursive=False)
-    tar.close()
+        tar = tarfile.open(f.name, "w")
+        for path in paths:
+            tar.add(path, recursive=False)
+        tar.close()
 
     return f.name
 
@@ -60,12 +61,12 @@ def unarchive(base_path, tar):
     :param base_path:
     :param tar: Full file-path
     """
-    os.chdir(base_path)
+    with safe_chdir(base_path):
 
-    tar = tarfile.open(tar)
-    tar.extractall()
+        tar = tarfile.open(tar)
+        tar.extractall()
 
-    tar.close()
+        tar.close()
 
 
 def directories_synced(dir1, dir2, ignore=None):

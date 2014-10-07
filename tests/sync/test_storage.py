@@ -10,6 +10,15 @@ import pytest
 from flexmock import flexmock
 
 
+
+def setup_function(function):
+    function.cwd_before = os.getcwd()
+
+def teardown_function(function):
+    if os.getcwd() != function.cwd_before:
+        pytest.fail('Function %s changes working directory' % function)
+
+
 def test_get_storage_local():
 
     storage = get_storage('/foo/bar/baz')
@@ -135,6 +144,9 @@ def test_storage_upload_local_non_existent_directory(tmpdir):
     src = get_storage(str(another) + '/123')
 
     yield src.upload('boo.txt', str(basedir))
+
+
+    os.system('ls -la %s' % another)
 
     assert another.join('123/boo.txt').exists()
     assert another.join('123/boo.txt').read() == 'here i am'

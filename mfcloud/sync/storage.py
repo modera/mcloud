@@ -1,3 +1,4 @@
+from distutils.dir_util import copy_tree
 import pipes
 from shutil import rmtree, copy
 from tempfile import mkdtemp
@@ -106,7 +107,13 @@ class VolumeStorageLocal(object):
         # if not isinstance(paths, list) and not isinstance(paths, tuple):
         #     paths = [paths]
 
-        os.system('cp -rf %s %s' % (pipes.quote(base_dir), pipes.quote(self.path)))
+        if not base_dir.endswith('/'):
+            base_dir += '/'
+
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
+
+        copy_tree(pipes.quote(base_dir), pipes.quote(self.path), preserve_symlinks=True)
 
     def remove(self, path):
         real_path = os.path.join(self.path, path)

@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from abc import ABCMeta
 import inject
+import os
 from twisted.internet import reactor
 
 
@@ -41,6 +42,13 @@ class ValidationError(Exception):
 
 
 import sys
+
+@contextmanager
+def safe_chdir(dir):
+    before = os.getcwd()
+    os.chdir(dir)
+    yield
+    os.chdir(before)
 
 def query_yes_no(question, default="yes"):
     """Ask a yes/no question via raw_input() and return their answer.
