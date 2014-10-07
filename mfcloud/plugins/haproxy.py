@@ -58,7 +58,7 @@ frontend http_proxy
 
   {% for app in apps %}
   {% for domain in app.domains %}
-  acl is_{{ app.name }} hdr_dom(host) -i {{ domain }}
+  acl is_{{ app.name }} hdr(host) -i {{ domain }}
   {% endfor %}
   use_backend backend_{{ app.name }}_cluster if is_{{ app.name }}
   {% endfor %}

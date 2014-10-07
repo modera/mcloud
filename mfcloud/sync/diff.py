@@ -1,6 +1,7 @@
 from subprocess import Popen, PIPE
 from time import time
-from scandir import walk
+from profilestats import profile
+from scandir import walk, scandir
 
 import os
 
@@ -27,51 +28,45 @@ def list_git_ignore(dir_):
     return ignored
 
 
-def dump_node(path, relpath):
+def dump_node(entry):
 
-    return {
-        '_path': relpath,
-        '_mtime': time() - os.path.getmtime(path.encode('utf-8')),
-    }
+    return
 
 
-def dump_file(dirname, ref, parts):
+def dump_file(dirname, ref, ignored, prefix='', ref_time=0):
 
-    base_name = parts[0]
+    dirname.encode('utf-8')
 
-    if base_name == '':
-        return
+    for entry in scandir(dirname):
+        if entry.is_symlink():
+            continue
 
-    if len(parts) > 1:
-        base_name += '/'
+        if is_ignored(ignored, entry.name):
+            continue
 
-    if not base_name in ref:
-        if '_path' in ref:
-            path_full = os.path.join(dirname, ref['_path'], base_name)
-            path_rel = os.path.join(ref['_path'], base_name)
-        else:
-            path_full = os.path.join(dirname, base_name)
-            path_rel = base_name
+        entry.name = entry.name.decode('utf-8')
+        entry._directory = entry._directory.decode('utf-8')
 
-        # skip all links
-        if os.path.islink(path_full.encode('utf-8')):
-            return
+        name = entry.name
 
-        me = dump_node(path_full, path_rel)
+        is_dir = entry.is_dir()
 
-        ref[base_name] = me
-    else:
-        me = ref[base_name]
+        if is_dir:
+            name += '/'
 
-    if len(parts) > 1:
-        child = dump_file(dirname, ref[base_name], parts[1:])
+        ref[name] = {
+            '_path': prefix + name,
+            '_mtime': ref_time - entry.stat().st_mtime,
+        }
 
-        if child:
-            if child['_mtime'] < me['_mtime']:
-                me['_mtime'] = child['_mtime']
+        if is_dir:
+            dump_file(entry.path, ref[name], ignored, prefix=prefix + name, ref_time=ref_time)
 
-    return me
+        if prefix:
+            if ref[name]['_mtime'] < ref['_mtime']:
+                ref['_mtime'] = ref[name]['_mtime']
 
+# @profile
 def directory_snapshot(dirname):
     """
     Creates tree representing directory with recursive modification times
@@ -88,19 +83,9 @@ def directory_snapshot(dirname):
     struct = {}
     ignored = list_git_ignore(dirname)
 
-    for root, dirs, files in walk(dirname):
-
-        all_files = [os.path.join(root.decode('utf-8'), f.decode('utf-8')) + '/' for f in dirs] + [os.path.join(root.decode('utf-8'), f.decode('utf-8')) for f in files]
-
-        for path_ in all_files:
-            rel_path = path_[len(dirname) + 1:]
-
-            if not is_ignored(ignored, rel_path):
-                path_ = path_[len(dirname) + 1:]
-                dump_file(dirname, struct, path_.split(os.path.sep))
+    dump_file(dirname, struct, ignored, ref_time=time())
 
     return struct
-
 
 def ref_path(ref):
     path_ = ref['_path']

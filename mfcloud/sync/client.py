@@ -202,6 +202,8 @@ class FileClient(object):
 
         crc = self.file_crc(tar)
 
+        # print tar
+
         protocol = FileIOUploaderClientProtocol(tar, crc, kwargs)
         f = FileIOClientFactory(protocol, controller)
         reactor.connectTCP(self.host, self.port, f, timeout=2)

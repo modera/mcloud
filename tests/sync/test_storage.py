@@ -16,7 +16,7 @@ def setup_function(function):
 
 def teardown_function(function):
     if os.getcwd() != function.cwd_before:
-        pytest.fail('Function %s changes working directory' % function)
+        pytest.fail('Function %s changes working directory. Was: %s Now: %s' % (function, function.cwd_before, os.getcwd()))
 
 
 def test_get_storage_local():

@@ -1,3 +1,4 @@
+from random import randint
 from time import sleep
 
 import os
@@ -13,11 +14,14 @@ def test_snapshot(tmpdir):
 
     ssrc = directory_snapshot(str(src))
 
+    print ssrc
+
     assert len(ssrc.values()) == 2
     assert len(ssrc['foo/'].values()) == 3  # mtime is added here
     assert ssrc['boo.txt']['_path'] == 'boo.txt'
     assert ssrc['foo/']['_path'] == 'foo/'
     assert ssrc['foo/']['boo.txt']['_path'] == 'foo/boo.txt'
+
 
 
     assert '_path' not in ssrc
@@ -262,3 +266,26 @@ def test_ignore():
     assert is_ignored(ignore_list, '.git/foo')
 
     assert is_ignored(ignore_list, '.env/lib/python2.7/site-packages/_pytest/pastebin.py')
+
+#
+#
+# def test_compare_lot_of_files(tmpdir):
+#
+#     src = tmpdir.mkdir("src")
+#
+#     print 'Generating test data.'
+#
+#
+#     for i in xrange(1, 20000):
+#         dirname = str(src) + ('/foo%s' % i) * randint(1, 5)
+#
+#         os.makedirs(dirname)
+#         with open('%s/test_%s.txt' % (dirname, i), 'w') as f:
+#             f.write('test')
+#
+#     print 'Generation done.'
+#
+#     ssrc = directory_snapshot(str(src))
+#
+#
+#     print 'Len of snapshot is: %s' % len(ssrc)
