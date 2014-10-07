@@ -312,6 +312,59 @@ def test_storage_sync_local_to_remote(tmpdir):
     assert directories_synced(another, remote1)
 
 @pytest.inlineCallbacks
+def test_storage_sync_big_file_local_to_remote(tmpdir):
+
+    another = tmpdir.mkdir('baz')
+
+    # generate 20 mb file
+    with open(str(another.join('boo.txt')), 'w+') as f:
+        for i in range(1, 1024 * 20):
+            f.write(os.urandom(1024))
+
+    remote1 = tmpdir.mkdir('remote1')
+    remote1.join('hoho.txt').write('here i am')
+
+    resolver1 = flexmock()
+    resolver1.should_receive('get_volume_path').with_args(app_name='hoho').and_return(str(remote1))
+
+    server1 = FileServer(host='localhost', port=33120, file_resolver=resolver1)
+    server1.bind()
+
+    src = get_storage(str(another))
+    dst = get_storage('hoho@localhost:33120')
+
+    yield storage_sync(src, dst, remove=True)
+
+    assert directories_synced(another, remote1)
+
+
+@pytest.inlineCallbacks
+def test_storage_sync_lot_of_files_local_to_remote(tmpdir):
+
+    another = tmpdir.mkdir('baz')
+
+    remote1 = tmpdir.mkdir('remote1')
+
+    # generate 20 mb file
+    for i in range(1, 2000):
+        with open(str(remote1.join('hoho_%s.txt' % i)), 'w+') as f:
+            f.write(os.urandom(128))
+
+
+    resolver1 = flexmock()
+    resolver1.should_receive('get_volume_path').with_args(app_name='hoho').and_return(str(remote1))
+
+    server1 = FileServer(host='localhost', port=33220, file_resolver=resolver1)
+    server1.bind()
+
+    src = get_storage(str(another))
+    dst = get_storage('hoho@localhost:33220')
+
+    yield storage_sync(src, dst, remove=True)
+
+    assert directories_synced(another, remote1)
+
+@pytest.inlineCallbacks
 def test_on_mfcloud_dir_local_to_local(tmpdir):
 
     mfcloud_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
