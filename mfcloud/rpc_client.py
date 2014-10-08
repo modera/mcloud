@@ -3,9 +3,12 @@ import logging
 import sys
 import uuid
 import argparse
+import readline
 from mfcloud.attach import Terminal, AttachStdinProtocol
+from mfcloud.shell import BufferAwareCompleter
 from mfcloud.sync.client import FileServerError
 from mfcloud.sync.storage import get_storage, storage_sync
+from mfcloud.util import block_on
 
 import re
 import os
@@ -61,22 +64,32 @@ arg_parser.add_argument(
 
 subparsers = arg_parser.add_subparsers()
 
+command_settings = {}
 
-def cli(help_, arguments=None):
+def cli(help_, arguments=None, by_ref=False):
     def cmd_decorator(func):
 
         cmd = subparsers.add_parser(func.__name__, help=help_)
+
+        command_settings[func.__name__] = {
+            'need_app': False
+        }
+
+        if arguments:
+            command_settings[func.__name__]['need_app'] = arguments[0][0][0] == 'app'
 
         if arguments:
             for argument in arguments:
                 cmd.add_argument(*argument[0], **argument[1])
 
-        cmd.set_defaults(func=func.__name__)
+
+        if by_ref:
+            cmd.set_defaults(func=func)
+        else:
+            cmd.set_defaults(func=func.__name__)
 
         def _run(*args, **kwargs):
             func1 = func(*args, **kwargs)
-            if reactor.running:
-                reactor.stop()
             return func1
 
         return _run
@@ -96,10 +109,10 @@ class ApiRpcClient(object):
         self.settings = settings
 
     @inlineCallbacks
-    def _remote_exec(self, task_name, *args, **kwargs):
+    def _remote_exec(self, task_name, host=None, *args, **kwargs):
         from mfcloud.remote import Client, Task
 
-        client = Client(host=self.host, settings=self.settings)
+        client = Client(host=host or self.host, settings=self.settings)
         try:
             yield client.connect()
 
@@ -144,13 +157,13 @@ class ApiRpcClient(object):
 
 
     @inlineCallbacks
-    def _exec_remote_with_pty(self, task_name, *args):
+    def _exec_remote_with_pty(self, task_name, host=None, *args):
         stream_proto = AttachStdinProtocol()
         stdio.StandardIO(stream_proto)
 
         from mfcloud.remote import Client, Task
 
-        client = Client(host=self.host, settings=self.settings)
+        client = Client(host=host or self.host, settings=self.settings)
         try:
             yield client.connect()
 
@@ -176,121 +189,6 @@ class ApiRpcClient(object):
 
         finally:
             stream_proto.stop()
-
-    @cli('Attach to container', arguments=(
-        arg('container_id', help='Container name'),
-    ))
-    def attach(self, container_id, **kwargs):
-        return self._exec_remote_with_pty('attach', container_id)
-
-    @cli('Run a command inside container', arguments=(
-        arg('name', help='Container name'),
-        arg('command', help='Command to execute', default='/bin/bash', nargs='?'),
-        arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
-    ))
-    def run(self, name, command, no_tty=True, **kwargs):
-        return self._exec_remote_with_pty('run', name, command)
-
-    @cli('Push appliction volume application', arguments=(
-        arg('source', help='Push source'),
-        arg('destination', help='Push destination'),
-        arg('--no-remove', help='Disable remove files', default=False, action='store_true'),
-        arg('--force', help='Don\'t ask confirmation', default=False, action='store_true'),
-    ))
-    @inlineCallbacks
-    def sync(self, source, destination, no_remove, force, **kwargs):
-
-        src = get_storage(source)
-        dst = get_storage(destination)
-
-        try:
-            yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove)
-        except FileServerError as e:
-            print '------------------------'
-            print e.message
-
-    @cli('List running tasks')
-    @inlineCallbacks
-    def ps(self, **kwargs):
-        from mfcloud.remote import Client
-
-        client = Client(host=self.host, settings=self.settings)
-        try:
-            yield client.connect()
-            tasks = yield client.task_list()
-
-            print tasks
-
-        except ConnectionRefusedError:
-            print 'Can\'t connect to mfcloud server'
-
-        yield client.shutdown()
-        yield sleep(0.01)
-
-    @cli('Kills task', arguments=(
-        arg('task_id', help='Id of the task'),
-    ))
-    @inlineCallbacks
-    def kill(self, task_id=None, **kwargs):
-        from mfcloud.remote import Client
-
-        client = Client(host=self.host, settings=self.settings)
-        try:
-            yield client.connect()
-            success = yield client.terminate_task(task_id)
-
-            if not success:
-                print 'Task not found by id'
-
-            else:
-                print 'Task successfully treminated.'
-
-        except ConnectionRefusedError:
-            print 'Can\'t connect to mfcloud server'
-
-        client.shutdown()
-        yield sleep(0.01)
-
-        if self.stop_reactor:
-            reactor.stop()
-
-    @cli('Creates a new application', arguments=(
-        arg('name', help='App name'),
-        arg('--user', default=None, help='Remote username'),
-        arg('path', help='Path', nargs='?', default='.')
-    ))
-    def init(self, name, path, **kwargs):
-
-        if self.host != '127.0.0.1':
-
-            if not path.endswith('/'):
-                path += '/'
-
-            if not 'user' in kwargs or kwargs['user'] is None:
-                raise ValueError('Please, specify remote user')
-
-            user = kwargs['user']
-
-            remote_path = '/%(prefix)s%(user)s/mfcloud/%(id)s' % {
-                'prefix': 'home/' if not user == 'root' else '',
-                'user': user,
-                'id': uuid.uuid1()
-            }
-            command = 'rsync -v --exclude \'.git\' --rsync-path="mkdir -p %(path)s && rsync" -r %(local)s %(user)s@%(remote)s:%(path)s' % {
-                'local': path,
-                'user': user,
-                'path': remote_path,
-                'remote': self.host,
-            }
-            print command
-            os.system(command)
-
-            path = remote_path
-
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        return self._remote_exec('init', name, os.path.realpath(path))
 
 
     def print_app_details(self, app):
@@ -381,25 +279,161 @@ class ApiRpcClient(object):
 
         return '\n' + str(x) + '\n'
 
+    @cli('Run a command inside container', arguments=(
+        arg('app', help='Application name'),
+        arg('service', help='Service name'),
+        arg('command', help='Command to execute', default='/bin/bash', nargs='?'),
+        arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
+    ))
+    def run(self, app, service, command, no_tty=True, **kwargs):
+        return self._exec_remote_with_pty('run', name, command)
+
+    @cli('Push appliction volume application', arguments=(
+        arg('source', help='Push source'),
+        arg('destination', help='Push destination'),
+        arg('--no-remove', help='Disable remove files', default=False, action='store_true'),
+        arg('--force', help='Don\'t ask confirmation', default=False, action='store_true'),
+    ))
+    @inlineCallbacks
+    def sync(self, source, destination, no_remove, force, **kwargs):
+
+        src = get_storage(source)
+        dst = get_storage(destination)
+
+        try:
+            yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove)
+        except FileServerError as e:
+            print '------------------------'
+            print e.message
+
+    @cli('List running tasks')
+    @inlineCallbacks
+    def ps(self, **kwargs):
+        from mfcloud.remote import Client
+
+        client = Client(host=self.host, settings=self.settings)
+        try:
+            yield client.connect()
+            tasks = yield client.task_list()
+
+            print tasks
+
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mfcloud server'
+
+        yield client.shutdown()
+        yield sleep(0.01)
+
+    @cli('Kills task', arguments=(
+        arg('task_id', help='Id of the task'),
+    ))
+    @inlineCallbacks
+    def kill(self, task_id=None, **kwargs):
+        from mfcloud.remote import Client
+
+        client = Client(host=self.host, settings=self.settings)
+        try:
+            yield client.connect()
+            success = yield client.terminate_task(task_id)
+
+            if not success:
+                print 'Task not found by id'
+
+            else:
+                print 'Task successfully treminated.'
+
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mfcloud server'
+
+        client.shutdown()
+        yield sleep(0.01)
+
+    @cli('Creates a new application', arguments=(
+        arg('name', help='App name'),
+        arg('--user', default=None, help='Remote username'),
+        arg('path', help='Path', nargs='?', default='.')
+    ))
+    def init(self, name, path, **kwargs):
+
+        if self.host != '127.0.0.1':
+
+            if not path.endswith('/'):
+                path += '/'
+
+            if not 'user' in kwargs or kwargs['user'] is None:
+                raise ValueError('Please, specify remote user')
+
+            user = kwargs['user']
+
+            remote_path = '/%(prefix)s%(user)s/mfcloud/%(id)s' % {
+                'prefix': 'home/' if not user == 'root' else '',
+                'user': user,
+                'id': uuid.uuid1()
+            }
+            command = 'rsync -v --exclude \'.git\' --rsync-path="mkdir -p %(path)s && rsync" -r %(local)s %(user)s@%(remote)s:%(path)s' % {
+                'local': path,
+                'user': user,
+                'path': remote_path,
+                'remote': self.host,
+            }
+            print command
+            os.system(command)
+
+            path = remote_path
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        return self._remote_exec('init', name, os.path.realpath(path))
+
+
     @cli('List registered applications', arguments=(
-        arg('name', default=None, help='Application name', nargs='?'),
         arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
     ))
     @inlineCallbacks
-    def list(self, name=None, follow=False, **kwargs):
+    def list(self, follow=False, **kwargs):
         self.last_lines = 0
 
         def _print(data):
 
             ret = 'App not found.'
 
-            if not name:
-                ret = self.print_app_list(data)
-            else:
-                for app in data:
-                    if app['name'] == name:
-                        ret = self.print_app_details(app)
-                        break
+            ret = self.print_app_list(data)
+
+            if self.last_lines > 0:
+                print '\033[1A' * self.last_lines
+
+            print ret
+
+            self.last_lines = ret.count('\n') + 2
+
+        if follow:
+            while follow:
+                ret = yield self._remote_exec('list')
+                _print(ret)
+                yield sleep(1)
+        else:
+            ret = yield self._remote_exec('list')
+            _print(ret)
+
+    @cli('Show application status', arguments=(
+        arg('app', help='Application name'),
+        arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
+    ))
+    @inlineCallbacks
+    def status(self, app=None, follow=False, **kwargs):
+
+        name = app
+        self.last_lines = 0
+
+        def _print(data):
+
+            ret = 'App not found.'
+
+            for app in data:
+                if app['name'] == name:
+                    ret = self.print_app_details(app)
+                    break
 
             if self.last_lines > 0:
                 print '\033[1A' * self.last_lines
@@ -619,15 +653,6 @@ def main(argv):
 
     logging.getLogger("requests").propagate = False
 
-    args = arg_parser.parse_args()
-
-
-    if args.verbose:
-        log.startLogging(sys.stdout)
-
-    args.argv0 = argv[0]
-
-
     class SslConfiguration(Configuration):
         enabled = False
         key = '/etc/mfcloud/ssl.key'
@@ -647,43 +672,139 @@ def main(argv):
 
     settings = MyAppConfiguration.load()
 
-    client = ApiRpcClient(host=args.host, settings=settings)
+    # client = ApiRpcClient(host=args.host, settings=settings)
+    client = ApiRpcClient(host='127.0.0.1', settings=settings)
 
-    if isinstance(args.func, str):
-        log.msg('Starting task: %s' % args.func)
 
-        def ok(result):
+    if len(argv) < 2:
+        # Register our completer function
+        readline.set_completer(BufferAwareCompleter(
+            {'list':['files', 'directories'],
+             'print':['byname', 'bysize'],
+             'stop':[],
+            }).complete)
+
+        # Use the tab key for completion
+        readline.parse_and_bind('tab: complete')
+
+
+
+        from bashutils.colors import color_text
+
+        state = {
+            'app': None
+        }
+
+
+        def green(text):
+            print(color_text(text, color='green'))
+
+        def yellow(text):
+            print(color_text(text, color='blue', bcolor='yellow'))
+
+        def info(text):
+            print()
+
+        @cli('Set current application', by_ref=True, arguments=(
+            arg('name', help='Application name'),
+        ))
+        def use(name, **kwargs):
+            print name
+
+            state['app'] = name
+
+
+        @inlineCallbacks
+        def mfcloud_shell():
+
+            intro = '''
+                  _                 _
+ _ __ ___     ___| | ___  _   _  __| |
+ | '_ ` _ \  / __| |/ _ \| | | |/ _` |
+ | | | | | || (__| | (_) | |_| | (_| |
+ |_| |_| |_| \___|_|\___/ \__,_|\__,_|
+
+ Developer freindly cloud.
+            '''
+            print(color_text(intro, color='white', bcolor='blue'))
+
+            line = ''
+            while line != 'exit':
+                print('')
+                prompt = 'mcloud: %s> ' % (state['app'] or '')
+                line = raw_input(color_text(prompt, color='white', bcolor='blue') + ' ')
+
+                if line == 'exit':
+                    break
+
+                try:
+                    params = line.split(' ')
+
+                    if len(params) > 0 and params[0] in command_settings and command_settings[params[0]]['need_app']:
+                        if state['app']:
+                            params = [params[0], state['app']] + params[1:]
+                        else:
+                            raise Exception('Command %s requires application to be selected.' % params[0])
+
+                    args = arg_parser.parse_args(params)
+
+                    args.argv0 = argv[0]
+
+                    if isinstance(args.func, str):
+                        yield getattr(client, args.func)(**vars(args))
+                    else:
+                        yield args.func(**vars(args))
+
+                except SystemExit:
+                    pass
+                except Exception as e:
+                    print 'Error:'
+                    print(e)
+
             reactor.callFromThread(reactor.stop)
 
-        def err(failure):
-            print 'Unhandled failure: %s' % failure
-            reactor.callFromThread(reactor.stop)
+        # def heartbeat():
+        #     print "heartbeat"
+        #     reactor.callLater(1.0, heartbeat)
+        #
+        # reactor.callLater(1.0, heartbeat)
 
-        d = getattr(client, args.func)(**vars(args))
+        mfcloud_shell()
 
-        d.addCallback(ok)
-        d.addErrback(err)
         reactor.run()
-
-
     else:
-        args.func(**vars(args))
 
 
+        args = arg_parser.parse_args()
+
+        if args.verbose:
+            log.startLogging(sys.stdout)
+
+        args.argv0 = argv[0]
+
+        if isinstance(args.func, str):
+            log.msg('Starting task: %s' % args.func)
+
+            def ok(result):
+                reactor.callFromThread(reactor.stop)
+
+            def err(failure):
+                print 'Unhandled failure: %s' % failure
+                reactor.callFromThread(reactor.stop)
+
+            d = getattr(client, args.func)(**vars(args))
+
+            d.addCallback(ok)
+            d.addErrback(err)
+            reactor.run()
 
 
-# intro = '''
-#            __      _                 _
-# _ __ ___  / _| ___| | ___  _   _  __| |
-#| '_ ` _ \| |_ / __| |/ _ \| | | |/ _` |
-#| | | | | |  _| (__| | (_) | |_| | (_| |
-#|_| |_| |_|_|  \___|_|\___/ \__,_|\__,_|
-#
-#Cloud that loves your data.
-#
-#'''
+        else:
+            args.func(**vars(args))
+
 
 def entry_point():
+
     """Zero-argument entry point for use with setuptools/distribute."""
     raise SystemExit(main(sys.argv))
 

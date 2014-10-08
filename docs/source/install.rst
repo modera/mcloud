@@ -48,7 +48,7 @@ Install redis::
 
 Required packages::
 
-    sudo apt-get install python-dev python-virtualenv libffi-dev libssl-dev
+    sudo apt-get install python-dev python-virtualenv libffi-dev libssl-dev libncurses5-dev libreadline-dev
 
 .. note::
 
