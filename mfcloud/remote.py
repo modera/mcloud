@@ -388,7 +388,7 @@ class Client(object):
 
     def connect(self):
         factory = WebSocketClientFactory("ws://%s:%s" % (self.host, self.port), debug=False)
-        factory.noisy = False
+        factory.noisy = True
         factory.protocol = MdcloudWebsocketClientProtocol
         factory.protocol.client = self
 

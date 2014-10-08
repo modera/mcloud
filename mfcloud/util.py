@@ -114,10 +114,3 @@ class LessLongTextProtocol(protocol.ProcessProtocol):
 
     def processEnded(self, reason):
         self.on_exit.callback(True)
-
-
-def block_on(d):
-    q = Queue()
-    d.addBoth(q.put)
-    ret = q.get()
-    return ret
