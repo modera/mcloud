@@ -166,7 +166,9 @@ class ApiRpcClient(object):
 
         client = Client(host=self.host, settings=self.settings)
         try:
-            yield client.connect()
+            def _connect_failed():
+                raise Exception('Can\'t connect to the server on host %s' % self.host)
+            yield txtimeout(client.connect(), 3, _connect_failed)
 
             task = Task(task_name)
             task.on_progress = self.print_progress
