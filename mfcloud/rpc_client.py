@@ -158,13 +158,13 @@ class ApiRpcClient(object):
 
 
     @inlineCallbacks
-    def _exec_remote_with_pty(self, task_name, host=None, *args):
+    def _exec_remote_with_pty(self, task_name, *args):
         stream_proto = AttachStdinProtocol()
         stdio.StandardIO(stream_proto)
 
         from mfcloud.remote import Client, Task
 
-        client = Client(host=host or self.host, settings=self.settings)
+        client = Client(host=self.host, settings=self.settings)
         try:
             yield client.connect()
 
