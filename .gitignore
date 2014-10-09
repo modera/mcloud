@@ -44,11 +44,24 @@ pip-log.txt
 
 cachegrind.out.profilestats
 
-debian/files
+**/debian/files
 debian/mfcloud.debhelper.log
 debian/mfcloud.postinst.debhelper
 debian/mfcloud.preinst.debhelper
 debian/mfcloud.prerm.debhelper
 debian/mfcloud.substvars
 debian/mfcloud/
+
+**/debian/mfcloud-full.debhelper.log
+**/debian/mfcloud-full.postinst.debhelper
+**/debian/mfcloud-full.preinst.debhelper
+**/debian/mfcloud-full.prerm.debhelper
+**/debian/mfcloud-full.substvars
+**/debian/mfcloud-full/
+
+*.dsc
+*.tar.gz
+*.changes
+*.deb
+
 profilestats.prof

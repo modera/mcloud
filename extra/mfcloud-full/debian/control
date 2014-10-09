@@ -1,0 +1,12 @@
+Source: mfcloud-full
+Section: python
+Priority: extra
+Maintainer: Alex Rudakov <ribozz@gmail.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.5
+
+Package: mfcloud-full
+Architecture: any
+Pre-Depends: dpkg (>= 1.16.1)
+Depends: mfcloud, dnsmasq, redis-server, haproxy
+Description: Superpackage that will install mcloud and other services reuired
