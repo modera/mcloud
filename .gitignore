@@ -40,3 +40,15 @@ pip-log.txt
 ## paver generated files
 /paver-minilib.zip.cache
 .cache/
+
+
+cachegrind.out.profilestats
+
+debian/files
+debian/mfcloud.debhelper.log
+debian/mfcloud.postinst.debhelper
+debian/mfcloud.preinst.debhelper
+debian/mfcloud.prerm.debhelper
+debian/mfcloud.substvars
+debian/mfcloud/
+profilestats.prof
