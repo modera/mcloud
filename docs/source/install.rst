@@ -74,6 +74,17 @@ Required packages::
 Package installation
 ========================================
 
+Add modera ubuntu repository::
+
+    wget -O - https://ubuntu.dev.modera.org/moderaci.gpg.key|apt-key add -
+    echo "deb http://ubuntu.dev.modera.org/debian trusty main" > /etc/apt/sources.list.d/modera.list
+    apt-get update
+
+Install mfcloud
+
+    apt-get install mfcloud
+
+
 Install mfcloud packages::
 
     $ sudo mkdir /opt  # if you don't have it already

@@ -1,5 +1,9 @@
-mfcloud (0.5.18-1) UNRELEASED; urgency=medium
+mfcloud (0.5.18-6) trusty; urgency=medium
 
-  * Initial release.
+  * Fix brken dependencies
+  * Fix broken trigger 
+  * Add symlink to bin directory 
+  * Fixing broken package 
+  * Improved package structure to use debhelper better
 
- -- Alex <ribozz@gmail.com>  Thu, 09 Oct 2014 09:15:29 +0300
+ -- Alex <alex@alex-Precision-T1650>  Thu, 09 Oct 2014 12:27:46 +0300

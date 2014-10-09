@@ -3,12 +3,12 @@ Section: python
 Priority: extra
 Maintainer: Matt Maintainer <matt@example.com>
 Build-Depends: debhelper (>= 9), python, dh-virtualenv, python-dev,
- python-virtualenv, libffi-dev, libssl-dev, libncurses5-dev, libreadline-dev,
+ python-virtualenv, libffi-dev, libssl-dev, libncurses5-dev, libreadline-dev, libyaml-dev
 Standards-Version: 3.9.5
 
 Package: mfcloud
 Architecture: any
 Pre-Depends: dpkg (>= 1.16.1), python2.7-minimal, ${misc:Pre-Depends}
-Depends: ${python:Depends}, ${misc:Depends}, libreadline, libncurses5, libssl, libffi
+Depends: ${python:Depends}, ${misc:Depends}, libreadline6, libncurses5, libssl0.9.8, libffi6, libyaml-0-2
 Suggests: dnsmasq, redis-server
 Description: a tool that helps you manage Docker based deployments

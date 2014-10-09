@@ -1,0 +1,8 @@
+description "Mfcloud server"
+author "Modera"
+start on filesystem and started docker
+stop on runlevel [!2345]
+respawn
+script
+  /usr/local/bin/mfcloud-server >> /var/log/mfcloud.log 2>&1
+end script
