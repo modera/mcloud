@@ -1,9 +1,9 @@
 
 ==============
-Mfcloud Cloud
+Mcloud Cloud
 ==============
 
-Mfcloud is set of tools that use Docker containers to deploy web-applications to production.
+Welcome to *MCloud* - a tool that helps you manage Docker based deployments.
 
 .. note:: Don't even try to install/use mfcloud until you fill comfortable using docker natively.
 
