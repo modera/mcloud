@@ -29,7 +29,7 @@ Mfcloud installation
 
 Add modera ubuntu repository::
 
-    wget -O - https://ubuntu.dev.modera.org/moderaci.gpg.key|apt-key add -
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1B322208
     echo "deb http://ubuntu.dev.modera.org/debian trusty main" > /etc/apt/sources.list.d/modera.list
 
 Install mfcloud::

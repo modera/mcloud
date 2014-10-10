@@ -1,7 +1,9 @@
 
 ===============================================
-Deploying symfony website
+Sample Nginx+PHP+MySQL deployment
 ===============================================
+
+In this example we will deploy Symfony application.
 
 Checkout repo::
 

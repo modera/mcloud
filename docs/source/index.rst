@@ -16,6 +16,9 @@ Contents
   :maxdepth: 2
 
   start
+  multiserver
+  manage
+  api
 
 .. image:: _static/mfcloud.png
 

@@ -14,10 +14,11 @@ from mfcloud.remote import ApiRpcServer
 
 
 class TaskService(object):
+
+    app_controller = inject.attr(ApplicationController)
     """
     @type app_controller: ApplicationController
     """
-    app_controller = inject.attr(ApplicationController)
     deployment_controller = inject.attr(DeploymentController)
     redis = inject.attr(txredisapi.Connection)
     rpc_server = inject.attr(ApiRpcServer)
@@ -28,6 +29,7 @@ class TaskService(object):
     dns_search_suffix = inject.attr('dns-search-suffix')
 
     def task_log(self, ticket_id, message):
+
         self.rpc_server.task_progress(message, ticket_id)
 
     def task_help(self, ticket_id):
@@ -35,6 +37,14 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_init(self, ticket_id, name, path):
+        """
+        Initialize new application
+
+        :param ticket_id:
+        :param name: Application name
+        :param path: Path to the application
+        :return:
+        """
 
         yield self.app_controller.create(name, {'path': path})
 
@@ -43,6 +53,14 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_init_source(self, ticket_id, name, source):
+        """
+        Init new application using source of mfcloud.yml
+
+        :param ticket_id:
+        :param name:
+        :param source:
+        :return:
+        """
 
         yield self.app_controller.create(name, {'source': source})
 
@@ -51,31 +69,71 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_list(self, ticket_id):
+        """
+        List all application and data related
+
+        :param ticket_id:
+        :return:
+        """
         alist = yield self.app_controller.list()
         defer.returnValue(alist)
 
     @inlineCallbacks
     def task_list_volumes(self, ticket_id):
+        """
+        List all volumes of all applications
+
+        :param ticket_id:
+        :return:
+        """
         alist = yield self.app_controller.volume_list()
         defer.returnValue(alist)
 
     @inlineCallbacks
     def task_list_vars(self, ticket_id):
+        """
+        List variables
+
+        :param ticket_id:
+        :return:
+        """
         vlist = yield self.redis.hgetall('vars')
         defer.returnValue(vlist)
 
     @inlineCallbacks
     def task_set_var(self, ticket_id, name, val):
+        """
+        Set variable
+
+        :param ticket_id:
+        :param name:
+        :param val:
+        :return:
+        """
         yield self.redis.hset('vars', name, val)
         defer.returnValue((yield self.task_list_vars(ticket_id)))
 
     @inlineCallbacks
     def task_rm_var(self, ticket_id, name):
+        """
+        Remove variable
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
         yield self.redis.hdel('vars', name)
         defer.returnValue((yield self.task_list_vars(ticket_id)))
 
     @inlineCallbacks
     def task_remove(self, ticket_id, name):
+        """
+        Remove application
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
         yield self.task_destroy(ticket_id, name)
         yield self.app_controller.remove(name)
 
@@ -86,6 +144,15 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_logs(self, ticket_id, name):
+        """
+        Read logs.
+
+        Logs are streamed as task output.
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
 
         def on_log(log):
             log = log[8:]
@@ -100,7 +167,16 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_attach(self, ticket_id, container_id, size=None):
+        """
+        Attach to container.
 
+        TaskIO is attached to container.
+
+        :param ticket_id:
+        :param container_id:
+        :param size:
+        :return:
+        """
         try:
             client = inject.instance(IDockerClient)
             yield client.attach(container_id, ticket_id)
@@ -110,6 +186,17 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_run(self, ticket_id, name, command, size=None):
+        """
+        Run command in container.
+
+        TaskIO is attached to container.
+
+        :param ticket_id:
+        :param name:
+        :param command:
+        :param size:
+        :return:
+        """
 
         service_name, app_name = name.split('.')
 
@@ -130,6 +217,13 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_status(self, ticket_id, name):
+        """
+        Show application detailed status
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
         app = yield self.app_controller.get(name)
         config = yield app.load()
 
@@ -161,12 +255,26 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_dns(self, ticket_id):
+        """
+        Show dns allocation table.
+
+        :param ticket_id:
+        :return:
+        """
         data = yield self.redis.hgetall('domain')
 
         defer.returnValue(data)
 
     @inlineCallbacks
     def task_restart(self, ticket_id, name):
+        """
+        Restart application or services
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
+
         yield self.task_stop(ticket_id, name)
         ret = yield self.task_start(ticket_id, name)
 
@@ -174,6 +282,13 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_rebuild(self, ticket_id, name):
+        """
+        Rebuild application or service.
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
         yield self.task_destroy(ticket_id, name)
         ret = yield self.task_start(ticket_id, name)
 
@@ -204,6 +319,13 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_start(self, ticket_id, name):
+        """
+        Start application or service.
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
 
         self.task_log(ticket_id, '[%s] Starting application' % (ticket_id, ))
 
@@ -310,6 +432,14 @@ class TaskService(object):
     @inlineCallbacks
     def task_create(self, ticket_id, name):
 
+        """
+        Create application containers without starting.
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
+
         self.task_log(ticket_id, '[%s] Creating application' % (ticket_id, ))
 
         if '.' in name:
@@ -343,6 +473,13 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_stop(self, ticket_id, name):
+        """
+        Stop application containers without starting.
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
 
         self.task_log(ticket_id, '[%s] Stoping application' % (ticket_id, ))
 
@@ -383,6 +520,14 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_destroy(self, ticket_id, name):
+
+        """
+        Remove application containers.
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
 
         self.task_log(ticket_id, '[%s] Destroying application containers' % (ticket_id, ))
 
@@ -439,6 +584,14 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_inspect(self, ticket_id, name, service_name):
+        """
+        Get inspect data of service
+
+        :param ticket_id:
+        :param name:
+        :param service_name:
+        :return:
+        """
 
         self.task_log(ticket_id, '[%s] Inspecting application service %s' %
                       (ticket_id, service_name))
@@ -464,6 +617,13 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_deployments(self, ticket_id):
+        """
+        List deployments (published URLs)
+
+        :param ticket_id:
+        :return:
+        """
+
         deployments = yield self.deployment_controller.list()
 
         deployment_list = []
@@ -492,6 +652,14 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_publish(self, ticket_id, deployment_name, app_name):
+        """
+        Publish application URL.
+
+        :param ticket_id:
+        :param deployment_name:
+        :param app_name:
+        :return:
+        """
         yield self.deployment_controller.publish_app(deployment_name, app_name)
 
         ret = yield self.app_controller.list()
@@ -499,6 +667,14 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_unpublish(self, ticket_id, deployment_name):
+        """
+        Unpublish URL
+
+        :param ticket_id:
+        :param deployment_name:
+        :return:
+        """
+
         yield self.deployment_controller.unpublish_app(deployment_name)
 
         ret = yield self.app_controller.list()

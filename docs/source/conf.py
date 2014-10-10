@@ -12,7 +12,7 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
+import inject
 
 import os
 import sys
@@ -283,3 +283,6 @@ intersphinx_mapping = {
 # <http://sphinx-doc.org/ext/autodoc.html#confval-autoclass_content> for more
 # information.
 autoclass_content = 'both'
+
+inject.configure()
+inject.get_injector_or_die().get_instance = lambda cls: None

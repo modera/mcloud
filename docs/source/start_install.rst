@@ -13,7 +13,7 @@ Therefore the principal question to be answered is whether you want to run the c
 If you are not on Linux then as of today you don't really have other options other than running it inside the virtual machine.
 
 .. toctree::
-  :maxdepth: 3
+  :maxdepth: 1
 
 
   start_install_linux
