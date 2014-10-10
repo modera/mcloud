@@ -1,3 +1,6 @@
 [submodule "docs/source/_themes"]
 	path = docs/source/_themes
 	url = https://github.com/mitsuhiko/flask-sphinx-themes.git
+[submodule "docs/source/themes/cloud.modera.org"]
+	path = docs/source/themes/cloud.modera.org
+	url = ssh://git@stash.dev.modera.org:7999/web/cloud.modera.org.git

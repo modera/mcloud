@@ -38,17 +38,17 @@ from mcloud import metadata
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
               'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.viewcode', 'sphinxarg.ext']
 
-sys.path.append(os.path.abspath('_themes'))
-#html_theme_path = ['_themes']
-#html_theme = 'flask'
+sys.path.append(os.path.abspath('themes/cloud.modera.org'))
+html_theme_path = ['themes/cloud.modera.org']
+html_theme = 'docs_theme'
 
 #plantuml = 'java -jar %s/plantuml.jar' % os.path.dirname(__file__)
 
 
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    import sphinx_rtd_theme
-    html_theme = 'sphinx_rtd_theme'
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+# if not on_rtd:  # only import and set the theme if we're building docs locally
+#     import sphinx_rtd_theme
+#     html_theme = 'sphinx_rtd_theme'
+#     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 #html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 

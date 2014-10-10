@@ -20,9 +20,6 @@ Contents
   manage
   api
 
-.. image:: _static/mcloud.png
-
-
 
 Indices and tables
 ==================
