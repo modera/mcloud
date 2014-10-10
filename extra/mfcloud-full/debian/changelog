@@ -1,5 +1,5 @@
-mfcloud-full (0.5.8-1) UNRELEASED; urgency=medium
+mfcloud-full (0.5.8-2) UNRELEASED; urgency=medium
 
-  * 0.5.8-1
+  * Added docker.io as dependency 
 
- -- Alex <ribozz@gmail.com>  Thu, 09 Oct 2014 16:41:28 +0300
+ -- Alex <alex@alex-pc>  Thu, 09 Oct 2014 20:10:04 +0300
