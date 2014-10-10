@@ -1,13 +1,13 @@
 import sys
 from flexmock import flexmock
 import inject
-from mfcloud.events import EventBus
-from mfcloud.txdocker import IDockerClient, DockerTwistedClient
-from mfcloud.util import txtimeout
+from mcloud.events import EventBus
+from mcloud.txdocker import IDockerClient, DockerTwistedClient
+from mcloud.util import txtimeout
 
 import pytest
 
-from mfcloud.remote import Server, Client, ApiError, Task, ApiRpcServer
+from mcloud.remote import Server, Client, ApiError, Task, ApiRpcServer
 from twisted.internet import reactor, defer
 from twisted.python import log
 

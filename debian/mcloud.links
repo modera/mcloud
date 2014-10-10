@@ -1,0 +1,2 @@
+usr/share/python/mcloud/bin/mcloud usr/local/bin/mcloud
+usr/share/python/mcloud/bin/mcloud-rpc-server usr/local/bin/mcloud-server

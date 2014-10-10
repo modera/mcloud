@@ -26,7 +26,7 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 sys.path.insert(0, os.path.abspath('../..'))
 
 # Import project metadata
-from mfcloud import metadata
+from mcloud import metadata
 
 # -- General configuration ----------------------------------------------------
 

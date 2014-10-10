@@ -9,7 +9,7 @@ Logs
 
 Obeserve logs of your container::
 
-    mfcloud logs myapp myservice
+    mcloud logs myapp myservice
 
 
 Run
@@ -17,7 +17,7 @@ Run
 
 Hack inside your container::
 
-    mfcloud run myapp myservice
+    mcloud run myapp myservice
 
 
 .. note::

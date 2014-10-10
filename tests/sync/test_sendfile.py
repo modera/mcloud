@@ -1,8 +1,8 @@
 # coding=utf-8
 from flexmock import flexmock
-from mfcloud.sync.client import FileClient, FileServerError
-from mfcloud.sync.server import FileServer
-from mfcloud.sync.transfer import CrcCheckFailed
+from mcloud.sync.client import FileClient, FileServerError
+from mcloud.sync.server import FileServer
+from mcloud.sync.transfer import CrcCheckFailed
 import os
 from autobahn.twisted.util import sleep
 import pytest

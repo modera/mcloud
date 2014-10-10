@@ -1,13 +1,13 @@
 import sys
-from mfcloud.events import EventBus
-from mfcloud.txdocker import IDockerClient, DockerTwistedClient
-from mfcloud.util import injector
+from mcloud.events import EventBus
+from mcloud.txdocker import IDockerClient, DockerTwistedClient
+from mcloud.util import injector
 import os
 from flexmock import flexmock
-from mfcloud.config import YamlConfig
-from mfcloud.container import DockerfileImageBuilder
-from mfcloud.service import Service
-from mfcloud.test_utils import real_docker, fake_inject
+from mcloud.config import YamlConfig
+from mcloud.container import DockerfileImageBuilder
+from mcloud.service import Service
+from mcloud.test_utils import real_docker, fake_inject
 import pytest
 from twisted.internet import defer
 import txredisapi
@@ -314,7 +314,7 @@ def test_service_api():
     redis = yield txredisapi.Connection(dbid=2)
     yield redis.flushdb()
 
-    yield redis.set('mfcloud-ticket-id', 123122)
+    yield redis.set('mcloud-ticket-id', 123122)
 
     eb = EventBus(redis)
     yield eb.connect()
@@ -377,7 +377,7 @@ def test_service_api():
 #     redis = yield txredisapi.Connection(dbid=2)
 #     yield redis.flushdb()
 #
-#     yield redis.set('mfcloud-ticket-id', 123122)
+#     yield redis.set('mcloud-ticket-id', 123122)
 #
 #     eb = EventBus(redis)
 #     yield eb.connect()

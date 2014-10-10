@@ -1,6 +1,6 @@
 from flexmock import flexmock
-from mfcloud.config import YamlConfig, Service, UnknownServiceError, ConfigParseError
-from mfcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
+from mcloud.config import YamlConfig, Service, UnknownServiceError, ConfigParseError
+from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
 import pytest
 
 
@@ -43,7 +43,7 @@ def test_load_config_prepare(tmpdir):
 
 
 def test_load_config(tmpdir):
-    p = tmpdir.join('mfcloud.yml')
+    p = tmpdir.join('mcloud.yml')
     p.write('foo: bar')
 
     config = YamlConfig(file=p.realpath(), app_name='myapp')
@@ -64,7 +64,7 @@ def test_load_config_from_config():
 
 
 def test_load_config_not_valid(tmpdir):
-    p = tmpdir.join('mfcloud.yml')
+    p = tmpdir.join('mcloud.yml')
     p.write('foo: bar')
 
     config = YamlConfig(file=p.realpath(), app_name='myapp')

@@ -1,5 +1,5 @@
 import inject
-from mfcloud.events import EventBus
+from mcloud.events import EventBus
 import pytest
 from twisted.internet import reactor
 

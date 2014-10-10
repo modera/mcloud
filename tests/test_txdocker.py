@@ -1,7 +1,7 @@
 from flexmock import flexmock
-from mfcloud import txhttp
-from mfcloud.test_utils import real_docker, mock_docker
-from mfcloud.txdocker import DockerTwistedClient, DockerConnectionFailed
+from mcloud import txhttp
+from mcloud.test_utils import real_docker, mock_docker
+from mcloud.txdocker import DockerTwistedClient, DockerConnectionFailed
 import pytest
 from twisted.internet import defer
 

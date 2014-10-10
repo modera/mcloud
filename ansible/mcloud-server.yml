@@ -1,0 +1,14 @@
+---
+- hosts: mcloud
+
+  roles:
+    - { role: ribozz.mcloud }
+    - { role: ribozz.datadog }
+
+  tasks:
+    - name: Install common packages
+      apt: name={{ item }}
+      with_items:
+        - vim
+        - htop
+

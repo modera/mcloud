@@ -1,5 +1,5 @@
 
-mfcloud.yml reference
+mcloud.yml reference
 ==========================
 
 Example::

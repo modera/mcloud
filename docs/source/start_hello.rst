@@ -4,7 +4,7 @@ Deploying hello website
 ===============================================
 
 assume we have a hello web-page, that we want to deploy
-as mfcloud application::
+as mcloud application::
 
     <!DOCTYPE html>
     <html>
@@ -12,12 +12,12 @@ as mfcloud application::
         <title></title>
     </head>
     <body>
-        Hello, mfcloud!
+        Hello, mcloud!
     </body>
     </html>
 
 
-To deploy this we need the following mfcloud.yml configuration::
+To deploy this we need the following mcloud.yml configuration::
 
     web:
         image: orchardup/nginx
@@ -29,7 +29,7 @@ To deploy this we need the following mfcloud.yml configuration::
 This will create one service called "web".
 We use "orchardup/nginx" image that contains nginx that serve everything inside /var/www directory.
 
-In mfcloud.yml we specify, that we will mount current directory to /var/www volume inside container.
+In mcloud.yml we specify, that we will mount current directory to /var/www volume inside container.
 So, our public directory will be accessible from web.
 
 Application structure is following::
@@ -38,11 +38,11 @@ Application structure is following::
     - index.html
  - mflcoud.yml
 
-Now, start mfcloud shell::
+Now, start mcloud shell::
 
-    $ mfcloud
+    $ mcloud
 
-mfcloud will show command prompt::
+mcloud will show command prompt::
 
     mcloud: ~@me>
 
@@ -60,7 +60,7 @@ List command will show our newly created application::
     +------------------+--------+-------+--------+-------------------------------+----------------------------+
     | Application name | status | cpu % | memory |              Web              |            Path            |
     +------------------+--------+-------+--------+-------------------------------+----------------------------+
-    |      hello      |        |       |        | hello.mfcloud.lh -> [No web] | /home/alex/dev/mfcloud/tmp |
+    |      hello      |        |       |        | hello.mcloud.lh -> [No web] | /home/alex/dev/mcloud/tmp |
     +------------------+--------+-------+--------+-------------------------------+----------------------------+
 
 We can "use" new application, so we don't need to typ application name every time::
@@ -86,7 +86,7 @@ Now, lets start our application::
     [2646][web.hello] Starting service
     [2646][web.hello] Service resolve by name result: 72e364366f1c536b35d602e7c5c29449e65af9094c12d5118f3720a88e4c3d50
     [2646][web.hello] Starting service...
-    Startng container with config: {'Binds': ['/home/alex/dev/mfcloud/tmp/public:/var/www', '/var/run/mfcloud:/var/run/mfcloud', '/home/alex/dev/mfcloud/mfcloud/api.py:/usr/bin/@me'], 'DnsSearch': u'hello.mfcloud.lh', 'Dns': ['172.17.42.1']}
+    Startng container with config: {'Binds': ['/home/alex/dev/mcloud/tmp/public:/var/www', '/var/run/mcloud:/var/run/mcloud', '/home/alex/dev/mcloud/mcloud/api.py:/usr/bin/@me'], 'DnsSearch': u'hello.mcloud.lh', 'Dns': ['172.17.42.1']}
     Updating container list
     result: u'Done.'
 
@@ -100,7 +100,7 @@ And list will show the following::
     +--------------+--------+------------+-------+--------+----------+--------------------------+
     | Service name | status |     ip     | cpu % | memory | volumes  |       public urls        |
     +--------------+--------+------------+-------+--------+----------+--------------------------+
-    |  web.hello  |   ON   | 172.17.0.2 | 0.07% |  12M   | /var/www | http://hello.mfcloud.lh |
+    |  web.hello  |   ON   | 172.17.0.2 | 0.07% |  12M   | /var/www | http://hello.mcloud.lh |
     +--------------+--------+------------+-------+--------+----------+--------------------------+
 
 
@@ -123,7 +123,7 @@ Lets use Curl to load the web page (in separate terminal)::
         <title></title>
     </head>
     <body>
-        Hello, mfcloud!
+        Hello, mcloud!
     </body>
     </html>
 

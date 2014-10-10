@@ -1,5 +1,5 @@
 
-Preparing ubuntu Os for mfcloud
+Preparing ubuntu Os for mcloud
 ==================================
 
 Everything is ready! No actions needed :)

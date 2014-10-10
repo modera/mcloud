@@ -1,10 +1,10 @@
 # coding=utf-8
-from mfcloud.sync.diff import list_git_ignore
-from mfcloud.sync.server import FileServer
-from mfcloud.sync.utils import directories_synced
+from mcloud.sync.diff import list_git_ignore
+from mcloud.sync.server import FileServer
+from mcloud.sync.utils import directories_synced
 import os
 from autobahn.twisted.util import sleep
-from mfcloud.sync.storage import  VolumeStorageLocal, get_storage, VolumeStorageRemote, storage_sync
+from mcloud.sync.storage import  VolumeStorageLocal, get_storage, VolumeStorageRemote, storage_sync
 
 import pytest
 from flexmock import flexmock
@@ -366,22 +366,22 @@ def test_storage_sync_lot_of_files_local_to_remote(tmpdir):
     assert directories_synced(another, remote1)
 
 @pytest.inlineCallbacks
-def test_on_mfcloud_dir_local_to_local(tmpdir):
+def test_on_mcloud_dir_local_to_local(tmpdir):
 
-    mfcloud_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    mcloud_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     another = tmpdir.mkdir('baz')
 
-    src = get_storage(mfcloud_dir)
+    src = get_storage(mcloud_dir)
     dst = get_storage(str(another))
 
     yield storage_sync(src, dst)
 
-    assert directories_synced(mfcloud_dir, another, ignore=list_git_ignore(mfcloud_dir))
+    assert directories_synced(mcloud_dir, another, ignore=list_git_ignore(mcloud_dir))
 
 
 
 @pytest.inlineCallbacks
-def test_on_mfcloud_dir_local_to_remote(tmpdir):
+def test_on_mcloud_dir_local_to_remote(tmpdir):
 
     remote1 = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
@@ -411,7 +411,7 @@ def test_on_mfcloud_dir_local_to_remote(tmpdir):
 
 
 @pytest.inlineCallbacks
-def test_on_mfcloud_dir_remote_snapshot(tmpdir):
+def test_on_mcloud_dir_remote_snapshot(tmpdir):
 
     remote1 = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
@@ -434,7 +434,7 @@ def test_on_mfcloud_dir_remote_snapshot(tmpdir):
 
 
 @pytest.inlineCallbacks
-def test_on_mfcloud_dir_remote_to_local(tmpdir):
+def test_on_mcloud_dir_remote_to_local(tmpdir):
 
     remote1 = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
@@ -459,7 +459,7 @@ def test_on_mfcloud_dir_remote_to_local(tmpdir):
 
 
 @pytest.inlineCallbacks
-def test_on_mfcloud_dir_remote_to_local(tmpdir):
+def test_on_mcloud_dir_remote_to_local(tmpdir):
 
     remote1 = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 

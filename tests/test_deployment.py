@@ -1,9 +1,9 @@
 from flexmock import flexmock
-from mfcloud.application import ApplicationController, Application
-from mfcloud.deployment import Deployment, DeploymentController, DeploymentDoesNotExist
-from mfcloud.events import EventBus
-from mfcloud.txdocker import IDockerClient
-from mfcloud.util import inject_services
+from mcloud.application import ApplicationController, Application
+from mcloud.deployment import Deployment, DeploymentController, DeploymentDoesNotExist
+from mcloud.events import EventBus
+from mcloud.txdocker import IDockerClient
+from mcloud.util import inject_services
 import pytest
 from twisted.internet import defer
 import txredisapi

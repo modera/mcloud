@@ -2,7 +2,7 @@ from random import randint
 from time import sleep
 
 import os
-from mfcloud.sync.diff import directory_snapshot, compare, is_ignored
+from mcloud.sync.diff import directory_snapshot, compare, is_ignored
 import pytest
 
 

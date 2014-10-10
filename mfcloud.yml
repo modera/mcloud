@@ -1,4 +1,0 @@
-
-
-controller:
-  build: mfcloud/controller

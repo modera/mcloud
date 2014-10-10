@@ -1,5 +1,5 @@
 from flexmock import flexmock
-from mfcloud.dns_resolver import Resolver
+from mcloud.dns_resolver import Resolver
 import pytest
 from twisted.internet import defer
 from twisted.names import dns

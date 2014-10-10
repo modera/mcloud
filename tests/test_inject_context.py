@@ -1,6 +1,6 @@
 
 import inject
-from mfcloud.util import inject_services
+from mcloud.util import inject_services
 
 
 def test_inject_services():

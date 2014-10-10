@@ -1,0 +1,5 @@
+mcloud-full (0.5.8-2) UNRELEASED; urgency=medium
+
+  * Added docker.io as dependency 
+
+ -- Alex <alex@alex-pc>  Thu, 09 Oct 2014 20:10:04 +0300

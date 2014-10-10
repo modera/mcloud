@@ -5,8 +5,8 @@
 Manual installation
 ===================================
 
-If you prefer to get more control how mfcloud is installed, you can
-install all parts of mfcloud by yourself.
+If you prefer to get more control how mcloud is installed, you can
+install all parts of mcloud by yourself.
 
 Prerequisites
 ============================
@@ -19,12 +19,12 @@ Make sure it's working::
     sudo docker run -i -t ubuntu echo -e "OK";
 
 
-Mfcloud installation
+Mcloud installation
 ==========================
 
 .. note::
     Currently we provide packages for Ubuntu trusty 14.04 only.
-    If you need to install mfcloud on other OS, install it from source: :ref:`from_source`
+    If you need to install mcloud on other OS, install it from source: :ref:`from_source`
 
 
 Add modera ubuntu repository::
@@ -32,9 +32,9 @@ Add modera ubuntu repository::
     wget -O - https://ubuntu.dev.modera.org/moderaci.gpg.key|apt-key add -
     echo "deb http://ubuntu.dev.modera.org/debian trusty main" > /etc/apt/sources.list.d/modera.list
 
-Install mfcloud::
+Install mcloud::
 
-    apt-get update && apt-get install mfcloud
+    apt-get update && apt-get install mcloud
 
 
 Installing required software
@@ -52,7 +52,7 @@ Install dnsmasq server
 ------------------------------
 
 dnsmasq acts as dns proxy for local machine, we will configure it to proxify all request
-to outer dns servers, except mfcloud.lh subdomain.
+to outer dns servers, except mcloud.lh subdomain.
 
 Install dnamasq:
 
@@ -62,7 +62,7 @@ Replace content of /etc/dnsmasq.conf file with following 3 lines::
 
     interface=lo
     interface=docker0
-    server=/mfcloud.lh/172.17.42.1#7053
+    server=/mcloud.lh/172.17.42.1#7053
 
 Replace '172.17.42.1' with your docker interface ip. You can get it using ifconfig command::
 
@@ -77,10 +77,10 @@ Checking installation
 =======================================
 
 
-Just start mfcloud shell::
+Just start mcloud shell::
 
-    $ mfcloud
+    $ mcloud
 
     mcloud: ~@me>
 
-Hit Ctrl+D to exit mfcloud shell.
+Hit Ctrl+D to exit mcloud shell.

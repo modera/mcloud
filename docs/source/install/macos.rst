@@ -1,6 +1,6 @@
 
 
-Preparing Mac Os for mfcloud
+Preparing Mac Os for mcloud
 ==================================
 
 Install virtualbox (or any other virtualization of your choice).

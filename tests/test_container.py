@@ -1,7 +1,7 @@
 from flexmock import flexmock
-from mfcloud.config import YamlConfig
-from mfcloud.container import ContainerBuider
-from mfcloud.service import Service
+from mcloud.config import YamlConfig
+from mcloud.container import ContainerBuider
+from mcloud.service import Service
 
 #
 # def test_start_container():

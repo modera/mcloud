@@ -1,13 +1,13 @@
 import sys
 from _pytest.runner import Exit
 from flexmock import flexmock
-from mfcloud.application import Application, ApplicationController, AppDoesNotExist
-from mfcloud.config import YamlConfig
-from mfcloud.container import DockerfileImageBuilder, PrebuiltImageBuilder
-from mfcloud.service import Service
-from mfcloud.test_utils import real_docker
-from mfcloud.txdocker import IDockerClient, DockerTwistedClient
-from mfcloud.util import inject_services, txtimeout
+from mcloud.application import Application, ApplicationController, AppDoesNotExist
+from mcloud.config import YamlConfig
+from mcloud.container import DockerfileImageBuilder, PrebuiltImageBuilder
+from mcloud.service import Service
+from mcloud.test_utils import real_docker
+from mcloud.txdocker import IDockerClient, DockerTwistedClient
+from mcloud.util import inject_services, txtimeout
 import os
 import pytest
 from twisted.internet import reactor, defer
@@ -37,7 +37,7 @@ def test_app_load():
         binder.bind(IDockerClient, DockerTwistedClient())
 
     with inject_services(configure):
-        app = Application({'path': os.path.realpath(os.path.dirname(__file__) + '/../')}, name='myapp')
+        app = Application({'path': os.path.realpath(os.path.dirname(__file__) + '/_files/')}, name='myapp')
         config = yield app.load()
 
         assert isinstance(config, YamlConfig)

@@ -12,9 +12,9 @@ Put vagrant up::
 
 Wait until vagrant is building environment.
 
-Start mfcloud::
+Start mcloud::
 
-    vagrant ssh -c mfcloud
+    vagrant ssh -c mcloud
 
     mcloud: ~@me>
 

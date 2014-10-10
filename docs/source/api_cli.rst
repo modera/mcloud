@@ -4,18 +4,18 @@ Command line utilities
 ===========================
 
 
-mfcloud command
+mcloud command
 =========================
 
 .. argparse::
-   :ref: mfcloud.rpc_client.get_argparser
-   :prog: mfcloud
+   :ref: mcloud.rpc_client.get_argparser
+   :prog: mcloud
 
 
 
-mfcloud-rpc-server command
+mcloud-rpc-server command
 =========================
 
 .. argparse::
-   :ref: mfcloud.rpc_server.get_argparser
-   :prog: mfcloud-rpc-server
+   :ref: mcloud.rpc_server.get_argparser
+   :prog: mcloud-rpc-server

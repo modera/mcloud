@@ -3,40 +3,40 @@
 Updating mflcoud
 ============================================
 
-Mfcloud install from packages
+Mcloud install from packages
 ----------------------------------
 
 Update is easy::
 
-    $ apt-get update && apt-get install mfcloud-full
+    $ apt-get update && apt-get install mcloud-full
 
 And restart service::
 
-    $ sudo service mfcloud restart
+    $ sudo service mcloud restart
 
 
-Manualy installed mfcloud update
+Manualy installed mcloud update
 ----------------------------------
 
 
 Update is easy::
 
-    $ apt-get update && apt-get install mfcloud
+    $ apt-get update && apt-get install mcloud
 
 And restart service::
 
-    $ sudo service mfcloud restart
+    $ sudo service mcloud restart
 
 
-Source installed mfcloud update
+Source installed mcloud update
 ----------------------------------
 
-Update mfcloud and dependencies::
+Update mcloud and dependencies::
 
-    $ sudo /opt/mfcloud/bin/pip install -U mfcloud
+    $ sudo /opt/mcloud/bin/pip install -U mcloud
 
 And restart service::
 
-    $ sudo service mfcloud restart
+    $ sudo service mcloud restart
 
 

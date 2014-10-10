@@ -1,5 +1,0 @@
----
-# handlers file for mfcloud-ansible-role/
-
-- name: restart datadog
-  service: name=datadog-agent state=restarted

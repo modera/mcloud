@@ -3,16 +3,16 @@ Known issues and solutions
 ==================================
 
 
-mfcloud.lh domain names are not resolved after wifi network change
+mcloud.lh domain names are not resolved after wifi network change
 ====================================================================
 
-restart mfcloud::
+restart mcloud::
 
-    $ sudo service mfcloud restart
+    $ sudo service mcloud restart
 
 Also after any network changes it may be helpfull to restart application::
 
-    $ mfcloud restart myapp
+    $ mcloud restart myapp
 
 
 

@@ -20,7 +20,7 @@ Contents
   manage
   api
 
-.. image:: _static/mfcloud.png
+.. image:: _static/mcloud.png
 
 
 

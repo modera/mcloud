@@ -1,8 +1,8 @@
 from flexmock import flexmock
-from mfcloud.application import ApplicationController, Application
-from mfcloud.deployment import DeploymentController, Deployment
-from mfcloud.tasks import TaskService
-from mfcloud.util import inject_services, injector, txtimeout
+from mcloud.application import ApplicationController, Application
+from mcloud.deployment import DeploymentController, Deployment
+from mcloud.tasks import TaskService
+from mcloud.util import inject_services, injector, txtimeout
 import pytest
 from twisted.internet import defer, reactor
 import txredisapi

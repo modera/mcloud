@@ -4,7 +4,7 @@ Deploying static website
 ===============================================
 
 assume we have a static web-page, that we want to deploy
-as mfcloud application::
+as mcloud application::
 
     <!DOCTYPE html>
     <html>
@@ -12,12 +12,12 @@ as mfcloud application::
         <title></title>
     </head>
     <body>
-        Hello, mfcloud!
+        Hello, mcloud!
     </body>
     </html>
 
 
-To deploy this we need the following mfcloud.yml configuration::
+To deploy this we need the following mcloud.yml configuration::
 
     web:
         image: orchardup/nginx
@@ -29,7 +29,7 @@ To deploy this we need the following mfcloud.yml configuration::
 This will create one service called "web".
 We use "orchardup/nginx" image that contains nginx that serve everything inside /var/www directory.
 
-In mfcloud.yml we specify, that we will mount current directory to /var/www volume inside container.
+In mcloud.yml we specify, that we will mount current directory to /var/www volume inside container.
 So, our public directory will be accessible from web.
 
 Application structure is following::
@@ -40,7 +40,7 @@ Application structure is following::
 
 Now we can init our application with "init" command::
 
-    $ mfcloud init static ./docs/source/samples/source/static
+    $ mcloud init static ./docs/source/samples/source/static
 
     +------------------+-----+--------+--------------------------+
     | Application name | Web | status |         services         |
@@ -49,7 +49,7 @@ Now we can init our application with "init" command::
     +------------------+-----+--------+--------------------------+
 
 Here you see application list that are running on your machine.
-Same listing you may get by calling `mfcloud list` command.
+Same listing you may get by calling `mcloud list` command.
 
 In listing above you see that we have "static" application that have one service "web.static".
 That have no containers created yet.
@@ -64,12 +64,12 @@ You see empty line, that means there is no containers running.
 
 Now, lets start our application::
 
-    $ mfcloud start static
+    $ mcloud start static
 
     +------------------+----------------------------+---------+--------------------------------------------------------+
     | Application name |            Web             |  status |                        services                        |
     +------------------+----------------------------+---------+--------------------------------------------------------+
-    |      static      | static.mfcloud.lh -> [web] | RUNNING | web.static* (ON) ip: 172.17.0.10 vol: 49153 (/var/www) |
+    |      static      | static.mcloud.lh -> [web] | RUNNING | web.static* (ON) ip: 172.17.0.10 vol: 49153 (/var/www) |
     +------------------+----------------------------+---------+--------------------------------------------------------+
 
 Now, there is a lot more information.
@@ -79,8 +79,8 @@ First, the status column shows "RUNNING" status for our application.
 Services column also shows that our "web.static" service is running now, it's ip is 172.17.0.10
 (also there is volumes information, but it's not important right now).
 
-Web column shows that mfcloud has detected that container exposes port 80, so it's assigned special internal domain
-"static.mfcloud.lh" to web.static service port 80.
+Web column shows that mcloud has detected that container exposes port 80, so it's assigned special internal domain
+"static.mcloud.lh" to web.static service port 80.
 
 Let's check what docker shows now::
 
@@ -109,13 +109,13 @@ Now, if we open service ip in browser, it will show us index.html contents::
         <title></title>
     </head>
     <body>
-        Hello, mfcloud!
+        Hello, mcloud!
     </body>
     </html>
 
-Same thing happens if we open url assigned by mfcloud::
+Same thing happens if we open url assigned by mcloud::
 
-    $ curl static.mfcloud.lh
+    $ curl static.mcloud.lh
 
     <!DOCTYPE html>
     <html>
@@ -123,16 +123,16 @@ Same thing happens if we open url assigned by mfcloud::
         <title></title>
     </head>
     <body>
-        Hello, mfcloud!
+        Hello, mcloud!
     </body>
     </html>
 
-Url "static.mfcloud.lh" is composed of two parts: [service.appname].[suffix],
-suffix in our case is "mfcloud.lh" and "static" is application name.
+Url "static.mcloud.lh" is composed of two parts: [service.appname].[suffix],
+suffix in our case is "mcloud.lh" and "static" is application name.
 
 You can also open same page by specifying direct url that is assigned to service::
 
-    $ curl web.static.mfcloud.lh
+    $ curl web.static.mcloud.lh
 
     <!DOCTYPE html>
     <html>
@@ -140,13 +140,13 @@ You can also open same page by specifying direct url that is assigned to service
         <title></title>
     </head>
     <body>
-        Hello, mfcloud!
+        Hello, mcloud!
     </body>
     </html>
 
 Now, we can stop the application::
 
-    $ mfcloud stop static
+    $ mcloud stop static
 
     +------------------+-----+--------+------------------+
     | Application name | Web | status |     services     |
@@ -159,7 +159,7 @@ When application is stoped, it preserves all the data that was in container.
 
 If you need to remove it completely::
 
-    $ mfcloud destroy static
+    $ mcloud destroy static
 
     +------------------+-----+--------+--------------------------+
     | Application name | Web | status |         services         |
@@ -169,7 +169,7 @@ If you need to remove it completely::
 
 And now you can remove not needed application completely::
 
-    $ mfcloud remove static
+    $ mcloud remove static
 
     +------------------+-----+--------+----------+
     | Application name | Web | status | services |

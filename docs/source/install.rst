@@ -9,14 +9,14 @@ package names and file-system paths, process is same on all operating systems.
 Preparing operating system
 ============================
 
-To run mfcloud you need linux operating system with docker installed.
-boot2docker is not supported, but it's easy to install mfcloud inside virtualbox
+To run mcloud you need linux operating system with docker installed.
+boot2docker is not supported, but it's easy to install mcloud inside virtualbox
 same way as boot2docker does.
 
 There is two options:
 
-- you are working on linux machine: install mfcloud right on your machine
-- you are working on mac/windows/other OS: install mfcloud inside virtualbox and map project directories, through nfs/smb
+- you are working on linux machine: install mcloud right on your machine
+- you are working on mac/windows/other OS: install mcloud inside virtualbox and map project directories, through nfs/smb
 
 Follow configuration manual of your OS:
 
@@ -30,7 +30,7 @@ At the end you will get same ubuntu machine and you can easily follow further st
 If you are working on other linux distributions, adapt commands and package names accordingly.
 
 
-Mfcloud installation
+Mcloud installation
 ==========================
 
 Install docker and make sure it's working::
@@ -80,35 +80,35 @@ Add modera ubuntu repository::
     echo "deb http://ubuntu.dev.modera.org/debian trusty main" > /etc/apt/sources.list.d/modera.list
     apt-get update
 
-Install mfcloud
+Install mcloud
 
-    apt-get install mfcloud
+    apt-get install mcloud
 
 
-Install mfcloud packages::
+Install mcloud packages::
 
     $ sudo mkdir /opt  # if you don't have it already
-    $ sudo virtualenv /opt/mfcloud
-    $ sudo /opt/mfcloud/bin/pip install mfcloud
+    $ sudo virtualenv /opt/mcloud
+    $ sudo /opt/mcloud/bin/pip install mcloud
 
-Link mfcloud executables::
+Link mcloud executables::
 
-    $ sudo ln -s /opt/mfcloud/bin/mfcloud* /usr/local/bin/
+    $ sudo ln -s /opt/mcloud/bin/mcloud* /usr/local/bin/
 
 
-Now you can run mfcloud-rpc-server.
+Now you can run mcloud-rpc-server.
 
-mfcloud-server
+mcloud-server
 ================
 
-Running mfcloud-server manualy
+Running mcloud-server manualy
 ************************************
 
-Running manualy is simplest way to run mfcloud-server.
+Running manualy is simplest way to run mcloud-server.
 
 Just open separate console and execute::
 
-    $ sudo mfcloud-rpc-server
+    $ sudo mcloud-rpc-server
 
 Sudo is required as commands also runs dns server on 53 port,
 this action require super-use privileges.
@@ -118,11 +118,11 @@ Install dnsmasq server
 
 .. note::
 
-    If you are updating from previous version of mfcloud, stop mfcloud server before installing dnsmasq
-    (sudo service mfcloud stop)
+    If you are updating from previous version of mcloud, stop mcloud server before installing dnsmasq
+    (sudo service mcloud stop)
 
 dnsmasq acts as dns proxy for local machine, we will configure it to proxify all request
-to outer dns servers, except mfcloud.lh subdomain.
+to outer dns servers, except mcloud.lh subdomain.
 
 Install dnamasq:
 
@@ -132,7 +132,7 @@ Replace content of /etc/dnsmasq.conf file with following 3 lines::
 
     interface=lo
     interface=docker0
-    server=/mfcloud.lh/172.17.42.1#7053
+    server=/mcloud.lh/172.17.42.1#7053
 
 Replace '172.17.42.1' with your docker interface ip. You can get it using ifconfig command::
 
@@ -143,62 +143,62 @@ Start dnsmasq server::
     $ sudo service dnsmasq start
 
 
-Running mfcloud-server with supervisor
+Running mcloud-server with supervisor
 ****************************************
 
 Install supervisor::
 
     $ apt-get install supervisor
 
-Create file /etc/supervisor/conf.d/mfcloud.conf with following contents::
+Create file /etc/supervisor/conf.d/mcloud.conf with following contents::
 
-    [program:mfcloud]
-    command=/opt/mfcloud/bin/mfcloud-rpc-server
+    [program:mcloud]
+    command=/opt/mcloud/bin/mcloud-rpc-server
 
 Start service::
 
-    $ sudo supervisorctl start mfcloud
+    $ sudo supervisorctl start mcloud
 
 Make sure it's running::
 
-    $ ps ax | grep mfcloud
+    $ ps ax | grep mcloud
 
-    3920 ?        Ssl    0:00 /opt/mfcloud/bin/python /opt/mfcloud/bin/mfcloud-rpc-server
-    3937 pts/5    S+     0:00 grep --color=auto mfcloud
+    3920 ?        Ssl    0:00 /opt/mcloud/bin/python /opt/mcloud/bin/mcloud-rpc-server
+    3937 pts/5    S+     0:00 grep --color=auto mcloud
 
 
 
-Running mfcloud-server with upstart (recommended)
+Running mcloud-server with upstart (recommended)
 ***************************************************
 
-Create file /etc/init/mfcloud.conf with follwing contents::
+Create file /etc/init/mcloud.conf with follwing contents::
 
-    description "Mfcloud server"
+    description "Mcloud server"
     author "Modera"
     start on filesystem and started docker
     stop on runlevel [!2345]
     respawn
     script
-      /opt/mfcloud/bin/mfcloud-rpc-server >> /var/log/mfcloud.log 2>&1
+      /opt/mcloud/bin/mcloud-rpc-server >> /var/log/mcloud.log 2>&1
     end script
 
-Start mfcloud service::
+Start mcloud service::
 
-    $ sudo service mfcloud start
+    $ sudo service mcloud start
 
 Make sure it's running::
 
-    $ ps ax | grep mfcloud
+    $ ps ax | grep mcloud
 
-    3920 ?        Ssl    0:00 /opt/mfcloud/bin/python /opt/mfcloud/bin/mfcloud-rpc-server
-    3937 pts/5    S+     0:00 grep --color=auto mfcloud
+    3920 ?        Ssl    0:00 /opt/mcloud/bin/python /opt/mcloud/bin/mcloud-rpc-server
+    3937 pts/5    S+     0:00 grep --color=auto mcloud
 
 
 Installing haproxy
 ==========================
 
-Haproxy is only needed when you install mfcloud on remote sever or
-if you run mfcloud in virtual machine, and want to access applications from
+Haproxy is only needed when you install mcloud on remote sever or
+if you run mcloud in virtual machine, and want to access applications from
 your host machine by domain names like **.mflcoud.lh
 
 Install haproxy::
@@ -211,18 +211,18 @@ Then start haproxy service::
 
     $ sudo service haproxy start
 
-Also you need to add *--haproxy* option to the mfcloud-rpc-server command.
-To do this, edit /etc/init/mfcloud.conf and add this option to the end::
+Also you need to add *--haproxy* option to the mcloud-rpc-server command.
+To do this, edit /etc/init/mcloud.conf and add this option to the end::
 
-    exec /opt/mfcloud/bin/mfcloud-rpc-server --haproxy  >> /var/log/mfcloud.log 2>&1
+    exec /opt/mcloud/bin/mcloud-rpc-server --haproxy  >> /var/log/mcloud.log 2>&1
 
-And finally restart mfcloud::
+And finally restart mcloud::
 
-    $ service mfcloud restart
+    $ service mcloud restart
 
 .. note::
 
-    To use **.mfcloud.lh with mfcloud inside virtual machine, you also need to configure
+    To use **.mcloud.lh with mcloud inside virtual machine, you also need to configure
     your local machine to use the virtual machine as dns-server, ex.:
     http://stackoverflow.com/questions/138162/wildcards-in-a-hosts-file
 
@@ -232,31 +232,31 @@ Checking installation
 
 Ping dns to make sure it's there::
 
-    $ ping _dns.mfcloud.lh
+    $ ping _dns.mcloud.lh
 
-    PING _dns.mfcloud.lh (127.0.0.1) 56(84) bytes of data.
+    PING _dns.mcloud.lh (127.0.0.1) 56(84) bytes of data.
     64 bytes from localhost (127.0.0.1): icmp_req=1 ttl=64 time=0.020 ms
     64 bytes from localhost (127.0.0.1): icmp_req=2 ttl=64 time=0.035 ms
     ^C
-    --- dns.mfcloud.lh ping statistics ---
+    --- dns.mcloud.lh ping statistics ---
     2 packets transmitted, 2 received, 0% packet loss, time 999ms
     rtt min/avg/max/mdev = 0.020/0.027/0.035/0.009 ms
 
 Or use dig utility::
 
-    $ dig _dns.mfcloud.lh
+    $ dig _dns.mcloud.lh
 
-    ; <<>> DiG 9.9.2-P1 <<>> _dns.mfcloud.lh
+    ; <<>> DiG 9.9.2-P1 <<>> _dns.mcloud.lh
     ;; global options: +cmd
     ;; Got answer:
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 47330
     ;; flags: qr ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
 
     ;; QUESTION SECTION:
-    ;_dns.mfcloud.lh.		IN	A
+    ;_dns.mcloud.lh.		IN	A
 
     ;; ANSWER SECTION:
-    _dns.mfcloud.lh.	10	IN	A	127.0.0.1
+    _dns.mcloud.lh.	10	IN	A	127.0.0.1
 
     ;; Query time: 0 msec
     ;; SERVER: 172.17.42.1#53(172.17.42.1)
@@ -264,11 +264,11 @@ Or use dig utility::
     ;; MSG SIZE  rcvd: 49
 
 
-If dns is working, then _dns.mfcloud.lh is resolved to 127.0.0.1
+If dns is working, then _dns.mcloud.lh is resolved to 127.0.0.1
 
 Check that API is up::
 
-    $ mfcloud list
+    $ mcloud list
 
     +------------------+-------------------------+---------+-----------------------------------------------------+
     | Application name |           Web           |  status |                       services                      |
@@ -280,17 +280,17 @@ Updating mflcoud
 
 Update is easy::
 
-    $ sudo /opt/mfcloud/bin/pip install -U mfcloud
+    $ sudo /opt/mcloud/bin/pip install -U mcloud
 
 And restart service::
 
-    $ sudo service mfcloud restart
+    $ sudo service mcloud restart
 
 Uninstalling mflcoud
 ============================================
 
 - Remove upstart/supervisor script
-- If, you used mfcloud with supervisor, you may need to uninstall supervisor as well
-- Remove mfcloud commands: sudo rm /usr/local/bin/mfcloud*
-- Remove mfcloud home: sudo rm -rf /opt/mfcloud
+- If, you used mcloud with supervisor, you may need to uninstall supervisor as well
+- Remove mcloud commands: sudo rm /usr/local/bin/mcloud*
+- Remove mcloud home: sudo rm -rf /opt/mcloud
 - Remove mflcoud-dns

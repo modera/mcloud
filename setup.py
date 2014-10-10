@@ -7,15 +7,15 @@ import imp
 from setuptools import setup, find_packages
 
 
-CODE_DIRECTORY = 'mfcloud'
+CODE_DIRECTORY = 'mcloud'
 DOCS_DIRECTORY = 'docs'
 TESTS_DIRECTORY = 'tests'
 
 # Import metadata. Normally this would just be:
 #
-#     from mfcloud import metadata
+#     from mcloud import metadata
 #
-# However, when we do this, we also import `mfcloud/__init__.py'. If this
+# However, when we do this, we also import `mcloud/__init__.py'. If this
 # imports names from some other modules and these modules have third-party
 # dependencies that need installing (which happens after this file is run), the
 # script will crash. What we do instead is to load the metadata module by path
@@ -97,16 +97,16 @@ setup(
     zip_safe=False,  # don't use eggs
     entry_points={
         'console_scripts': [
-            'mfcloud = mfcloud.rpc_client:entry_point',
-            'mfcloud-rpc-server = mfcloud.rpc_server:entry_point',
-            'mfcloud-balancer = mfcloud.haproxy:entry_point',
-            'mfcloud-dns = mfcloud.dns_resolver:entry_point',
-            'mfcloud-websocket = mfcloud.websocket:entry_point',
-            'mfcloud-uploader = mfcloud.upload_zip:entry_point',
+            'mcloud = mcloud.rpc_client:entry_point',
+            'mcloud-server = mcloud.rpc_server:entry_point',
+            'mcloud-balancer = mcloud.haproxy:entry_point',
+            'mcloud-dns = mcloud.dns_resolver:entry_point',
+            'mcloud-websocket = mcloud.websocket:entry_point',
+            'mcloud-uploader = mcloud.upload_zip:entry_point',
         ],
         # if you have a gui, use this
         # 'gui_scripts': [
-        #     'mfcloud_gui = mfcloud.gui:entry_point'
+        #     'mcloud_gui = mcloud.gui:entry_point'
         # ]
     }
 

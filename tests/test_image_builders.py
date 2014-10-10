@@ -1,8 +1,8 @@
 from itertools import chain as generator
 from flexmock import flexmock
 import os
-from mfcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
-from mfcloud.test_utils import mock_docker
+from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
+from mcloud.test_utils import mock_docker
 import pytest
 from twisted.internet import defer
 

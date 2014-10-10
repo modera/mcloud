@@ -5,28 +5,28 @@ Uninstalling mflcoud
 
 
 
-Mfcloud install from packages
+Mcloud install from packages
 ----------------------------------
 
 Remove package::
 
-    $ apt-get remove mfcloud-full
+    $ apt-get remove mcloud-full
 
 
-Manualy installed mfcloud update
+Manualy installed mcloud update
 ----------------------------------
 
 Remove package::
 
-    $ apt-get remove mfcloud
+    $ apt-get remove mcloud
 
 
-Source installed mfcloud update
+Source installed mcloud update
 ----------------------------------
 
 - Remove upstart/supervisor script
-- Remove mfcloud commands: sudo rm /usr/local/bin/mfcloud*
-- Remove mfcloud home: sudo rm -rf /opt/mfcloud
+- Remove mcloud commands: sudo rm /usr/local/bin/mcloud*
+- Remove mcloud home: sudo rm -rf /opt/mcloud
 
 
 

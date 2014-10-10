@@ -7,11 +7,11 @@ In this example we will deploy Symfony application.
 
 Checkout repo::
 
-    $ git clone https://github.com/cravler/mfcloud-symfony.git
+    $ git clone https://github.com/cravler/mcloud-symfony.git
 
-Start mfcloud and init application::
+Start mcloud and init application::
 
-    $ mfcloud
+    $ mcloud
 
     mcloud: ~@me>  init symfony
 

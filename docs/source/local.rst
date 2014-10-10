@@ -2,4 +2,4 @@
 Install mcflcoud locally
 ----------------------------
 
-docker run -d modera/mfcloud-local
+docker run -d modera/mcloud-local

@@ -4,5 +4,5 @@ Mcloud server API
 ===========================
 
 
-.. autoclass:: mfcloud.tasks.TaskService
+.. autoclass:: mcloud.tasks.TaskService
     :members:
