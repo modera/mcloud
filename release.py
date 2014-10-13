@@ -57,7 +57,7 @@ def file_prepend(filename, data):
 if __name__ == "__main__":
 
     repo = Repo(".")
-    # repo. remotes.origin.fetch()
+    repo.remotes.origin.fetch()
 
     branch_name = repo.active_branch.name
     if not match_versioning_branch_format(branch_name):
@@ -73,24 +73,22 @@ if __name__ == "__main__":
 
         os.chdir('debian')
         logs = []
-        for commit in repo.iter_commits('%s..%s' % (ref.tag.tag, new_tag_name)):
-            message = commit.message.strip()
-            os.system('dch -v %s-1 %s' % (new_tag_name, message))
-            logs.append(message)
-        # os.system('dch -r')
 
-        data = '%s %s\n    *%s\n\n' % (new_tag_name, datetime.datetime.now().isoformat(), '\n\t    *'.join(logs))
+        if ref:
+            for commit in repo.iter_commits('%s..%s' % (ref.tag.tag, new_tag_name)):
+                message = commit.message.strip()
+                os.system('dch -v %s-1 %s' % (new_tag_name, message))
+                logs.append(message)
+            # os.system('dch -r')
 
-        os.chdir('../')
+            data = '%s %s\n    *%s\n\n' % (new_tag_name, datetime.datetime.now().isoformat(), '\n\t    *'.join(logs))
 
-        file_prepend('CHANGES.txt', data)
+            os.chdir('../')
 
-        os.system('dpkg-buildpackage -us -uc')
+            file_prepend('CHANGES.txt', data)
+
+        sys.stdout.write(new_ref.tag.tag)
 
     else:
 
-        print('Already have version for this commit')
-
-
-
-# ssh admin1@dev.modera.org -R 0.0.0.0:7373:localhost:7373 -R 0.0.0.0:7375:localhost:7375 -R 0.0.0.0:8888:localhost:8888
+        sys.stdout.write('0')
