@@ -1,3 +1,48 @@
+mcloud (0.6.1-1) UNRELEASED; urgency=medium
+
+  * Docs the,e update
+  * Rename mfcloud -
+  * vm docs
+  * Update docs
+  * docs
+  * mfcloud-full package added
+  * Added debian tempfiles to ignore
+  * Docs updated
+  * Preparing debian package
+  * Bugfix in run command
+  * Docs the,e update
+  * Rename mfcloud -
+  * vm docs
+  * Update docs
+  * docs
+  * mfcloud-full package added
+  * Added debian tempfiles to ignore
+  * Docs updated
+  * Preparing debian package
+  * Bugfix in run command
+  * Docs the,e update
+  * Rename mfcloud -
+  * vm docs
+  * Update docs
+  * docs
+  * mfcloud-full package added
+  * Added debian tempfiles to ignore
+  * Docs updated
+  * Preparing debian package
+  * Bugfix in run command
+  * Docs the,e update
+  * Rename mfcloud -
+  * vm docs
+  * Update docs
+  * docs
+  * mfcloud-full package added
+  * Added debian tempfiles to ignore
+  * Docs updated
+  * Preparing debian package
+  * Bugfix in run command
+
+ -- Alex <alex@alex-pc>  Sat, 11 Oct 2014 11:02:56 +0300
+
 mcloud (0.5.18-6) trusty; urgency=medium
 
   * Fix brken dependencies

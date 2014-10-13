@@ -1,0 +1,10 @@
+Package: mfcloud-full
+Version: 0.5.8-2
+Architecture: amd64
+Maintainer: Alex Rudakov <ribozz@gmail.com>
+Installed-Size: 25
+Pre-Depends: dpkg (>= 1.16.1)
+Depends: mfcloud, dnsmasq, redis-server, haproxy, docker.io
+Section: python
+Priority: extra
+Description: Superpackage that will install mcloud and other services reuired

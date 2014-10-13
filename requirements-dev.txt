@@ -10,3 +10,4 @@ pytest-twisted
 flexmock
 sphinxcontrib-plantuml
 sphinx-argparse
+GitPython==0.3.2.RC1
