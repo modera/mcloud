@@ -57,7 +57,7 @@ def file_prepend(filename, data):
 if __name__ == "__main__":
 
     repo = Repo(".")
-    repo.remotes.origin.fetch()
+    #repo.remotes.origin.fetch()
 
     branch_name = repo.active_branch.name
     if not match_versioning_branch_format(branch_name):
