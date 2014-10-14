@@ -1,3 +1,4 @@
+from base64 import b64encode, b64decode
 import pty
 from twisted.internet import defer
 from twisted.internet.protocol import Factory, ClientFactory
@@ -139,7 +140,7 @@ class AttachStdinProtocol(Protocol):
         self.term.start()
 
     def write(self, data):
-        self.transport.write(str(data))
+        self.transport.write(b64decode(data))
 
     def stop(self):
         self.transport.loseConnection()
@@ -155,7 +156,7 @@ class AttachStdinProtocol(Protocol):
             reactor.stop()
 
         if self.listener:
-            self.listener(data)
+            self.listener(b64encode(data))
 
 
 class Attach(basic.LineReceiver):
@@ -170,14 +171,14 @@ class Attach(basic.LineReceiver):
         self.transport.write('\r\n')
 
     def rawDataReceived(self, data):
-        self.stdout_write(data)
+        self.stdout_write(b64encode(data))
 
     def lineReceived(self, line):
         if line.strip() == '':
             self.setRawMode()
 
     def stdin_on_input(self, data):
-        self.transport.write(str(data))
+        self.transport.write(b64decode(data))
 
     def stdout_write(self, data):
         pass
