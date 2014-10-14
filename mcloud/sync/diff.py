@@ -21,12 +21,14 @@ def is_ignored(ignore_list, path):
 
     return False
 
-def list_git_ignore(dir_):
-    lines = Popen(["git", "status", '-s', '--ignored'], stderr=PIPE, stdout=PIPE, cwd=dir_).communicate()[0]
-    extra = ['.git/', '.gitignore']
-    ignored = extra + [x.split(' ')[1] for x in lines.strip().split('\n') if x.startswith('!! ')]
 
-    return ignored
+def list_git_ignore(dir_):
+    file_ = os.path.join(dir_, '.mcignore')
+    if os.path.exists(file_):
+        with open(file_) as f:
+            return f.readlines()
+    else:
+        return []
 
 
 def dump_node(entry):

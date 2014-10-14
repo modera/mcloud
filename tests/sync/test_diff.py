@@ -88,16 +88,15 @@ def test_compare_new_file_gitignore(tmpdir):
     dst = tmpdir.mkdir("dst")
 
     os.chdir(str(src))
-    os.system('git init')
     src.join('boo.txt').write('123')
     src.join('boo2.txt').write('123')
-    src.join('.gitignore').write('boo2.txt')
+    src.join('.mcignore').write('boo2.txt')
 
     ssrc = directory_snapshot(str(src))
     sdst = directory_snapshot(str(dst))
 
     assert compare(ssrc, sdst) == {
-        'new': ['boo.txt'],
+        'new': ['boo.txt', '.mcignore'],
         'upd': [],
         'del': [],
     }
@@ -108,23 +107,19 @@ def test_compare_removed_file_gitignore(tmpdir):
     dst = tmpdir.mkdir("dst")
 
     os.chdir(str(src))
-    os.system('git init')
     src.join('boo.txt').write('123')
     src.join('boo2.txt').write('123')
-    src.join('.gitignore').write('boo2.txt')
+    src.join('.mcignore').write('boo2.txt')
 
     dst.join('boo2.txt').write('123')
 
     ssrc = directory_snapshot(str(src))
     sdst = directory_snapshot(str(dst))
 
-    print ssrc
-    print sdst
-
     assert compare(ssrc, sdst) == {
-        'new': ['boo.txt'],
+        'new': ['boo.txt', '.mcignore'],
         'upd': [],
-        'del': [],
+        'del': []
     }
 
 
