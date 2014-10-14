@@ -4,7 +4,7 @@ Information describing the project.
 """
 import os
 
-root_dir = os.path.dirname(os.path.dirname(__file__))
+root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 # The package name, which is also the "UNIX name" for the project.
 package = 'mcloud'
