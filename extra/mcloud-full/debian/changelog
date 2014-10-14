@@ -1,5 +1,6 @@
-mcloud-full (0.5.8-2) UNRELEASED; urgency=medium
+mcloud-full (0.6.1-1) UNRELEASED; urgency=medium
 
   * Added docker.io as dependency 
+  * Changed name to mcloud
 
- -- Alex <alex@alex-pc>  Thu, 09 Oct 2014 20:10:04 +0300
+ -- Alex <alex@alex-Precision-T1650>  Tue, 14 Oct 2014 09:36:06 +0300
