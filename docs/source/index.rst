@@ -1,6 +1,6 @@
 
 ==============
-Mcloud Cloud
+MCloud
 ==============
 
 Welcome to *MCloud* - a tool that helps you manage Docker based deployments.
