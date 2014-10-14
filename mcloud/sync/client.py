@@ -215,7 +215,7 @@ class FileClient(object):
 
         crc = self.file_crc(tar)
 
-        # print tar
+        print tar
 
         protocol = FileIOUploaderClientProtocol(tar, crc, kwargs, monitor=Monitor())
         f = FileIOClientFactory(protocol, controller)
@@ -223,7 +223,7 @@ class FileClient(object):
 
         yield controller.completed
 
-        os.unlink(tar)
+        # os.unlink(tar)
 
 
     def download(self, paths, target_path, **kwargs):

@@ -295,13 +295,14 @@ def test_compare_recursive_updated_dir_deeper(tmpdir):
 
 def test_ignore():
 
-    ignore_list = ['.git/', '.env/']
+    ignore_list = ['.git/', '.env', '*.pyc']
 
     assert not is_ignored(ignore_list, '.gitignore')
     assert not is_ignored(ignore_list, '.gitmodules')
 
     assert is_ignored(ignore_list, '.git')
     assert is_ignored(ignore_list, '.git/')
+    assert is_ignored(ignore_list, 'foo/bar/baz.pyc')
     assert is_ignored(ignore_list, '.git/foo')
 
     assert is_ignored(ignore_list, '.env/lib/python2.7/site-packages/_pytest/pastebin.py')

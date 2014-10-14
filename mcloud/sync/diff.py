@@ -13,6 +13,9 @@ def is_ignored(ignore_list, path):
         if ign.endswith('/'):
             ign = ign[0:-1]
 
+        if ign[0] == '*':
+            return path.endswith(ign[1:])
+
         if path == ign:
             return True
 
@@ -24,9 +27,11 @@ def is_ignored(ignore_list, path):
 
 def list_git_ignore(dir_):
     file_ = os.path.join(dir_, '.mcignore')
+
     if os.path.exists(file_):
         with open(file_) as f:
-            return f.readlines()
+            patterns = [x.strip() for x in f.readlines() if x.strip() != '']
+            return patterns
     else:
         return []
 
@@ -74,6 +79,7 @@ def dump_file(dirname, ref, ignored, prefix='', ref_time=0):
 
 # @profile
 def directory_snapshot(dirname):
+
     """
     Creates tree representing directory with recursive modification times
 
@@ -123,6 +129,9 @@ def compare(src_struct, dst_struct, drift=0, ignored=None):
     :param dest:
     :return:
     """
+
+    # print src_struct['.gitignore']
+    # print dst_struct['.gitignore']
 
     if not ignored and '_ignored' in src_struct:
         ignored = src_struct['_ignored']
