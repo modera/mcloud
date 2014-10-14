@@ -1,35 +1,24 @@
-0.6.1 2014-10-11T11:02:56.903801
-Docs the,e update
-Rename mfcloud -> mcloud
-vm docs
-Update docs
-docs
-mfcloud-full package added
-Added debian tempfiles to ignore
-Docs updated
-Preparing debian package
-Bugfix in run command
+0.6.2 2014-10-14T15:01:53.198378
+
+    * [CLOUD-30] Bugfixes in new ignore logic
+    * [CLOUD-30] Improve ignorefile logic
+    * [CLOUD-26] Fx unicode troubles in Run command
+    * Updated ref to Vagrantfile in docs
+    * Added Vagantfile
+    * Fix problem with version.txt
+    * Fix wrong title in docs
+    * Fix path to version.txt
+    * Better behavior of release.py
 
 0.6.1 2014-10-11T11:00:33.832494
-Docs the,e update
-Rename mfcloud -> mcloud
-vm docs
-Update docs
-docs
-mfcloud-full package added
-Added debian tempfiles to ignore
-Docs updated
-Preparing debian package
-Bugfix in run command
 
-0.6.1 2014-10-11T10:00:51.791217
-	* Docs the,e update
-	* Rename mfcloud -> mcloud
-	* vm docs
-	* Update docs
-	* docs
-	* mfcloud-full package added
-	* Added debian tempfiles to ignore
-	* Docs updated
-	* Preparing debian package
-	* Bugfix in run command
+    * Docs theme update
+    * Rename mfcloud -> mcloud
+    * vm docs
+    * Update docs
+    * docs
+    * mfcloud-full package added
+    * Added debian tempfiles to ignore
+    * Docs updated
+    * Preparing debian package
+    * Bugfix in run command

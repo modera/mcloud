@@ -3,6 +3,7 @@
 Information describing the project.
 """
 import os
+from mcloud.version import version as mcloud_version
 
 root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -10,7 +11,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 package = 'mcloud'
 project = "mcloud"
 project_no_spaces = project.replace(' ', '')
-version = '0.6.1'
+version = mcloud_version
 description = 'A tool that helps you manage Docker based deployments'
 authors = ['Alex Rudakov']
 authors_string = ', '.join(authors)

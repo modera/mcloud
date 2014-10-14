@@ -1,4 +1,4 @@
-mcloud (0.6.1-3) UNRELEASED; urgency=medium
+mcloud (0.6.2-1) UNRELEASED; urgency=medium
 
   * Docs the,e update
   * Rename mfcloud -
@@ -42,8 +42,19 @@ mcloud (0.6.1-3) UNRELEASED; urgency=medium
   * Bugfix in run command
   * Fix version.txt error
   * Fix missing modera-server
+  * [CLOUD-30] Bugfixes in new ignore logic
+  * [CLOUD-30] Improve ignorefile logic
+  * [CLOUD-26] Fx unicode troubles in Run command
+  * Updated ref to Vagrantfile in docs
+  * Added Vagantfile
+  * Fix problem with version.txt
+  * Fix wrong title in docs
+  * Fix path to version.txt
+  * Fix path to version.txt
+  * Better behavior of release.py
+  * Better behavior of release.py
 
- -- Alex <alex@alex-Precision-T1650>  Tue, 14 Oct 2014 09:58:36 +0300
+ -- Alex <alex@alex-Precision-T1650>  Tue, 14 Oct 2014 15:01:53 +0300
 
 mcloud (0.5.18-6) trusty; urgency=medium
 
