@@ -132,6 +132,18 @@ You should see same output if you use::
     $ curl hello.mcloud.lh
 
 
+Open url in browser
+---------------------------------------
+
+If you are running mcloud natively on **linux**, then opening url in browser should just work.
+
+In case of **MacOS/Windows with Vagrant**, you need to add following into /etc/hosts (or similar file in Windows)::
+
+    192.168.70.2    hello.mcloud.lh
+
+192.168.70.2 - is ip address you assigned in your Vagrantfile.
+
+
 Stopping and removing an app
 ---------------------------------------
 

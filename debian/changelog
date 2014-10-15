@@ -1,3 +1,9 @@
+mcloud (0.6.2-4) trusty; urgency=medium
+
+  * Fix --haproxy option not added on mcloud start
+
+ -- Alex Rudakov <ribozz@gmail.com>  Wed, 15 Oct 2014 12:32:26 +0300
+
 mcloud (0.6.2-3) trusty; urgency=medium
 
   * Fix bug with mcloud daemon init

@@ -4,5 +4,10 @@ start on runlevel [2345]
 stop on runlevel [!2345]
 respawn
 script
-  /usr/local/bin/mcloud-server >> /var/log/mcloud.log 2>&1
+  if [ ! -f /etc/haproxy/haproxy.cfg ];
+  then
+      /usr/local/bin/mcloud-server >> /var/log/mcloud.log 2>&1
+  else
+      /usr/local/bin/mcloud-server --haproxy >> /var/log/mcloud.log 2>&1
+  fi
 end script

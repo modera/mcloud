@@ -1,3 +1,9 @@
+mcloud-full (0.6.2-5) trusty; urgency=medium
+
+  * Do not update mcloud init script
+
+ -- Alex Rudakov <ribozz@gmail.com>  Wed, 15 Oct 2014 12:34:15 +0300
+
 mcloud-full (0.6.2-4) trusty; urgency=medium
 
   * Add --haproxy flag on start
