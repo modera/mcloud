@@ -1,3 +1,9 @@
+mcloud (0.6.4-1) UNRELEASED; urgency=medium
+
+  * [CLOUD-36] Fix mcloud ignores _
+
+ -- Alex <alex@alex-Precision-T1650>  Wed, 15 Oct 2014 14:07:49 +0300
+
 mcloud (0.6.2-4) trusty; urgency=medium
 
   * Fix --haproxy option not added on mcloud start

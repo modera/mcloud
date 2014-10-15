@@ -1,3 +1,6 @@
+0.6.4 2014-10-15T14:07:49.815276
+    *[CLOUD-36] Fix mcloud ignores _
+
 0.6.2 2014-10-14T15:01:53.198378
 
     * [CLOUD-30] Bugfixes in new ignore logic

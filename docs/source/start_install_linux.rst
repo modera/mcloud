@@ -34,6 +34,11 @@ Add modera ubuntu repository::
     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1B322208
     echo "deb http://ubuntu.dev.modera.org/debian trusty main" > /etc/apt/sources.list.d/modera.list
 
+Add haproxy repository::
+
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1C61B9CD
+    echo "deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main" >> /etc/apt/sources.list.d/haproxy.list
+
 Install mcloud::
 
     apt-get update && apt-get install mcloud-full

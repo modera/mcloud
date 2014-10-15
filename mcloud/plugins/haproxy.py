@@ -18,14 +18,11 @@ global
 
 defaults
         log     global
-        mode    http
-        option  httplog
-        option  httpclose
-        option  forwardfor
         option  dontlognull
-        contimeout 5000
-        clitimeout 50000
-        srvtimeout 50000
+        timeout connect 5000
+        timeout client 50000
+        timeout server 50000
+
         errorfile 400 /etc/haproxy/errors/400.http
         errorfile 403 /etc/haproxy/errors/403.http
         errorfile 408 /etc/haproxy/errors/408.http
@@ -37,7 +34,12 @@ defaults
 
 {% if ssl_apps %}
 frontend http_ssl_proxy
+  mode tcp
   bind 0.0.0.0:443
+
+  tcp-request inspect-delay 5s
+  tcp-request content accept if { req_ssl_hello_type 1 }
+
   {% for app in ssl_apps %}
   {% for domain in app.domains %}
   acl is_ssl_{{ app.name }} req_ssl_sni -i {{ domain }}
@@ -48,13 +50,41 @@ frontend http_ssl_proxy
   {% for app in ssl_apps %}
   {% for backend in app.backends %}
   backend {{ backend.name }}_cluster
-      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }}
+      mode tcp
+
+      # maximum SSL session ID length is 32 bytes.
+      stick-table type binary len 32 size 30k expire 30m
+
+      acl clienthello req_ssl_hello_type 1
+      acl serverhello rep_ssl_hello_type 2
+
+      # use tcp content accepts to detects ssl client and server hello.
+      tcp-request inspect-delay 5s
+      tcp-request content accept if clienthello
+
+      # no timeout on response inspect delay by default.
+      tcp-response content accept if serverhello
+
+      stick on payload_lv(43,1) if clienthello
+
+      # Learn on response if server hello.
+      stick store-response payload_lv(43,1) if serverhello
+
+      option ssl-hello-chk
+
+      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }} check
+
   {% endfor %}
   {% endfor %}
 {% endif %}
 
 frontend http_proxy
   bind 0.0.0.0:80
+
+  mode    http
+  option  httplog
+  option  httpclose
+  option  forwardfor
 
   {% for app in apps %}
   {% for domain in app.domains %}
@@ -66,6 +96,7 @@ frontend http_proxy
   {% for app in apps %}
   {% for backend in app.backends %}
   backend {{ backend.name }}_cluster
+      mode    http
       server {{ backend.name }} {{ backend.ip }}:{{ backend.port }}
   {% endfor %}
   {% endfor %}

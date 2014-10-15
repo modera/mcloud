@@ -550,6 +550,13 @@ class ApiRpcClient(object):
             domain = 'https://%s' % domain
         return domain
 
+    @inlineCallbacks
+    def get_app(self, app_name):
+        ret = yield self._remote_exec('list')
+        for app in ret:
+            if app['name'] == app_name:
+                defer.returnValue(app)
+
     @cli('Publish an application', arguments=(
         arg('app', help='Application name'),
         arg('domain', help='Domain to publish'),
@@ -559,8 +566,13 @@ class ApiRpcClient(object):
     @inlineCallbacks
     def publish(self, domain, app, ssl=False, **kwargs):
         require(app)
-        data = yield self._remote_exec('publish', self.format_domain(domain, ssl), app)
-        print 'result: %s' % pprintpp.pformat(data)
+
+        app = yield self.get_app(app)
+
+        if not app:
+            print 'App not found. Can\'t publish'
+        else:
+            yield self._remote_exec('publish', self.format_domain(domain, ssl), app['name'])
 
     def on_vars_result(self, data):
         x = PrettyTable(["variable", "value"], hrules=ALL)
