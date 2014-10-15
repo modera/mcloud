@@ -10,7 +10,12 @@ package names and file-system paths, process is same on all operating systems.
 What will be installed?
 ===========================
 
-mcloud-full package installs:
+Install sh does:
+
+- Installs mcloud && haproxy ppa keys
+- install mcloud-full package
+
+mcloud-full package contains:
 
 - mcloud's binary files
 - docker.io
@@ -27,21 +32,10 @@ Mcloud installation
     Currently we provide packages for Ubuntu trusty 14.04 only.
     If you need to install mcloud on other OS, install it from source: :ref:`from_source`
 
-.. note:: **NB!** Run installation commands as root user. (sudo su, or just login as root)
 
-Add modera ubuntu repository::
+Install mcloud-full::
 
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1B322208
-    echo "deb http://ubuntu.dev.modera.org/debian trusty main" > /etc/apt/sources.list.d/modera.list
-
-Add haproxy repository::
-
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1C61B9CD
-    echo "deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main" >> /etc/apt/sources.list.d/haproxy.list
-
-Install mcloud::
-
-    apt-get update && apt-get install mcloud-full
+    curl https://mcloud.io/install.sh |sudo sh
 
 
 Checking installation
