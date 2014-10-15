@@ -1,3 +1,6 @@
+0.6.5 2014-10-15T15:02:59.729153
+    *Improve ssl support
+
 0.6.4 2014-10-15T14:07:49.815276
     *[CLOUD-36] Fix mcloud ignores _
 

@@ -1,8 +1,9 @@
-mcloud (0.6.4-1) UNRELEASED; urgency=medium
+mcloud (0.6.5-1) UNRELEASED; urgency=medium
 
   * [CLOUD-36] Fix mcloud ignores _
+  * Improve ssl support
 
- -- Alex <alex@alex-Precision-T1650>  Wed, 15 Oct 2014 14:07:49 +0300
+ -- Alex <alex@alex-Precision-T1650>  Wed, 15 Oct 2014 15:02:59 +0300
 
 mcloud (0.6.2-4) trusty; urgency=medium
 
