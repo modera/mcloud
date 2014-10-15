@@ -6,6 +6,7 @@ from scandir import scandir
 
 import os
 
+ignored_patterns = ('_path', '_mtime', '_ignored')
 
 def is_ignored(ignore_list, path):
     for ign in ignore_list:
@@ -114,7 +115,8 @@ def list_recursive(ref):
     ret = [ref_path(ref)]
 
     for name, sub in ref.items():
-        if name.startswith('_'):
+
+        if name in ignored_patterns:
             continue
         ret += list_recursive(sub)
 
@@ -143,7 +145,7 @@ def compare(src_struct, dst_struct, drift=0, ignored=None):
     }
 
     for name, src in src_struct.items():
-        if name.startswith('_'):
+        if name in ignored_patterns:
             continue
 
         # prevents removal of ignored on left side
@@ -162,7 +164,7 @@ def compare(src_struct, dst_struct, drift=0, ignored=None):
                 merge_result(result, compare(src, dst, ignored=ignored))
 
     for name, dst in dst_struct.items():
-        if name.startswith('_'):
+        if name in ignored_patterns:
             continue
 
         if ignored and is_ignored(ignored, dst['_path']):

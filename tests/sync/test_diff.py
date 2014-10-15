@@ -82,6 +82,22 @@ def test_compare_new_file(tmpdir):
         'del': [],
     }
 
+def test_compare_new_file_starts_with_underscore(tmpdir):
+
+    src = tmpdir.mkdir("src")
+    dst = tmpdir.mkdir("dst")
+
+    src.join('_boo.txt').write('123')
+
+    ssrc = directory_snapshot(str(src))
+    sdst = directory_snapshot(str(dst))
+
+    assert compare(ssrc, sdst) == {
+        'new': ['_boo.txt'],
+        'upd': [],
+        'del': [],
+    }
+
 def test_compare_new_file_gitignore(tmpdir):
 
     src = tmpdir.mkdir("src")
