@@ -55,11 +55,11 @@ def test_get_storage_remote_with_port():
 
 def test_get_storage_remote_without_service():
 
-    storage = get_storage('foo@example.com')
+    storage = get_storage('foo_bar@example.com')
     assert isinstance(storage, VolumeStorageRemote)
 
     assert storage.ref == {
-        'app_name': 'foo'
+        'app_name': 'foo_bar'
     }
     assert storage.host == 'example.com'
     assert storage.port == 7081

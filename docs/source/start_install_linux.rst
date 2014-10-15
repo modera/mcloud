@@ -27,6 +27,8 @@ Mcloud installation
     Currently we provide packages for Ubuntu trusty 14.04 only.
     If you need to install mcloud on other OS, install it from source: :ref:`from_source`
 
+.. note:: **NB!** Run installation commands as root user. (sudo su, or just login as root)
+
 Add modera ubuntu repository::
 
     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1B322208

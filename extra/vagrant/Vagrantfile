@@ -1,7 +1,6 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
@@ -12,7 +11,7 @@ then
      apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1B322208
      echo "deb http://ubuntu.dev.modera.org/debian trusty main" > /etc/apt/sources.list.d/modera.list
 fi
-apt-get update && apt-get install -y mcloud mcloud-full
+apt-get update && apt-get install -y -o Dpkg::Options::=--force-confnew mcloud mcloud-full
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|

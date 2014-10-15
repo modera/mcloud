@@ -1,47 +1,17 @@
-mcloud (0.6.2-1) UNRELEASED; urgency=medium
+mcloud (0.6.2-3) trusty; urgency=medium
 
-  * Docs the,e update
-  * Rename mfcloud -
-  * vm docs
-  * Update docs
-  * docs
-  * mfcloud-full package added
-  * Added debian tempfiles to ignore
-  * Docs updated
-  * Preparing debian package
-  * Bugfix in run command
-  * Docs the,e update
-  * Rename mfcloud -
-  * vm docs
-  * Update docs
-  * docs
-  * mfcloud-full package added
-  * Added debian tempfiles to ignore
-  * Docs updated
-  * Preparing debian package
-  * Bugfix in run command
-  * Docs the,e update
-  * Rename mfcloud -
-  * vm docs
-  * Update docs
-  * docs
-  * mfcloud-full package added
-  * Added debian tempfiles to ignore
-  * Docs updated
-  * Preparing debian package
-  * Bugfix in run command
-  * Docs the,e update
-  * Rename mfcloud -
-  * vm docs
-  * Update docs
-  * docs
-  * mfcloud-full package added
-  * Added debian tempfiles to ignore
-  * Docs updated
-  * Preparing debian package
-  * Bugfix in run command
-  * Fix version.txt error
-  * Fix missing modera-server
+  * Fix bug with mcloud daemon init
+
+ -- Alex Rudakov <ribozz@gmail.com>  Wed, 15 Oct 2014 10:23:01 +0300
+
+mcloud (0.6.2-2) trusty; urgency=medium
+
+  * Fix bug with unknow author on PPA
+
+ -- Alex Rudakov <ribozz@gmail.com>  Tue, 14 Oct 2014 15:50:56 +0300
+
+mcloud (0.6.2-1) trusty; urgency=medium
+
   * [CLOUD-30] Bugfixes in new ignore logic
   * [CLOUD-30] Improve ignorefile logic
   * [CLOUD-26] Fx unicode troubles in Run command
@@ -54,7 +24,7 @@ mcloud (0.6.2-1) UNRELEASED; urgency=medium
   * Better behavior of release.py
   * Better behavior of release.py
 
- -- Alex <alex@alex-Precision-T1650>  Tue, 14 Oct 2014 15:01:53 +0300
+ -- Alex Rudakov <ribozz@gmail.com>  Tue, 14 Oct 2014 15:26:55 +0300
 
 mcloud (0.5.18-6) trusty; urgency=medium
 
@@ -64,4 +34,4 @@ mcloud (0.5.18-6) trusty; urgency=medium
   * Fixing broken package 
   * Improved package structure to use debhelper better
 
- -- Alex <alex@alex-Precision-T1650>  Thu, 09 Oct 2014 12:27:46 +0300
+ -- Alex Rudakov <ribozz@gmail.com>  Thu, 09 Oct 2014 12:27:46 +0300

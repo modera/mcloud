@@ -12,8 +12,8 @@ from twisted.python import log
 
 class Application(object):
 
-    APP_REGEXP = '[a-z0-9\-]+'
-    SERVICE_REGEXP = '[a-z0-9\-]+'
+    APP_REGEXP = '[a-z0-9\-_]+'
+    SERVICE_REGEXP = '[a-z0-9\-_]+'
 
     dns_search_suffix = inject.attr('dns-search-suffix')
     #host_ip = inject.attr('host_ip')
