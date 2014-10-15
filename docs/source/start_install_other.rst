@@ -6,7 +6,7 @@ Installation in virtual machine
 Download Vagrant file from mcloud website, put it in your
 directory where your dev-projetcs are hosted::
 
-    wget https://raw.githubusercontent.com/modera/mcloud/master/extra/vagrant/Vagrantfile
+    curl https://raw.githubusercontent.com/modera/mcloud-samples/master/Vagrantfile
 
 Put vagrant up::
 
