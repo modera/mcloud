@@ -1,6 +1,9 @@
-#!/usr/bin/python
-import json
+#!/bin/sh
+''''which python >/dev/null && exec /usr/bin/env python "$0" "$@" # '''
+''''which python2 >/dev/null && exec /usr/bin/env python2 "$0" "$@" # '''
+''''which python3 >/dev/null && exec /usr/bin/env python3 "$0" "$@" # '''
 
+import json
 import sys
 import socket
 import os
@@ -15,8 +18,8 @@ args = []
 if len(sys.argv) > 2:
     args = sys.argv[2:]
 
-s.send(json.dumps({'hostname': os.uname()[1], 'command': sys.argv[1], 'args': args}))
-data = json.loads(s.recv(1024 * 5))
+s.send(json.dumps({'hostname': os.uname()[1], 'command': sys.argv[1], 'args': args}).encode('utf-8'))
+data = json.loads(s.recv(1024 * 5).decode('utf-8'))
 
 s.close()
 
