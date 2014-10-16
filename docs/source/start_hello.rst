@@ -36,7 +36,7 @@ Application structure is following::
 
  - public
     - index.html
- - mflcoud.yml
+ - mlcoud.yml
 
 Now, start mcloud shell::
 
@@ -60,7 +60,7 @@ List command will show our newly created application::
     +------------------+--------+-------+--------+-------------------------------+----------------------------+
     | Application name | status | cpu % | memory |              Web              |            Path            |
     +------------------+--------+-------+--------+-------------------------------+----------------------------+
-    |      hello      |        |       |        | hello.mcloud.lh -> [No web] | /home/alex/dev/mcloud/tmp |
+    |      hello       |        |       |        | hello.mcloud.lh -> [No web]   | /home/alex/dev/mcloud/tmp  |
     +------------------+--------+-------+--------+-------------------------------+----------------------------+
 
 We can "use" new application, so we don't need to typ application name every time::
@@ -100,7 +100,7 @@ And list will show the following::
     +--------------+--------+------------+-------+--------+----------+--------------------------+
     | Service name | status |     ip     | cpu % | memory | volumes  |       public urls        |
     +--------------+--------+------------+-------+--------+----------+--------------------------+
-    |  web.hello  |   ON   | 172.17.0.2 | 0.07% |  12M   | /var/www | http://hello.mcloud.lh |
+    |  web.hello   |   ON   | 172.17.0.2 | 0.07% |  12M   | /var/www | http://hello.mcloud.lh   |
     +--------------+--------+------------+-------+--------+----------+--------------------------+
 
 
