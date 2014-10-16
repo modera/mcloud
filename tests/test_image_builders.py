@@ -17,7 +17,7 @@ def test_image_builder_prebuilt():
         #dm.should_receive('images').with_args(name='foo/bar').and_return([])
 
         dm.should_receive('images').with_args(name='foo/bar').once().and_return(defer.succeed([]))
-        dm.should_receive('pull').with_args(name='foo/bar', ticket_id=123123).once().and_return(defer.succeed(['foo', 'bar', 'baz']))
+        dm.should_receive('pull').with_args(name='foo/bar', ticket_id=123123, tag=None).once().and_return(defer.succeed(['foo', 'bar', 'baz']))
 
         builder = PrebuiltImageBuilder('foo/bar')
 
