@@ -11,10 +11,7 @@ Deploying multicontainer appication
 This time we will deploy bit more complex application, that have several containers, that
 communicate to each-other.
 
-Spec
-----------------------
-
-Deploy flask application that will store number of pageviews in redis.
+We will deploy flask application that will store number of page-views in redis.
 
 Files overview
 =========================
