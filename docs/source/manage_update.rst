@@ -1,6 +1,6 @@
 
 
-Updating mflcoud
+Updating mlcoud
 ============================================
 
 Mcloud install from packages

@@ -8,3 +8,4 @@ Getting started
 
   start_install
   start_hello
+  start_multi

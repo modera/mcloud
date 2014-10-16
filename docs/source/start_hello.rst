@@ -3,6 +3,10 @@
 Deploying hello website
 ===============================================
 
+.. note::
+    You can get example code in "hello" folder from our samples repository https://github.com/modera/mcloud-samples/
+
+
 assume we have a hello web-page, that we want to deploy
 as mcloud application::
 

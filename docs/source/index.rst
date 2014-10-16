@@ -18,4 +18,5 @@ Contents
   start
   multiserver
   manage
+  how
   api

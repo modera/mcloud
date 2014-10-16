@@ -1,6 +1,6 @@
 
 
-Uninstalling mflcoud
+Uninstalling mlcoud
 ============================================
 
 
