@@ -214,11 +214,11 @@ class ApiRpcClient(object):
 
             if app['status'] != 'error':
                 if 'web_service' in app and app['web_service'] == service['name']:
-                    web.append('http://' + app['fullname'])
+                    web.append('http://' + app['fullname'] + '/')
 
                     if 'public_urls' in app and app['public_urls']:
                         for url in app['public_urls']:
-                            web.append('http://' + url)
+                            web.append('http://' + url + '/')
 
             x.add_row([
                 service['name'],
@@ -529,10 +529,22 @@ class ApiRpcClient(object):
     @cli('Start containers', arguments=(
         arg('app', help='Application name', default=None, nargs='?'),
         arg('service', help='Service name', default=None, nargs='?'),
+        arg('--init', help='Initialize applications if not exist yet', default=False, action='store_true'),
     ))
     @inlineCallbacks
-    def start(self, app, service, **kwargs):
+    def start(self, app, service, init=False, **kwargs):
         print app, service
+
+        if not app:
+            app = os.path.basename(os.getcwd())
+
+        if init:
+            app_instance = yield self.get_app(app)
+
+            if not app_instance:
+                yield self.init(app, os.getcwd())
+
+
         data = yield self._remote_exec('start', self.format_app_srv(app, service))
         print 'result: %s' % pprintpp.pformat(data)
 
@@ -846,6 +858,7 @@ def main(argv):
                     reactor.callFromThread(reactor.stop)
 
                 def err(failure):
+                    print failure
                     print color_text('Error:', color='white', bcolor='red')
                     print failure.value
                     print

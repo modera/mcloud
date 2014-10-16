@@ -30,7 +30,7 @@ class DnsPlugin(Plugin):
                 for url in app['public_urls']:
                     apps[url] = app['web_ip']
 
-        logger.info('Installing new app list: %s' % str(apps))
+        log.msg('Installing new dns list: %s' % str(apps))
 
         yield self.redis.delete('domain')
 
@@ -43,11 +43,11 @@ class DnsPlugin(Plugin):
         super(DnsPlugin, self).__init__()
         self.eb.on('containers.updated', self.containers_updated)
 
-        logger.info('Dns plugin started')
+        log.msg('Dns plugin started')
+
+        self.containers_updated()
 
     @inlineCallbacks
     def containers_updated(self, *args, **kwargs):
-        logger.info('Containers updated: dumping haproxy config.')
-
         data = yield self.app_controller.list()
         self.dump(data)

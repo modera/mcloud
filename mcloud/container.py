@@ -9,7 +9,7 @@ from twisted.internet import reactor, defer
 
 
 logger = logging.getLogger('mcloud.application')
-
+from twisted.python import log
 
 class IContainerBuilder(Interface):
     pass
@@ -36,16 +36,24 @@ class PrebuiltImageBuilder(IImageBuilder):
     @defer.inlineCallbacks
     def build_image(self, ticket_id):
 
-        logger.debug('[%s] Building image "%s".', ticket_id, self.image)
+        log.msg('[%s] Building image "%s".', ticket_id, self.image)
 
-        images = yield self.client.images(name=self.image)
+        name = self.image
+        tag = None
+        if ':' in name:
+            name, tag = name.split(':')
+
+        images = yield self.client.images(name=name)
+
+        if tag:
+            images = [x for x in images if self.image in x['RepoTags']]
+
         if not images:
-            logger.debug('[%s] Image is not there. Pulling "%s" ...', ticket_id, self.image)
+            log.msg('[%s] Image is not there. Pulling "%s" ...', ticket_id, self.image)
 
-            # pull the image
-            yield self.client.pull(self.image, ticket_id)
+            yield self.client.pull(name, ticket_id, tag)
 
-        logger.debug('[%s] Image "%s" is ready to use.', ticket_id, self.image)
+        log.msg('[%s] Image "%s" is ready to use.', ticket_id, self.image)
         defer.returnValue(self.image)
 
 

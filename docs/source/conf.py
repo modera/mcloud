@@ -41,6 +41,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
 sys.path.append(os.path.abspath('themes/cloud.modera.org'))
 html_theme_path = ['themes/cloud.modera.org']
 html_theme = 'docs_theme'
+# html_theme = 'basic'
 
 #plantuml = 'java -jar %s/plantuml.jar' % os.path.dirname(__file__)
 
@@ -49,8 +50,8 @@ html_theme = 'docs_theme'
 #     import sphinx_rtd_theme
 #     html_theme = 'sphinx_rtd_theme'
 #     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-
-#html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+#
+# html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # show todos
 todo_include_todos = True

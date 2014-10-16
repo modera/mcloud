@@ -8,7 +8,7 @@ mcloud command
 =========================
 
 .. argparse::
-   :ref: mcloud.rpc_client.get_argparser
+   :ref: mcloud.rpc_client.arg_parser
    :prog: mcloud
 
 

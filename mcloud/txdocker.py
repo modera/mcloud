@@ -117,7 +117,8 @@ class DockerTwistedClient(object):
 
 
 
-    def pull(self, name, ticket_id):
+
+    def pull(self, name, ticket_id, tag=None):
 
         logger.debug('[%s] Pulling image "%s"', ticket_id, name)
 
@@ -130,6 +131,8 @@ class DockerTwistedClient(object):
                 if 'error' in data:
                     raise CommandFailed('Failed to pull image "%s": %s' % (name, data['error']))
 
+                return data
+
             except ValueError:
                 pass
 
@@ -137,7 +140,7 @@ class DockerTwistedClient(object):
             logger.debug('[%s] Done pulling image.', ticket_id)
             return True
 
-        r = self._post('images/create', params={'fromImage': name}, response_handler=None)
+        r = self._post('images/create', params={'fromImage': name, 'tag': tag}, response_handler=None)
         r.addCallback(txhttp.collect, on_content)
         r.addCallback(done)
 
