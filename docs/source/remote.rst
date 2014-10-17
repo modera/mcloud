@@ -13,6 +13,7 @@ virtualmachine with ubuntu 14.04x64 on board.
 Here is quickstart for common cloud providers:
 
 .. toctree::
+    :maxdepth: 1
     remote_prepare_aws.rst
     remote_prepare_digitalocean.rst
 
@@ -26,6 +27,7 @@ Here is quickstart for common cloud providers:
 After you have a remote servers dig into one of this topics:
 
 .. toctree::
+    :maxdepth: 1
     remote_start.rst
     remote_publish.rst
     remote_update.rst
