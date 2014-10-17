@@ -27,5 +27,9 @@ After you have a remote servers dig into one of this topics:
 
 .. toctree::
     remote_start.rst
-    remote_sync.rst
+    remote_publish.rst
+    remote_update.rst
+    remote_remove.rst
+    remote_zero_down.rst
+    remote_ssl.rst
 

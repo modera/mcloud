@@ -16,8 +16,7 @@ Contents
   :maxdepth: 2
 
   start
-  multiserver
+  local
   remote
   manage
-  how
   api

@@ -1,8 +1,7 @@
 
-=======================================
-Syncronizing files with remote server
-=======================================
-
+======================
+Synchronizing files
+======================
 
 mfcloud is able now feature-complete, so ssh-access to s3 server will be revoked from everybody (except responsible persons Alex, Stas, Sergei V.)
 
