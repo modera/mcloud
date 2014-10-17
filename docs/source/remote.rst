@@ -14,6 +14,7 @@ Here is quickstart for common cloud providers:
 
 .. toctree::
     :maxdepth: 1
+
     remote_prepare_aws.rst
     remote_prepare_digitalocean.rst
 
@@ -28,6 +29,7 @@ After you have a remote servers dig into one of this topics:
 
 .. toctree::
     :maxdepth: 1
+
     remote_start.rst
     remote_publish.rst
     remote_update.rst
