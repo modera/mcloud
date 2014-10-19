@@ -3,7 +3,10 @@
 Create config for your MCloud application
 ==========================================
 
+Every applicatioin in mcloud runs inside one or several containers.
+To describe those containeres we will use mcloud.yml configuration file.
 
+Syntax is very easy and you may alredy have encountered this, if you ever tried docker's Fig.
 
 .. _dns:
 
