@@ -533,8 +533,6 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def start(self, app, service, init=False, **kwargs):
-        print app, service
-
         if not app:
             app = os.path.basename(os.getcwd())
 
