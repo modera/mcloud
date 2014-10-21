@@ -22,8 +22,8 @@ MCloud development.
 .. toctree::
     :maxdepth: 1
 
+    local_commands
     local_config
-    local_basic
     local_shell
     local_start_tune
     local_sync

@@ -1,14 +1,9 @@
 import json
-import logging
 import sys
 import uuid
 import argparse
-import readline
-import subprocess
-from bashutils.colors import color_text
-import signal
-from decorator import contextmanager
-from mcloud.attach import Terminal, AttachStdinProtocol
+from mcloud.application import Application
+from mcloud.attach import AttachStdinProtocol
 from mcloud.sync.client import FileServerError
 from mcloud.sync.storage import get_storage, storage_sync
 from mcloud.util import txtimeout
@@ -16,15 +11,12 @@ from mcloud.util import txtimeout
 import re
 import os
 from autobahn.twisted.util import sleep
-from confire import Configuration
 import pprintpp
 from prettytable import PrettyTable, ALL
 from texttable import Texttable
-from twisted.internet import reactor, defer, stdio
+from twisted.internet import defer, stdio
 from twisted.internet.defer import inlineCallbacks, CancelledError
-from twisted.internet.error import TimeoutError
 from twisted.internet.error import ConnectionRefusedError
-from twisted.python import log
 from mcloud import metadata
 
 
@@ -91,8 +83,8 @@ def cli(help_, arguments=None, by_ref=False, name=None):
             cmd.set_defaults(func=func.__name__)
 
         def _run(*args, **kwargs):
-            func1 = func(*args, **kwargs)
-            return func1
+            ret = func(*args, **kwargs)
+            return ret
 
         return _run
 
@@ -309,285 +301,56 @@ class ApiRpcClient(object):
 
         return '\n' + str(x) + '\n'
 
-    @cli('Run a command inside container', arguments=(
-        arg('app', help='Application name', default=None, nargs='?'),
-        arg('service', help='Service name'),
-        arg('command', help='Command to execute', default='/bin/bash', nargs='?'),
-        arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
-    ))
-    def run(self, app, service, command, no_tty=True, **kwargs):
-        name = '%s.%s' % (service, require(app))
-        return self._exec_remote_with_pty('run', name, command)
-
-    @cli('Push appliction volume application', arguments=(
-        arg('source', help='Push source'),
-        arg('destination', help='Push destination'),
-        arg('--no-remove', help='Disable remove files', default=False, action='store_true'),
-        arg('--force', help='Don\'t ask confirmation', default=False, action='store_true'),
-    ))
-    @inlineCallbacks
-    def sync(self, source, destination, no_remove, force, **kwargs):
-
-        src = get_storage(source)
-        dst = get_storage(destination)
-
-        try:
-            yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove)
-        except FileServerError as e:
-            print '------------------------'
-            print e.message
-
-    @cli('List running tasks')
-    @inlineCallbacks
-    def ps(self, **kwargs):
-        from mcloud.remote import Client
-
-        client = Client(host=self.host, settings=self.settings)
-        try:
-            yield client.connect()
-            tasks = yield client.task_list()
-
-            print tasks
-
-        except ConnectionRefusedError:
-            print 'Can\'t connect to mcloud server'
-
-        yield client.shutdown()
-        yield sleep(0.01)
-
-    @cli('Kills task', arguments=(
-        arg('task_id', help='Id of the task'),
-    ))
-    @inlineCallbacks
-    def kill(self, task_id=None, **kwargs):
-        from mcloud.remote import Client
-
-        client = Client(host=self.host, settings=self.settings)
-        try:
-            yield client.connect()
-            success = yield client.terminate_task(task_id)
-
-            if not success:
-                print 'Task not found by id'
-
-            else:
-                print 'Task successfully treminated.'
-
-        except ConnectionRefusedError:
-            print 'Can\'t connect to mcloud server'
-
-        client.shutdown()
-        yield sleep(0.01)
-
-    @cli('Creates a new application', arguments=(
-        arg('name', help='App name'),
-        arg('--user', default=None, help='Remote username'),
-        arg('path', help='Path', nargs='?', default='.')
-    ))
-    def init(self, name, path, **kwargs):
-
-        if self.host != '127.0.0.1':
-
-            if not path.endswith('/'):
-                path += '/'
-
-            if not 'user' in kwargs or kwargs['user'] is None:
-                raise ValueError('Please, specify remote user')
-
-            user = kwargs['user']
-
-            remote_path = '/%(prefix)s%(user)s/mcloud/%(id)s' % {
-                'prefix': 'home/' if not user == 'root' else '',
-                'user': user,
-                'id': uuid.uuid1()
-            }
-            command = 'rsync -v --exclude \'.git\' --rsync-path="mkdir -p %(path)s && rsync" -r %(local)s %(user)s@%(remote)s:%(path)s' % {
-                'local': path,
-                'user': user,
-                'path': remote_path,
-                'remote': self.host,
-            }
-            print command
-            os.system(command)
-
-            path = remote_path
-
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        return self._remote_exec('init', name, os.path.realpath(path))
 
 
-    @cli('List registered applications', arguments=(
-        arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
-    ))
-    @inlineCallbacks
-    def list(self, follow=False, **kwargs):
-        self.last_lines = 0
-
-        def _print(data):
-
-            ret = 'App not found.'
-
-            ret = self.print_app_list(data)
-
-            if self.last_lines > 0:
-                print '\033[1A' * self.last_lines
-
-            print ret
-
-            self.last_lines = ret.count('\n') + 2
-
-        if follow:
-            while follow:
-                ret = yield self._remote_exec('list')
-                _print(ret)
-                yield sleep(1)
-        else:
-            ret = yield self._remote_exec('list')
-            _print(ret)
-
-    @cli('Show application status', arguments=(
-        arg('app', help='Application name', default=None, nargs='?'),
-        arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
-    ))
-    @inlineCallbacks
-    def status(self, app=None, follow=False, **kwargs):
-
-        name = require(app)
-
-        self.last_lines = 0
-
-        def _print(data):
-
-            ret = 'App not found.'
-
-            for app in data:
-                if app['name'] == name:
-                    ret = self.print_app_details(app)
-                    break
-
-            if self.last_lines > 0:
-                print '\033[1A' * self.last_lines
-
-            print ret
-
-            self.last_lines = ret.count('\n') + 2
-
-        if follow:
-            while follow:
-                ret = yield self._remote_exec('list')
-                _print(ret)
-                yield sleep(1)
-        else:
-            ret = yield self._remote_exec('list')
-            _print(ret)
-
-    @cli('Show container logs', arguments=(
-        arg('name', help='Container name'),
-    ))
-    @inlineCallbacks
-    def logs(self, name, follow=False, **kwargs):
-        ret = yield self._remote_exec('logs', name)
-
-    @cli('Inspect container', arguments=(
-        arg('name', help='Container name'),
-        arg('service', help='Service name'),
-    ))
-    @inlineCallbacks
-    def inspect(self, name, service, **kwargs):
-        data = yield self._remote_exec('inspect', name, service)
-
-        if not isinstance(data, dict):
-            print data
-
-        else:
-
-            table = Texttable(max_width=120)
-            table.set_cols_dtype(['t', 'a'])
-            table.set_cols_width([20, 100])
-
-            rows = [["Name", "Value"]]
-            for name, val in data.items():
-                rows.append([name, pprintpp.pformat(val)])
-
-            table.add_rows(rows)
-            print table.draw() + "\\n"
-
-
-    @cli('List internal dns records')
-    @inlineCallbacks
-    def dns(self, **kwargs):
-        data = yield self._remote_exec('dns')
-
-        table = Texttable(max_width=120)
-        table.set_cols_dtype(['t', 'a'])
-        #table.set_cols_width([20,  100])
-
-        rows = [["Name", "Value"]]
-        for name, val in data.items():
-            rows.append([name, val])
-
-        table.add_rows(rows)
-        print table.draw() + "\\n"
-
-    @cli('Remove containers', arguments=(
-        arg('name', help='Container or app name'),
-    ))
-    @inlineCallbacks
-    def remove(self, name, **kwargs):
-        data = yield self._remote_exec('remove', name)
-        print 'result: %s' % pprintpp.pformat(data)
-
-    @cli('Destroy containers', arguments=(
-        arg('name', help='Container or app name'),
-    ))
-    @inlineCallbacks
-    def destroy(self, name, **kwargs):
-        data = yield self._remote_exec('destroy', name)
-        print 'result: %s' % pprintpp.pformat(data)
 
     def format_app_srv(self, app, service):
-        require(app)
         if service:
             name = '%s.%s' % (service, app)
         else:
             name = app
         return name
 
-    @cli('Start containers', arguments=(
-        arg('app', help='Application name', default=None, nargs='?'),
-        arg('service', help='Service name', default=None, nargs='?'),
-        arg('--init', help='Initialize applications if not exist yet', default=False, action='store_true'),
-    ))
-    @inlineCallbacks
-    def start(self, app, service, init=False, **kwargs):
-        if not app:
-            app = os.path.basename(os.getcwd())
-
-        if init:
-            app_instance = yield self.get_app(app)
-
-            if not app_instance:
-                yield self.init(app, os.getcwd())
-
-
-        data = yield self._remote_exec('start', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
-
-    @cli('Create containers', arguments=(
-        arg('app', help='Application name', default=None, nargs='?'),
-        arg('service', help='Service name', default=None, nargs='?'),
-    ))
-    @inlineCallbacks
-    def create(self, app, service, **kwargs):
-        data = yield self._remote_exec('create', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
-
     def format_domain(self, domain, ssl):
         if ssl:
             domain = 'https://%s' % domain
         return domain
+
+    def parse_app_ref(self, ref, args, require_service=False, app_only=False):
+
+        app = None
+        service = None
+
+        if 'app' in args:
+            app = args['app']
+
+        if ref:
+            ref = ref.strip()
+
+            if ref != '':
+                match = re.match('^(%s)?(\.(%s))$' % (Application.SERVICE_REGEXP, Application.APP_REGEXP), ref)
+                if match:
+                    if match.group(1):
+                        service = match.group(1)
+
+                    app = match.group(3)
+                else:
+                    if app_only:
+                        app = ref
+                    else:
+                        service = ref
+
+        if not app:
+            app = os.path.basename(os.getcwd())
+
+        if service and app_only:
+            raise ValueError('Command cannot be applied to single service')
+
+        if not service and require_service:
+            raise ValueError('Command requires to specify a service name')
+
+        return app, service
+
 
     @inlineCallbacks
     def get_app(self, app_name):
@@ -596,78 +359,12 @@ class ApiRpcClient(object):
             if app['name'] == app_name:
                 defer.returnValue(app)
 
-    @cli('Publish an application', arguments=(
-        arg('app', help='Application name'),
-        arg('domain', help='Domain to publish'),
-
-        arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
-    ))
-    @inlineCallbacks
-    def publish(self, domain, app, ssl=False, **kwargs):
-        require(app)
-
-        app = yield self.get_app(app)
-
-        if not app:
-            print 'App not found. Can\'t publish'
-        else:
-            yield self._remote_exec('publish', self.format_domain(domain, ssl), app['name'])
 
     def on_vars_result(self, data):
         x = PrettyTable(["variable", "value"], hrules=ALL)
         for line in data.items():
             x.add_row(line)
         print x
-
-    @cli('Set variable value', arguments=(
-        arg('name', help='Variable name'),
-        arg('val', help='Value'),
-    ))
-    @inlineCallbacks
-    def set(self, name, val, **kwargs):
-        data = yield self._remote_exec('set_var', name, val)
-        self.on_vars_result(data)
-
-    @cli('Unset variable value', arguments=(
-        arg('name', help='Variable name'),
-    ))
-    @inlineCallbacks
-    def unset(self, name, **kwargs):
-        data = yield self._remote_exec('rm_var', name)
-        self.on_vars_result(data)
-
-    @cli('List variables')
-    @inlineCallbacks
-    def vars(self, **kwargs):
-        data = yield self._remote_exec('list_vars')
-        self.on_vars_result(data)
-
-    @cli('Unpublish an application', arguments=(
-        arg('domain', help='Domain to unpublish'),
-        arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
-    ))
-    @inlineCallbacks
-    def unpublish(self, domain, ssl=False, **kwargs):
-        data = yield self._remote_exec('unpublish', self.format_domain(domain, ssl))
-        print 'result: %s' % pprintpp.pformat(data)
-
-    @cli('Start application', arguments=(
-        arg('app', help='Application name', default=None, nargs='?'),
-        arg('service', help='Service name', default=None, nargs='?'),
-    ))
-    @inlineCallbacks
-    def restart(self, app, service, **kwargs):
-        data = yield self._remote_exec('restart', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
-
-    @cli('Rebuild application', arguments=(
-        arg('app', help='Application name', default=None, nargs='?'),
-        arg('service', help='Service name', default=None, nargs='?'),
-    ))
-    @inlineCallbacks
-    def rebuild(self, app, service, **kwargs):
-        data = yield self._remote_exec('rebuild', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
 
 
     def get_volume_config(self, destination):
@@ -700,19 +397,410 @@ class ApiRpcClient(object):
 
         return d
 
-    @cli('Stop application', arguments=(
-        arg('app', help='Application name', default=None, nargs='?'),
-        arg('service', help='Service name', default=None, nargs='?'),
+    ############################################################
+    # Overview
+    ############################################################
+
+
+    @cli('List registered applications', arguments=(
+        arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
     ))
     @inlineCallbacks
-    def stop(self, app, service, **kwargs):
+    def list(self, follow=False, **kwargs):
+        self.last_lines = 0
+
+        def _print(data):
+            ret = self.print_app_list(data)
+
+            if self.last_lines > 0:
+                print '\033[1A' * self.last_lines
+
+            print ret
+
+            self.last_lines = ret.count('\n') + 2
+
+        if follow:
+            while follow:
+                ret = yield self._remote_exec('list')
+                _print(ret)
+                yield sleep(1)
+        else:
+            ret = yield self._remote_exec('list')
+            _print(ret)
+
+
+    ############################################################
+    # Application life-cycle
+    ############################################################
+
+
+    @cli('Creates a new application', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('path', help='Path', nargs='?', default='.')
+    ))
+    def init(self, ref, path, **kwargs):
+
+        app, service = self.parse_app_ref(ref, kwargs, app_only=True)
+
+        if self.host != '127.0.0.1':
+
+            if not path.endswith('/'):
+                path += '/'
+
+            if not 'user' in kwargs or kwargs['user'] is None:
+                raise ValueError('Please, specify remote user')
+
+            user = kwargs['user']
+
+            remote_path = '/%(prefix)s%(user)s/mcloud/%(id)s' % {
+                'prefix': 'home/' if not user == 'root' else '',
+                'user': user,
+                'id': uuid.uuid1()
+            }
+            command = 'rsync -v --exclude \'.git\' --rsync-path="mkdir -p %(path)s && rsync" -r %(local)s %(user)s@%(remote)s:%(path)s' % {
+                'local': path,
+                'user': user,
+                'path': remote_path,
+                'remote': self.host,
+                }
+            print command
+            os.system(command)
+
+            path = remote_path
+
+        def on_result(data):
+            print 'result: %s' % pprintpp.pformat(data)
+
+        return self._remote_exec('init', app, os.path.realpath(path))
+
+    ############################################################
+
+    @cli('Remove containers', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+    ))
+    @inlineCallbacks
+    def remove(self, ref, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs)
+        data = yield self._remote_exec('remove', self.format_app_srv(app, service))
+        print 'result: %s' % pprintpp.pformat(data)
+
+    ############################################################
+
+    @cli('Start containers', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('--init', help='Initialize applications if not exist yet', default=False, action='store_true'),
+    ))
+    @inlineCallbacks
+    def start(self, ref, init=False, **kwargs):
+
+        app, service = self.parse_app_ref(ref, kwargs)
+
+        if init:
+            app_instance = yield self.get_app(app)
+
+            if not app_instance:
+                yield self.init(app, os.getcwd())
+
+
+        data = yield self._remote_exec('start', self.format_app_srv(app, service))
+        print 'result: %s' % pprintpp.pformat(data)
+
+    ############################################################
+
+    @cli('Create containers', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+    ))
+    @inlineCallbacks
+    def create(self, ref, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs)
+        data = yield self._remote_exec('create', self.format_app_srv(app, service))
+        print 'result: %s' % pprintpp.pformat(data)
+
+    ############################################################
+
+
+    @cli('Destroy containers', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+    ))
+    @inlineCallbacks
+    def destroy(self, ref, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs)
+        data = yield self._remote_exec('destroy', self.format_app_srv(app, service))
+        print 'result: %s' % pprintpp.pformat(data)
+
+    ############################################################
+
+
+    @cli('Start application', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+    ))
+    @inlineCallbacks
+    def restart(self, ref, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs)
+        data = yield self._remote_exec('restart', self.format_app_srv(app, service))
+        print 'result: %s' % pprintpp.pformat(data)
+
+    ############################################################
+
+    @cli('Rebuild application', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+    ))
+    @inlineCallbacks
+    def rebuild(self, ref, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs)
+        data = yield self._remote_exec('rebuild', self.format_app_srv(app, service))
+        print 'result: %s' % pprintpp.pformat(data)
+
+    ############################################################
+
+    @cli('Stop application', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+    ))
+    @inlineCallbacks
+    def stop(self, ref, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs)
         data = yield self._remote_exec('stop', self.format_app_srv(app, service))
         print 'result: %s' % pprintpp.pformat(data)
 
+    ############################################################
 
-def require(app):
-    if not app:
-        raise ValueError(
-            'Application name is required. Pass it as an argument, or set it with "use" command in shell mode.')
-    return app
+    @cli('Show application status', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
+    ))
+    @inlineCallbacks
+    def status(self, ref, follow=False, **kwargs):
 
+        name, service = self.parse_app_ref(ref, kwargs, app_only=True)
+
+        self.last_lines = 0
+
+        def _print(data):
+
+            ret = 'App not found.'
+
+            for app in data:
+                if app['name'] == name:
+                    ret = self.print_app_details(app)
+                    break
+
+            if self.last_lines > 0:
+                print '\033[1A' * self.last_lines
+
+            print ret
+
+            self.last_lines = ret.count('\n') + 2
+
+        if follow:
+            while follow:
+                ret = yield self._remote_exec('list')
+                _print(ret)
+                yield sleep(1)
+        else:
+            ret = yield self._remote_exec('list')
+            _print(ret)
+
+    ############################################################
+
+    @cli('Publish an application', arguments=(
+        arg('ref', help='Application name', default=None, nargs='?'),
+        arg('domain', help='Domain to publish'),
+
+        arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
+    ))
+    @inlineCallbacks
+    def publish(self, domain, ref, ssl=False, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs, app_only=True)
+
+        app = yield self.get_app(app)
+
+        if not app:
+            print 'App not found. Can\'t publish'
+        else:
+            yield self._remote_exec('publish', self.format_domain(domain, ssl), app['name'])
+
+    @cli('Unpublish an application', arguments=(
+        arg('domain', help='Domain to unpublish'),
+        arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
+    ))
+    @inlineCallbacks
+    def unpublish(self, domain, ssl=False, **kwargs):
+        data = yield self._remote_exec('unpublish', self.format_domain(domain, ssl))
+        print 'result: %s' % pprintpp.pformat(data)
+
+    ############################################################
+    # Service utilities
+    ############################################################
+
+    @cli('Run a command inside container', arguments=(
+        arg('ref', help='Application name', default=None, nargs='?'),
+        arg('command', help='Command to execute', default='/bin/bash', nargs='?'),
+        arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
+    ))
+    def run(self, ref, command, no_tty=True, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs, require_service=True)
+        return self._exec_remote_with_pty('run', self.format_app_srv(app, service), command)
+
+    ############################################################
+
+    @cli('Show container logs', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+    ))
+    @inlineCallbacks
+    def logs(self, ref, follow=False, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs, require_service=True)
+        ret = yield self._remote_exec('logs', self.format_app_srv(app, service))
+
+    ############################################################
+
+    @cli('Inspect container', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+    ))
+    @inlineCallbacks
+    def inspect(self, ref, **kwargs):
+
+        app, service = self.parse_app_ref(ref, kwargs, require_service=True)
+
+        data = yield self._remote_exec('inspect', app, service)
+
+        if not isinstance(data, dict):
+            print data
+
+        else:
+
+            table = Texttable(max_width=120)
+            table.set_cols_dtype(['t', 'a'])
+            table.set_cols_width([20, 100])
+
+            rows = [["Name", "Value"]]
+            for name, val in data.items():
+                rows.append([name, pprintpp.pformat(val)])
+
+            table.add_rows(rows)
+            print table.draw() + "\\n"
+
+
+
+
+    ############################################################
+    # File synchronization
+    ############################################################
+
+    @cli('Push appliction volume application', arguments=(
+        arg('source', help='Push source'),
+        arg('destination', help='Push destination'),
+        arg('--no-remove', help='Disable remove files', default=False, action='store_true'),
+        arg('--force', help='Don\'t ask confirmation', default=False, action='store_true'),
+    ))
+    @inlineCallbacks
+    def sync(self, source, destination, no_remove, force, **kwargs):
+
+        src = get_storage(source)
+        dst = get_storage(destination)
+
+        try:
+            yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove)
+        except FileServerError as e:
+            print '------------------------'
+            print e.message
+
+
+    ############################################################
+    # Variables
+    ############################################################
+
+
+    @cli('Set variable value', arguments=(
+        arg('name', help='Variable name'),
+        arg('val', help='Value'),
+    ))
+    @inlineCallbacks
+    def set(self, name, val, **kwargs):
+        data = yield self._remote_exec('set_var', name, val)
+        self.on_vars_result(data)
+
+    @cli('Unset variable value', arguments=(
+        arg('name', help='Variable name'),
+    ))
+    @inlineCallbacks
+    def unset(self, name, **kwargs):
+        data = yield self._remote_exec('rm_var', name)
+        self.on_vars_result(data)
+
+    @cli('List variables')
+    @inlineCallbacks
+    def vars(self, **kwargs):
+        data = yield self._remote_exec('list_vars')
+        self.on_vars_result(data)
+
+
+    ############################################################
+    # Utils
+    ############################################################
+
+    @cli('List internal dns records')
+    @inlineCallbacks
+    def dns(self, **kwargs):
+        data = yield self._remote_exec('dns')
+
+        table = Texttable(max_width=120)
+        table.set_cols_dtype(['t', 'a'])
+        #table.set_cols_width([20,  100])
+
+        rows = [["Name", "Value"]]
+        for name, val in data.items():
+            rows.append([name, val])
+
+        table.add_rows(rows)
+        print table.draw() + "\\n"
+
+
+    ############################################################
+
+
+    @cli('List running tasks')
+    @inlineCallbacks
+    def ps(self, **kwargs):
+        from mcloud.remote import Client
+
+        client = Client(host=self.host, settings=self.settings)
+        try:
+            yield client.connect()
+            tasks = yield client.task_list()
+
+            print tasks
+
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mcloud server'
+
+        yield client.shutdown()
+        yield sleep(0.01)
+
+    ############################################################
+
+    @cli('Kills task', arguments=(
+        arg('task_id', help='Id of the task'),
+    ))
+    @inlineCallbacks
+    def kill(self, task_id=None, **kwargs):
+        from mcloud.remote import Client
+
+        client = Client(host=self.host, settings=self.settings)
+        try:
+            yield client.connect()
+            success = yield client.terminate_task(task_id)
+
+            if not success:
+                print 'Task not found by id'
+
+            else:
+                print 'Task successfully treminated.'
+
+        except ConnectionRefusedError:
+            print 'Can\'t connect to mcloud server'
+
+        client.shutdown()
+        yield sleep(0.01)
+
+
+    ############################################################
