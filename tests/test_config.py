@@ -51,16 +51,16 @@ def test_load_config(tmpdir):
 
     flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
-    flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=p.dirname, app_name='myapp').once()
+    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar')]), path=None, app_name='myapp').once()
     config.load()
 
 
 def test_load_config_from_config():
-    config = YamlConfig(source='foo: bar', app_name='myapp')
+    config = YamlConfig(source='{"foo": "bar"}', app_name='myapp')
 
     flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once()
     flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
-    flexmock(config).should_receive('process').with_args({'foo': 'bar'}, path=None, app_name='myapp').once()
+    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar')]), path=None, app_name='myapp').once()
     config.load()
 
 

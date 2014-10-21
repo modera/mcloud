@@ -50,40 +50,6 @@ def test_app_load():
 
         assert service.is_inspected()
 
-@pytest.inlineCallbacks
-def test_app_load_source():
-
-
-    def timeout():
-        print('Can not connect to redis!')
-        reactor.stop()
-
-    redis = yield txtimeout(txredisapi.Connection(dbid=2), 2, timeout)
-    yield redis.flushdb()
-
-
-    def configure(binder):
-        binder.bind(txredisapi.Connection, redis)
-        binder.bind(IDockerClient, DockerTwistedClient())
-
-    with inject_services(configure):
-        app = Application({'source': '''
-controller:
-  image: foo/bar
-'''}, name='myapp')
-
-        config = yield app.load()
-
-        assert isinstance(config, YamlConfig)
-        assert len(config.get_services()) == 1
-        assert config.app_name == 'myapp'
-
-        service = config.get_services()['controller.myapp']
-        assert isinstance(service, Service)
-        assert isinstance(service.image_builder, PrebuiltImageBuilder)
-
-        assert service.is_inspected()
-
 
 @pytest.inlineCallbacks
 def test_app_controller():

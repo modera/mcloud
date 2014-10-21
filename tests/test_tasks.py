@@ -1,5 +1,5 @@
 from flexmock import flexmock
-from mcloud.application import ApplicationController, Application
+from mcloud.application import ApplicationController, Application, AppDoesNotExist
 from mcloud.deployment import DeploymentController, Deployment
 from mcloud.tasks import TaskService
 from mcloud.util import inject_services, injector, txtimeout
@@ -30,32 +30,15 @@ def test_init_app_task():
 
     with inject_services(configure):
 
-        ac.should_receive('create').with_args('foo', {'path': 'some/path'}).and_return(defer.succeed(flexmock()))
+        ac.should_receive('get').and_raise(AppDoesNotExist)
+        ac.should_receive('create').with_args('foo', {'path': 'some/path', 'source': 'foo'}).and_return(defer.succeed(flexmock()))
         ac.should_receive('list').and_return(defer.succeed('result-of-list-operation'))
 
         ts = TaskService()
 
-        r = yield ts.task_init(123123, 'foo', 'some/path')
-        assert r == 'result-of-list-operation'
+        r = yield ts.task_init(123123, 'foo', 'some/path', config='foo')
+        assert r is True
 
-
-@pytest.inlineCallbacks
-def test_init_app_task_source():
-
-    ac = flexmock()
-
-    def configure(binder):
-        binder.bind(ApplicationController, ac)
-
-    with inject_services(configure):
-
-        ac.should_receive('create').with_args('foo', {'source': 'foo: bar'}).and_return(defer.succeed(flexmock())).once()
-        ac.should_receive('list').and_return(defer.succeed('result-of-list-operation'))
-
-        ts = TaskService()
-
-        r = yield ts.task_init_source(123123, 'foo', 'foo: bar')
-        assert r == 'result-of-list-operation'
 
 @pytest.inlineCallbacks
 @pytest.mark.xfail
