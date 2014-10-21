@@ -137,9 +137,13 @@ class AttachStdinProtocol(Protocol):
     def __init__(self):
         self.listener = None
         self.term = Terminal(sys.stdin, raw=True)
-        self.term.start()
+        self.started = False
 
     def write(self, data):
+        if not self.started:
+            self.term.start()
+            self.started = True
+
         self.transport.write(b64decode(data))
 
     def stop(self):
@@ -147,7 +151,6 @@ class AttachStdinProtocol(Protocol):
 
     def connectionLost(self, reason):
         Protocol.connectionLost(self, reason)
-
         self.term.stop()
 
     def dataReceived(self, data):

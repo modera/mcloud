@@ -111,11 +111,13 @@ class ClientProcessInterruptHandler(object):
 
     @inlineCallbacks
     def interrupt(self, last=None):
-        yield self.client.current_client.shutdown()
-        yield sleep(0.05)
+        if self.client.current_client:
+            yield self.client.current_client.shutdown()
+            yield sleep(0.05)
 
-        if self.client.current_task and self.client.current_task.wait:
-            self.client.current_task.wait.cancel()
+            if self.client.current_task and self.client.current_task.wait:
+                self.client.current_task.wait.cancel()
+                yield sleep(0.05)
 
 
 class ApiRpcClient(object):
