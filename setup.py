@@ -97,12 +97,8 @@ setup(
     zip_safe=False,  # don't use eggs
     entry_points={
         'console_scripts': [
-            'mcloud = mcloud.rpc_client:entry_point',
-            'mcloud-server = mcloud.rpc_server:entry_point',
-            'mcloud-balancer = mcloud.haproxy:entry_point',
-            'mcloud-dns = mcloud.dns_resolver:entry_point',
-            'mcloud-websocket = mcloud.websocket:entry_point',
-            'mcloud-uploader = mcloud.upload_zip:entry_point',
+            'mcloud = mcloud.main:entry_point',
+            'mcloud-server = mcloud.rpc_server:entry_point'
         ],
         # if you have a gui, use this
         # 'gui_scripts': [

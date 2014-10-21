@@ -5,6 +5,7 @@ from autobahn.twisted.util import sleep
 import inject
 from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.error import ConnectionDone
 import txredisapi
 from mcloud.txdocker import IDockerClient, NotFound
 from mcloud.application import ApplicationController
@@ -213,6 +214,9 @@ class TaskService(object):
 
         except NotFound:
             self.task_log(ticket_id, 'Container not found by name.')
+
+        except ConnectionDone:
+            pass
 
 
     @inlineCallbacks

@@ -7,6 +7,7 @@ import readline
 import subprocess
 from bashutils.colors import color_text
 import signal
+from decorator import contextmanager
 from mcloud.attach import Terminal, AttachStdinProtocol
 from mcloud.sync.client import FileServerError
 from mcloud.sync.storage import get_storage, storage_sync
@@ -20,7 +21,7 @@ import pprintpp
 from prettytable import PrettyTable, ALL
 from texttable import Texttable
 from twisted.internet import reactor, defer, stdio
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, CancelledError
 from twisted.internet.error import TimeoutError
 from twisted.internet.error import ConnectionRefusedError
 from twisted.python import log
@@ -101,6 +102,21 @@ def cli(help_, arguments=None, by_ref=False, name=None):
 def arg(*args, **kwargs):
     return args, kwargs
 
+class ClientProcessInterruptHandler(object):
+
+    def __init__(self, client):
+        super(ClientProcessInterruptHandler, self).__init__()
+
+        self.client = client
+
+    @inlineCallbacks
+    def interrupt(self, last=None):
+        yield self.client.current_client.shutdown()
+        yield sleep(0.05)
+
+        if self.client.current_task and self.client.current_task.wait:
+            self.client.current_task.wait.cancel()
+
 
 class ApiRpcClient(object):
     def __init__(self, host='127.0.0.1', port=7080, settings=None):
@@ -108,17 +124,24 @@ class ApiRpcClient(object):
         self.port = port
         self.settings = settings
 
+        self.current_client = None
+        self.current_task = None
+
     @inlineCallbacks
     def _remote_exec(self, task_name, *args, **kwargs):
         from mcloud.remote import Client, Task
 
         client = Client(host=self.host, settings=self.settings)
+        self.current_client = client
+
         try:
             def _connect_failed():
                 raise Exception('Can\'t connect to the server on host %s' % self.host)
             yield txtimeout(client.connect(), 3, _connect_failed)
             task = Task(task_name)
             task.on_progress = self.print_progress
+
+            self.current_task = task
 
             try:
                 yield client.call(task, *args, **kwargs)
@@ -128,6 +151,9 @@ class ApiRpcClient(object):
                 yield sleep(0.1)
 
                 defer.returnValue(res)
+
+            except CancelledError as e:
+                print('Interrupted by user.')
 
             except Exception as e:
                 print('Failed to execute the task: %s' % e.message)
@@ -185,6 +211,7 @@ class ApiRpcClient(object):
                 defer.returnValue(res)
 
             except Exception as e:
+                print repr(e)
                 print('Failed to execute the task: %s' % e.message)
 
         except ConnectionRefusedError:
@@ -687,88 +714,3 @@ def require(app):
             'Application name is required. Pass it as an argument, or set it with "use" command in shell mode.')
     return app
 
-
-def main(argv):
-    console_handler = logging.StreamHandler(stream=sys.stderr)
-    console_handler.setFormatter(logging.Formatter())
-    console_handler.setLevel(logging.DEBUG)
-
-    root_logger = logging.getLogger()
-    root_logger.addHandler(console_handler)
-    root_logger.setLevel(logging.INFO)
-    root_logger.debug('Logger initialized')
-
-    logging.getLogger("requests").propagate = False
-
-    class SslConfiguration(Configuration):
-        enabled = False
-        key = '/etc/mcloud/ssl.key'
-        cert = '/etc/mcloud/ssl.crt'
-
-    class MyAppConfiguration(Configuration):
-
-        CONF_PATHS = [
-            '/etc/mcloud/mcloud-client.yml',
-            # os.path.expanduser('~/.myapp.yaml'),
-            # os.path.abspath('conf/myapp.yaml')
-        ]
-
-        haproxy = False
-
-        ssl = SslConfiguration()
-
-    settings = MyAppConfiguration.load()
-
-    # client = ApiRpcClient(host=args.host, settings=settings)
-
-    if len(argv) < 2:
-        # Use the tab key for completion
-
-
-        reactor.run()
-    else:
-
-
-        args = arg_parser.parse_args()
-
-        if args.verbose:
-            log.startLogging(sys.stdout)
-
-        args.argv0 = argv[0]
-
-        if isinstance(args.func, str):
-
-            try:
-                log.msg('Starting task: %s' % args.func)
-
-                def ok(result):
-                    reactor.callFromThread(reactor.stop)
-
-                def err(failure):
-                    print failure
-                    print color_text('Error:', color='white', bcolor='red')
-                    print failure.value
-                    print
-                    reactor.callFromThread(reactor.stop)
-
-                client = ApiRpcClient(host=args.host or '127.0.0.1', settings=settings)
-                d = getattr(client, args.func)(**vars(args))
-
-                d.addCallback(ok)
-                d.addErrback(err)
-                reactor.run()
-            except Exception as e:
-                print(e)
-
-
-        else:
-            args.func(**vars(args))
-
-
-def entry_point():
-    """Zero-argument entry point for use with setuptools/distribute."""
-    raise SystemExit(main(sys.argv))
-
-
-if __name__ == '__main__':
-    entry_point()

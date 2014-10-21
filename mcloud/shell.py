@@ -1,31 +1,14 @@
-import json
-import logging
 import sys
-import uuid
-import argparse
 import readline
-import subprocess
-from bashutils.colors import color_text
-import signal
-from mcloud.attach import Terminal, AttachStdinProtocol
-from mcloud.sync.client import FileServerError
-from mcloud.sync.storage import get_storage, storage_sync
-from mcloud.util import txtimeout
-
-import re
-import os
 from autobahn.twisted.util import sleep
-from confire import Configuration
-import pprintpp
-from prettytable import PrettyTable, ALL
-from texttable import Texttable
-from twisted.internet import reactor, defer, stdio
-from twisted.internet.defer import inlineCallbacks
-from twisted.internet.error import TimeoutError
-from twisted.internet.error import ConnectionRefusedError
-from twisted.python import log
-from mcloud import metadata
 
+from bashutils.colors import color_text
+import inject
+from mcloud.interrupt import InterruptCancel
+from mcloud.rpc_client import subparsers, arg_parser, ApiRpcClient, ClientProcessInterruptHandler
+import os
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 
 
 def green(text):
@@ -37,8 +20,21 @@ def yellow(text):
 def info(text):
     print()
 
+
+class ShellCancelInterruptHandler(object):
+
+    def interrupt(self, last=None):
+        if last is None:
+            print('Hit Ctrl+D for exit.')
+        raise InterruptCancel()
+
+
 @inlineCallbacks
-def mcloud_shell(subparsers, arg_parser):
+def mcloud_shell():
+
+    settings = inject.instance('settings')
+    interrupt_manager = inject.instance('interrupt_manager')
+
     readline.parse_and_bind('tab: complete')
 
     state = {
@@ -61,73 +57,76 @@ def mcloud_shell(subparsers, arg_parser):
 
     cmd = subparsers.add_parser('use')
     cmd.add_argument('name', help='Application name', default=None, nargs='?')
+    cmd.set_defaults(func=use)
 
+    from mcloud.logo import logo
+    print(logo)
 
-        from mcloud.logo import logo
-        print(logo)
+    histfile = os.path.join(os.path.expanduser("~"), ".mcloud_history")
+    try:
+        readline.read_history_file(histfile)
+    except IOError:
+        pass
 
-        histfile = os.path.join(os.path.expanduser("~"), ".mcloud_history")
+    interrupt_manager.append(ShellCancelInterruptHandler())  # prevent stop reactor on Ctrl + C
+
+    line = ''
+    while line != 'exit':
+
+        print('')
+        prompt = 'mcloud: %s@%s> ' % (state['app'] or '~', state['host'])
+
         try:
-            readline.read_history_file(histfile)
-        except IOError:
-            pass
+            line = None
 
-        line = ''
-        while line != 'exit':
-            print('')
-            prompt = 'mcloud: %s@%s> ' % (state['app'] or '~', state['host'])
+            yield sleep(0.05)
 
-            try:
-                line = None
-                line = raw_input(color_text(prompt, color='white', bcolor='blue') + ' ')
+            line = raw_input(color_text(prompt, color='white', bcolor='blue') + ' ')
 
-                if line == '':
-                    continue
-
-                if line == 'exit':
-                    break
-
-                readline.write_history_file(histfile)
-
-                params = line.split(' ')
-                args = arg_parser.parse_args(params)
-
-                args.argv0 = sys.argv[0]
-
-                if args.host:
-                    host = args.host
-                elif state['host'] == 'me' or not state['host']:
-                    host = '127.0.0.1'
-                else:
-                    host = state['host']
-                client = ApiRpcClient(host=host, settings=settings)
-
-                for key, val in state.items():
-                    if not hasattr(args, key) or not getattr(args, key):
-                        setattr(args, key, val)
-
-                if isinstance(args.func, str):
-                    yield getattr(client, args.func)(**vars(args))
-                else:
-                    yield args.func(**vars(args))
-
-            except SystemExit:
-                pass
-            except KeyboardInterrupt:
+            if line == '':
                 continue
-            except EOFError:
-                print('')
+
+            if line == 'exit':
                 break
 
-            except Exception as e:
-                print color_text('Error:', color='white', bcolor='red')
-                print(e)
+            readline.write_history_file(histfile)
 
-        reactor.callFromThread(reactor.stop)
+            params = line.split(' ')
+            args = arg_parser.parse_args(params)
+
+            args.argv0 = sys.argv[0]
+
+            if args.host:
+                host = args.host
+            elif state['host'] == 'me' or not state['host']:
+                host = '127.0.0.1'
+            else:
+                host = state['host']
+            client = ApiRpcClient(host=host, settings=settings)
+            interrupt_manager.append(ClientProcessInterruptHandler(client))
+
+            for key, val in state.items():
+                if not hasattr(args, key) or not getattr(args, key):
+                    setattr(args, key, val)
+
+            if isinstance(args.func, str):
+                yield getattr(client, args.func)(**vars(args))
+            else:
+                yield args.func(**vars(args))
 
 
-    # def heartbeat():
-    #     print "heartbeat"
-    #     reactor.callLater(1.0, heartbeat)
-    #
-    # reactor.callLater(1.0, heartbeat)
+        except SystemExit:
+            pass
+        except EOFError:
+            print('')
+            break
+
+        except KeyboardInterrupt:
+            print('')
+            pass
+
+        except Exception as e:
+            print color_text('Error:', color='white', bcolor='red')
+            print(e)
+
+    reactor.callFromThread(reactor.stop)
