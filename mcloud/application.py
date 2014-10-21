@@ -29,10 +29,10 @@ class Application(object):
     def load(self, need_details=False):
 
         try:
-            if 'path' in self.config:
-                yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mcloud.yml'), app_name=self.name)
-            elif 'source' in self.config:
-                yaml_config = YamlConfig(source=self.config['source'], app_name=self.name)
+            if 'source' in self.config:
+                yaml_config = YamlConfig(source=self.config['source'], app_name=self.name, path=self.config['path'])
+            elif 'path' in self.config:
+                yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mcloud.yml'), app_name=self.name, path=self.config['path'])
             else:
                 raise ConfigParseError('Can not load config.')
 
@@ -117,6 +117,20 @@ class ApplicationController(object):
         #  set data to redis. we don't care too much about result
         ret = yield self.redis.hset('mcloud-apps', name, json.dumps(config))
         defer.returnValue(Application(config, name=name))
+
+    @defer.inlineCallbacks
+    def update_source(self, name, source, skip_validation=False):
+
+        app = yield self.get(name)
+        app.config.update({'source': source})
+
+        # validate first by crating application instance
+        if not skip_validation:
+            ret = yield Application(app.config).load()
+
+        #  set data to redis. we don't care too much about result
+        ret = yield self.redis.hset('mcloud-apps', name, json.dumps(app.config))
+        defer.returnValue(Application(app.config, name=name))
 
     @defer.inlineCallbacks
     def update(self, name, config):

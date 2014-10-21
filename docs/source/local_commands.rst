@@ -35,7 +35,7 @@ Show status of application::
 
 command have special flag "-f" (follow) that continuously print status report.
 
-Initialize/remove
+Initialize/update/remove
 =======================
 
 Init
@@ -43,13 +43,28 @@ Init
 
 Initialize new application::
 
-    $ mcloud init [appname] [path]
+    $ mcloud init [appname] [path] [--config]
 
 accepts path as extra argument (by default current directory)
 app name is directory name by default.
 
+You can specify configuration file explicitly with --config.
+
 .. note::
     There is shorthand "start --init", which initialize and start newly created application
+
+In case of remote server command will also upload files there.
+You may interrupt this process and coplete it later manually.
+
+Update application configuration
+-----------------------------------
+
+Same as *init*::
+
+    $ mcloud update [appname] [path] [--config]
+
+accepts path as extra argument (by default current directory)
+app name is directory name by default.
 
 Remove
 --------------

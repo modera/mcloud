@@ -1,4 +1,5 @@
 import inspect
+import os
 
 import re
 from autobahn.twisted.util import sleep
@@ -8,7 +9,7 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.error import ConnectionDone
 import txredisapi
 from mcloud.txdocker import IDockerClient, NotFound
-from mcloud.application import ApplicationController
+from mcloud.application import ApplicationController, AppDoesNotExist
 from mcloud.deployment import DeploymentController
 from mcloud.events import EventBus
 from mcloud.remote import ApiRpcServer
@@ -37,7 +38,7 @@ class TaskService(object):
         pass
 
     @inlineCallbacks
-    def task_init(self, ticket_id, name, path):
+    def task_init(self, ticket_id, name, path=None, config=None):
         """
         Initialize new application
 
@@ -47,23 +48,44 @@ class TaskService(object):
         :return:
         """
 
-        yield self.app_controller.create(name, {'path': path})
+        print name
+        print path
+        print config
 
-        ret = yield self.app_controller.list()
-        defer.returnValue(ret)
+        app = None
+        try:
+            app = yield self.app_controller.get(name)
+        except AppDoesNotExist:
+            pass
+
+        if app:
+            raise ValueError('Application already exist')
+
+        if not config:
+            raise ValueError('config must be provided to create an application')
+
+        if not path:
+            home_dir = os.path.expanduser('~/.mcloud')
+            path = os.path.join(home_dir, name)
+            if not os.path.exists(path):
+                os.makedirs(path, 0700)
+
+        yield self.app_controller.create(name, {'path': path, 'source': config})
+
+        defer.returnValue(True)
 
     @inlineCallbacks
-    def task_init_source(self, ticket_id, name, source):
+    def task_update(self, ticket_id, name, config=None):
         """
-        Init new application using source of mcloud.yml
+        Initialize new application
 
         :param ticket_id:
-        :param name:
-        :param source:
+        :param name: Application name
+        :param path: Path to the application
         :return:
         """
 
-        yield self.app_controller.create(name, {'source': source})
+        yield self.app_controller.update_source(name, config)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)

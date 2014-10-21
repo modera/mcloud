@@ -83,6 +83,10 @@ def mcloud_shell():
 
             line = raw_input(color_text(prompt, color='white', bcolor='blue') + ' ')
 
+            if line.startswith('!'):
+                os.system(line[1:])
+                continue
+
             if line == '':
                 continue
 

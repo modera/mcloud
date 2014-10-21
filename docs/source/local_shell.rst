@@ -38,7 +38,21 @@ Use command allow to omit application name, when executing some commands::
     mcloud> start
     mcloud> stop
 
+System commands
+-------------------------
 
+Anything that starts with "!" is executed as system command::
+
+    mcloud> !ls
+
+    ... list files ...
+
+If you need to execute set of commands, you can run bash::
+
+    mcloud> !bash
+
+To exit, just hit Ctrl+D, and you ar back in mcloud.
+If you messed up, see `http://www.imdb.com/title/tt1375666/` for reference.
 
 Switching to remote server
 ----------------------------

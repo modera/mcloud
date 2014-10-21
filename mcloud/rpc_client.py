@@ -4,6 +4,7 @@ import uuid
 import argparse
 from mcloud.application import Application
 from mcloud.attach import AttachStdinProtocol
+from mcloud.config import YamlConfig
 from mcloud.sync.client import FileServerError
 from mcloud.sync.storage import get_storage, storage_sync
 from mcloud.util import txtimeout
@@ -436,42 +437,49 @@ class ApiRpcClient(object):
 
     @cli('Creates a new application', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
-        arg('path', help='Path', nargs='?', default='.')
+        arg('path', help='Path', nargs='?', default='.'),
+        arg('--config', help='Config to use', nargs='?', default=None),
     ))
-    def init(self, ref, path, **kwargs):
+    @inlineCallbacks
+    def init(self, ref, path, config=None, **kwargs):
 
         app, service = self.parse_app_ref(ref, kwargs, app_only=True)
 
+        if config:
+            config_file = os.path.expanduser(config)
+        else:
+            config_file = os.path.join(path, 'mcloud.yml')
+
+        config = YamlConfig(file=config_file, app_name=app)
+        config.load(process=False)
+
         if self.host != '127.0.0.1':
+            success = yield self._remote_exec('init', app, config=config.export())
+            if success:
+                yield self.sync(path, '%s@%s' % (app, self.host), no_remove=False, force=False)
+        else:
+            yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export())
 
-            if not path.endswith('/'):
-                path += '/'
+    @cli('Update application configuration', arguments=(
+        arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('path', help='Path', nargs='?', default='.'),
+        arg('--config', help='Config to use', nargs='?', default=None),
+    ))
+    @inlineCallbacks
+    def update(self, ref, path, config=None, **kwargs):
 
-            if not 'user' in kwargs or kwargs['user'] is None:
-                raise ValueError('Please, specify remote user')
+        app, service = self.parse_app_ref(ref, kwargs, app_only=True)
 
-            user = kwargs['user']
+        if config:
+            config_file = os.path.expanduser(config)
+        else:
+            config_file = os.path.join(path, 'mcloud.yml')
 
-            remote_path = '/%(prefix)s%(user)s/mcloud/%(id)s' % {
-                'prefix': 'home/' if not user == 'root' else '',
-                'user': user,
-                'id': uuid.uuid1()
-            }
-            command = 'rsync -v --exclude \'.git\' --rsync-path="mkdir -p %(path)s && rsync" -r %(local)s %(user)s@%(remote)s:%(path)s' % {
-                'local': path,
-                'user': user,
-                'path': remote_path,
-                'remote': self.host,
-                }
-            print command
-            os.system(command)
+        config = YamlConfig(file=config_file, app_name=app)
+        config.load(process=False)
 
-            path = remote_path
+        yield self._remote_exec('update', app, config=config.export())
 
-        def on_result(data):
-            print 'result: %s' % pprintpp.pformat(data)
-
-        return self._remote_exec('init', app, os.path.realpath(path))
 
     ############################################################
 
@@ -480,7 +488,7 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def remove(self, ref, **kwargs):
-        app, service = self.parse_app_ref(ref, kwargs)
+        app, service = self.parse_app_ref(ref, kwargs, app_only=True)
         data = yield self._remote_exec('remove', self.format_app_srv(app, service))
         print 'result: %s' % pprintpp.pformat(data)
 

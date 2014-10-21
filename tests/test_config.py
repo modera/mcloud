@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from flexmock import flexmock
 from mcloud.config import YamlConfig, Service, UnknownServiceError, ConfigParseError
 from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
@@ -114,6 +115,11 @@ def test_load_config_not_valid(tmpdir):
 ])
 def test_validate_valid(config):
     c = YamlConfig()
+    assert c.validate(config)
+
+def test_validate_ordered_dict():
+    c = YamlConfig()
+    config = OrderedDict([('web', OrderedDict([('image', 'orchardup/nginx'), ('volumes', OrderedDict([('public', '/var/www')]))]))])
     assert c.validate(config)
 
 

@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from copy import deepcopy
+import json
 from logging import info
+import collections
 from abc import abstractmethod
 from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
 from mcloud.util import Interface
@@ -67,7 +69,7 @@ class OrderedDictYAMLLoader(yaml.Loader):
 
 class YamlConfig(IConfig):
 
-    def __init__(self, file=None, source=None, app_name=None):
+    def __init__(self, file=None, source=None, app_name=None, path=None):
 
         if not file is None:
             if not os.path.exists(str(file)):
@@ -81,7 +83,10 @@ class YamlConfig(IConfig):
             self._file = None
 
         self.app_name = app_name
+        self.path = path
         self.services = OrderedDict()
+
+        self.config = None
 
     def get_services(self):
         """
@@ -98,27 +103,34 @@ class YamlConfig(IConfig):
 
         return self.services[name]
 
-    def load(self):
+    def load(self, process=True):
 
         try:
             if not self._file is None:
                 with open(self._file) as f:
                     cfg = yaml.load(f, OrderedDictYAMLLoader)
-
-                path = dirname(self._file)
             else:
-                cfg = yaml.load(self._source, OrderedDictYAMLLoader)
-                path = None
+                cfg = json.JSONDecoder(object_pairs_hook=collections.OrderedDict).decode(self._source)
+
+            path = self.path
 
             self.prepare(config=cfg)
 
             self.validate(config=cfg)
 
-            self.process(config=cfg, path=path, app_name=self.app_name)
+            if process:
+                self.process(config=cfg, path=path, app_name=self.app_name)
 
+            self.config = cfg
 
         except ValueError as e:
-            raise ConfigParseError('Failed to parse %s: %s' % (self._file, e.message))
+            if self._file:
+                raise ConfigParseError('Failed to parse %s: %s' % (self._file, e.message))
+            else:
+                raise ConfigParseError('Failed to parse source: %s' % e.message)
+
+    def export(self):
+        return json.dumps(self.config)
 
     def prepare(self, config):
         """
@@ -139,20 +151,20 @@ class YamlConfig(IConfig):
     def validate(self, config):
         try:
             Schema({
-                Required(str): {
+                Required(basestring): {
                     'wait': int,
-                    'image': str,
-                    'build': str,
+                    'image': basestring,
+                    'build': basestring,
 
                     'volumes': {
-                        str: str
+                        basestring: basestring
                     },
 
                     'env': {
-                        str: str
+                        basestring: basestring
                     },
 
-                    'cmd': str
+                    'cmd': basestring
 
                 }
             })(config)
