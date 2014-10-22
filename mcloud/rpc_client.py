@@ -95,6 +95,9 @@ def cli(help_, arguments=None, by_ref=False, name=None):
 def arg(*args, **kwargs):
     return args, kwargs
 
+class CommandFailedException(Exception):
+    pass
+
 class ClientProcessInterruptHandler(object):
 
     def __init__(self, client):
@@ -129,32 +132,20 @@ class ApiRpcClient(object):
         client = Client(host=self.host, settings=self.settings)
         self.current_client = client
 
-        try:
-            def _connect_failed():
-                raise Exception('Can\'t connect to the server on host %s' % self.host)
-            yield txtimeout(client.connect(), 3, _connect_failed)
-            task = Task(task_name)
-            task.on_progress = self.print_progress
+        yield txtimeout(client.connect(), 1, 'Can\'t connect to the server on host %s' % self.host)
 
-            self.current_task = task
+        task = Task(task_name)
+        task.on_progress = self.print_progress
 
-            try:
-                yield client.call(task, *args, **kwargs)
+        self.current_task = task
 
-                res = yield task.wait_result()
-                yield client.shutdown()
-                yield sleep(0.1)
+        yield client.call(task, *args, **kwargs)
 
-                defer.returnValue(res)
+        res = yield task.wait_result()
+        yield client.shutdown()
+        yield sleep(0.1)
 
-            except CancelledError as e:
-                print('Interrupted by user.')
-
-            except Exception as e:
-                print('Failed to execute the task: %s' % e.message)
-
-        except ConnectionRefusedError:
-            print 'Can\'t connect to mcloud server'
+        defer.returnValue(res)
 
 
     def print_progress(self, message):
@@ -187,9 +178,7 @@ class ApiRpcClient(object):
 
         client = Client(host=self.host, settings=self.settings)
         try:
-            def _connect_failed():
-                raise Exception('Can\'t connect to the server on host %s' % self.host)
-            yield txtimeout(client.connect(), 3, _connect_failed)
+            yield txtimeout(client.connect(), 1, 'Can\'t connect to the server on host %s' % self.host)
 
             task = Task(task_name)
             task.on_progress = self.print_progress
@@ -317,7 +306,7 @@ class ApiRpcClient(object):
             domain = 'https://%s' % domain
         return domain
 
-    def parse_app_ref(self, ref, args, require_service=False, app_only=False):
+    def parse_app_ref(self, ref, args, require_service=False, app_only=False, require_app=True):
 
         app = None
         service = None
@@ -341,8 +330,8 @@ class ApiRpcClient(object):
                     else:
                         service = ref
 
-        if not app:
-            app = os.path.basename(os.getcwd())
+        if not app and require_app:
+            raise ValueError('You should provide application name.')
 
         if service and app_only:
             raise ValueError('Command cannot be applied to single service')

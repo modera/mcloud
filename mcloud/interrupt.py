@@ -16,7 +16,7 @@ class InterruptManager(object):
         self.interrupt_stack.append(handler)
 
     @inlineCallbacks
-    def handle_interrupt(self, *args):
+    def handle_interrupt(self, manual=False, *args):
         try:
             last = None
             for itr in reversed(self.interrupt_stack):
@@ -28,6 +28,9 @@ class InterruptManager(object):
 
         except InterruptCancel:
             pass
+
+    def manual_interrupt(self):
+        return self.handle_interrupt(manual=True)
 
     def register_interupt_handler(self):
         signal.signal(signal.SIGINT, self.handle_interrupt)

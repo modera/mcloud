@@ -8,6 +8,7 @@ from twisted.internet.defer import inlineCallbacks, AlreadyCalledError, Cancelle
 
 from autobahn.twisted.websocket import WebSocketServerFactory
 from autobahn.twisted.websocket import WebSocketClientFactory
+from twisted.python.failure import Failure
 import txredisapi
 
 from twisted.python import log
@@ -45,7 +46,10 @@ class ApiRpcServer(object):
             if isinstance(error, CancelledError):
                 s = 'Terminated.'
             else:
-                s = str(error)
+                if isinstance(error, Failure):
+                    s = error.value.message
+                else:
+                    s = str(error)
 
             self.ticket_map[ticket_id].send_event('task.failure.%s' % ticket_id, s)
 
@@ -343,7 +347,8 @@ class Client(object):
         return self.protocol.sendMessage(data)
 
     def shutdown(self):
-        self.protocol.sendClose()
+        if self.protocol:
+            self.protocol.sendClose()
 
     def on_message(self, data, is_binary=False):
 

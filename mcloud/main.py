@@ -82,30 +82,34 @@ def main(argv):
 
         if isinstance(args.func, str):
 
-            try:
-                log.msg('Starting task: %s' % args.func)
+            log.msg('Starting task: %s' % args.func)
 
-                def ok(result):
-                    reactor.callFromThread(reactor.stop)
+            def ok(result):
+                reactor.callFromThread(reactor.stop)
 
-                def err(failure):
-                    print failure
-                    print color_text('Error:', color='white', bcolor='red')
-                    print failure.value
-                    print
-                    reactor.callFromThread(reactor.stop)
+            def err(failure):
+                print failure
+                print color_text('Error:', color='white', bcolor='red')
+                print failure.value
+                print
+                reactor.callFromThread(reactor.stop)
 
+            @inlineCallbacks
+            def call_command():
                 client = ApiRpcClient(host=args.host or '127.0.0.1', settings=settings)
-                d = getattr(client, args.func)(**vars(args))
-
                 interrupt_manager.append(ClientProcessInterruptHandler(client))
 
-                d.addCallback(ok)
-                d.addErrback(err)
+                try:
+                    yield getattr(client, args.func)(**vars(args))
 
-                reactor.run()
-            except Exception as e:
-                print(e)
+                except Exception as e:
+                    print '\n  %s\n' % color_text(e.message, color='yellow')
+
+                interrupt_manager.manual_interrupt()
+
+            call_command()
+            reactor.run()
+
 
 
         else:

@@ -5,6 +5,7 @@ import inject
 import os
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
+from twisted.python.failure import Failure
 
 
 class Interface(object):
@@ -27,9 +28,15 @@ def injector(bind_config):
     yield
     inject.clear()
 
+class TxTimeoutEception(Exception):
+    pass
 
 def txtimeout(deferred, timeout, fail):
-    delayedCall = reactor.callLater(timeout, fail)
+
+    def _raise():
+        deferred.errback(Failure(TxTimeoutEception(fail)))
+
+    delayedCall = reactor.callLater(timeout, _raise)
 
     def gotResult(result):
         if delayedCall.active():

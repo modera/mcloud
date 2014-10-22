@@ -121,6 +121,7 @@ def mcloud_shell():
 
         except SystemExit:
             pass
+
         except EOFError:
             print('')
             break
@@ -130,7 +131,6 @@ def mcloud_shell():
             pass
 
         except Exception as e:
-            print color_text('Error:', color='white', bcolor='red')
-            print(e)
+            print '\n  %s\n' % color_text(e.message, color='yellow')
 
     reactor.callFromThread(reactor.stop)
