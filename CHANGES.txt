@@ -1,3 +1,13 @@
+0.7.4 2014-10-22T12:01:29.258519
+    *Merge branch 'master' into 0.7
+	    *Fix life-cycle commands syntax a bit
+	    *small docs fixes
+	    *small docs fixes
+	    *small docs fixes
+
+0.7.3 2014-10-22T12:00:33.960106
+    *Fix 2.6 compatibility
+
 0.7.2 2014-10-22T11:56:00.603694
     *New version, small docs fix
 

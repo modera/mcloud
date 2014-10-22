@@ -1,8 +1,14 @@
-mcloud (0.7.2-1) UNRELEASED; urgency=medium
+mcloud (0.7.4-2) trusty; urgency=medium
 
   * New version, small docs fix
+  * Fix 2.6 compatibility
+  * Merge branch master into 0.7
+  * Fix life-cycle commands syntax a bit
+  * small docs fixes
+  * small docs fixes
+  * small docs fixes
 
- -- Alex <alex@alex-Precision-T1650>  Wed, 22 Oct 2014 11:56:00 +0300
+ -- Alex Rudakov <ribozz@gmail.com>  Wed, 22 Oct 2014 12:01:29 +0300
 
 mcloud (0.7.1) trusty; urgency=medium
 
