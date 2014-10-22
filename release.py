@@ -77,9 +77,8 @@ if __name__ == "__main__":
         if ref:
             for commit in repo.iter_commits('%s..%s' % (ref.tag.tag, new_tag_name)):
                 message = commit.message.strip()
-                os.system('dch -v %s %s' % (new_tag_name, message))
+                os.system('dch -v %s-1 %s' % (new_tag_name, message))
                 logs.append(message)
-            os.system('dch -r')
 
             data = '%s %s\n    *%s\n\n' % (new_tag_name, datetime.datetime.now().isoformat(), '\n\t    *'.join(logs))
 

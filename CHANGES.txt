@@ -1,3 +1,9 @@
+0.7.5 2014-10-22T12:30:03.984158
+    *Fix debian package to older version numbers
+
+0.7.5 2014-10-22T12:27:29.973972
+    *Fix debian package to older version numbers
+
 0.7.4 2014-10-22T12:01:29.258519
     *Merge branch 'master' into 0.7
 	    *Fix life-cycle commands syntax a bit

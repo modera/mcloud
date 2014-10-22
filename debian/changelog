@@ -1,3 +1,10 @@
+mcloud (0.7.5-1) trusty; urgency=medium
+
+  * Fix debian package to older version numbers
+  * Fix debian package to older version numbers
+
+ -- Alex Rudakov <ribozz@gmail.com>  Wed, 22 Oct 2014 12:30:03 +0300
+
 mcloud (0.7.4-2) trusty; urgency=medium
 
   * New version, small docs fix
