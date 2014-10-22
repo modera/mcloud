@@ -1,7 +1,5 @@
 import signal
-from decorator import contextmanager
-import inject
-from twisted.internet import reactor, defer
+
 from twisted.internet.defer import inlineCallbacks
 
 

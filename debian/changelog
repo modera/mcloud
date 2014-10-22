@@ -1,3 +1,9 @@
+mcloud (0.7.2-1) UNRELEASED; urgency=medium
+
+  * New version, small docs fix
+
+ -- Alex <alex@alex-Precision-T1650>  Wed, 22 Oct 2014 11:56:00 +0300
+
 mcloud (0.7.1) trusty; urgency=medium
 
   * Lot of stability improvements and polishing

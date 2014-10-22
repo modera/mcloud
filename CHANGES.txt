@@ -1,3 +1,6 @@
+0.7.2 2014-10-22T11:56:00.603694
+    *New version, small docs fix
+
 0.6.5 2014-10-15T15:02:59.729153
     *Improve ssl support
 
