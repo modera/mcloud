@@ -29,7 +29,7 @@ Mcloud installation
 ==========================
 
 .. note::
-    Currently we provide packages for Ubuntu trusty 14.04 only.
+    Currently we provide packages for all current version of Ubuntu trusty(14.04), precise(12.04) and lucid(10.04).
     If you need to install mcloud on other OS, install it from source: :ref:`from_source`
 
 

@@ -318,17 +318,16 @@ class ApiRpcClient(object):
             ref = ref.strip()
 
             if ref != '':
-                match = re.match('^(%s)?(\.(%s))$' % (Application.SERVICE_REGEXP, Application.APP_REGEXP), ref)
+                match = re.match('^((%s)\.)?(%s)?$' % (Application.SERVICE_REGEXP, Application.APP_REGEXP), ref)
                 if match:
-                    if match.group(1):
-                        service = match.group(1)
+                    print match.groups()
+                    if match.group(2):
+                        service = match.group(2)
 
-                    app = match.group(3)
+                    if match.group(3):
+                        app = match.group(3)
                 else:
-                    if app_only:
-                        app = ref
-                    else:
-                        service = ref
+                    raise ValueError('Can not parse application/service name')
 
         if not app and require_app:
             raise ValueError('You should provide application name.')
