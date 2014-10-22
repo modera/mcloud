@@ -7,7 +7,7 @@ Deploying hello website
     You can get example code in "hello" folder from our samples repository https://github.com/modera/mcloud-samples/
 
 
-assume we have a hello web-page "index.html", that we want to deploy
+assume we have a hello web-page "public/index.html", that we want to deploy
 as mcloud application::
 
     <!DOCTYPE html>
@@ -21,7 +21,7 @@ as mcloud application::
     </html>
 
 
-To deploy this we need the following mcloud.yml configuration::
+To deploy this we need to create file mcloud.yml with the following configuration::
 
     web:
         image: orchardup/nginx
