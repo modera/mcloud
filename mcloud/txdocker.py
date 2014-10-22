@@ -140,7 +140,11 @@ class DockerTwistedClient(object):
             logger.debug('[%s] Done pulling image.', ticket_id)
             return True
 
-        r = self._post('images/create', params={'fromImage': name, 'tag': tag}, response_handler=None)
+        create_params = {'fromImage': name}
+        if tag:
+            create_params['tag'] = tag
+
+        r = self._post('images/create', params=create_params, response_handler=None)
         r.addCallback(txhttp.collect, on_content)
         r.addCallback(done)
 

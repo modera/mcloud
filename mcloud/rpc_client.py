@@ -320,7 +320,6 @@ class ApiRpcClient(object):
             if ref != '':
                 match = re.match('^((%s)\.)?(%s)?$' % (Application.SERVICE_REGEXP, Application.APP_REGEXP), ref)
                 if match:
-                    print match.groups()
                     if match.group(2):
                         service = match.group(2)
 
@@ -366,8 +365,6 @@ class ApiRpcClient(object):
 
         d = defer.Deferred()
         service, app, volume = match.group(1), match.group(2), match.group(3)
-
-        print (service, app, volume)
 
         if not volume.endswith('/'):
             volume += '/'

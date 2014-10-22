@@ -13,7 +13,7 @@ fi
 
 echo "version = '$VERSION'" > mcloud/version.py
 
-dpkg-buildpackage -us -uc
+#dpkg-buildpackage -us -uc
 
 python setup.py sdist register upload
 
