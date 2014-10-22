@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import os
 from flexmock import flexmock
 from mcloud.config import YamlConfig, Service, UnknownServiceError, ConfigParseError
 from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
@@ -227,21 +228,43 @@ def test_build_build_volumes_none():
     assert s.volumes == []
 
 
-def test_build_build_volumes_several():
+def test_build_build_volumes_several(tmpdir):
     s = Service()
     c = YamlConfig()
+
+    foo1 = tmpdir.mkdir('foo1')
+    foo2 = tmpdir.mkdir('foo2')
+    foo3 = tmpdir.mkdir('foo3')
 
     c.process_volumes_build(s, {'volumes': {
         'foo1': 'bar1',
         'foo2': 'bar2',
         'foo3': 'bar3',
-    }}, '/base/path')
+    }}, str(tmpdir))
 
     assert s.volumes == [
-        {'local': '/base/path/foo1', 'remote': 'bar1'},
-        {'local': '/base/path/foo2', 'remote': 'bar2'},
-        {'local': '/base/path/foo3', 'remote': 'bar3'}
+        {'local': str(foo1), 'remote': 'bar1'},
+        {'local': str(foo2), 'remote': 'bar2'},
+        {'local': str(foo3), 'remote': 'bar3'}
     ]
+
+
+
+@pytest.mark.parametrize("path", [
+    '/root',
+    '../',
+    './././../',
+    '././some/crazy/something/../../../../',
+    '~/',
+])
+def test_build_build_volumes_hackish_paths(path):
+    s = Service()
+    c = YamlConfig()
+
+    with pytest.raises(ValueError):
+        c.process_volumes_build(s, {'volumes': {
+            path: 'bar1',
+        }}, os.getcwd())
 
 
 def test_build_build_env_empty():

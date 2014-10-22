@@ -189,6 +189,14 @@ class YamlConfig(IConfig):
         service.volumes = []
 
         if 'volumes' in config and len(config['volumes']):
+
+            if not os.path.exists(path):
+                raise ValueError('Base volumes directory do not exist')
+
+            path_real = os.path.realpath(path)
+            if not path_real.endswith('/'):
+                path_real += '/'
+
             if path is None:
                 service.status_message += '\nService %s requested to attach volumes, but ' \
                                           'yaml config was uploaded separately ' \
@@ -196,8 +204,22 @@ class YamlConfig(IConfig):
                 return
 
             for local_path, container_path in config['volumes'].items():
+
+                if local_path.startswith('~'):
+                    raise ValueError('You can not mount directories outside of project directory')
+
+                path_join = os.path.realpath(os.path.join(path, local_path))
+
+                print '----'
+                print path_join
+                print path_real
+                print '----'
+
+                if not path_join.startswith(path_real):
+                    raise ValueError('You can not mount directories outside of project directory')
+
                 service.volumes.append({
-                    'local': os.path.join(path, local_path),
+                    'local': path_join,
                     'remote': container_path
                 })
 
