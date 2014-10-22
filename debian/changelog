@@ -1,3 +1,9 @@
+mcloud (0.7.7-1) trusty; urgency=medium
+
+  * Small bug fix: can not fetch image without tag
+
+ -- Alex Rudakov <ribozz@gmail.com>  Wed, 22 Oct 2014 15:10:13 +0300
+
 mcloud (0.7.6-1) trusty; urgency=medium
 
   * Fix deb versions back
