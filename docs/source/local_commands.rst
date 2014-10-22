@@ -84,16 +84,18 @@ Syntax
 
 Lifecycle commands all have common syntax of::
 
-    $ mcloud {command} [service][.app]
+    $ mcloud {command} [service.][app]
 
 Command can be run also without service name, then action will be applied, to
 entire application::
 
-    $ mcloud {command} .app
+    $ mcloud {command} app
 
 Also, application name may be skipped, then MCloud will try to restore it from context::
 
-    $ mcloud {command} service
+    $ mcloud {command} service.
+
+Note the dot(".") at the end, it specify it's service name not application.
 
 In shell mode, current application may be set using "use" command. If no application
 is given, then mcloud will use name of current directory as application name.

@@ -53,6 +53,7 @@ Starting application
 
 Now, start mcloud shell::
 
+    $ cd hello
     $ mcloud
 
 mcloud will show command prompt::

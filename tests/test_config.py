@@ -261,10 +261,11 @@ def test_build_build_volumes_hackish_paths(path):
     s = Service()
     c = YamlConfig()
 
-    with pytest.raises(ValueError):
-        c.process_volumes_build(s, {'volumes': {
-            path: 'bar1',
-        }}, os.getcwd())
+    c.process_volumes_build(s, {'volumes': {
+        path: 'bar1',
+    }}, os.getcwd())
+
+    assert s.volumes == []
 
 
 def test_build_build_env_empty():

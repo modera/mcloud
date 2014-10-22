@@ -1,7 +1,6 @@
 from collections import OrderedDict
 from copy import deepcopy
 import json
-from logging import info
 import collections
 from abc import abstractmethod
 from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
@@ -12,7 +11,7 @@ import yaml
 from .service import Service
 from voluptuous import Schema, MultipleInvalid
 from voluptuous import Required
-
+from twisted.python import log
 
 class IConfig(Interface):
 
@@ -191,7 +190,9 @@ class YamlConfig(IConfig):
         if 'volumes' in config and len(config['volumes']):
 
             if not os.path.exists(path):
-                raise ValueError('Base volumes directory do not exist')
+                # log.msg('Base volumes directory do not exist: %s' % path)
+                return
+                # raise ValueError()
 
             path_real = os.path.realpath(path)
             if not path_real.endswith('/'):
@@ -206,17 +207,15 @@ class YamlConfig(IConfig):
             for local_path, container_path in config['volumes'].items():
 
                 if local_path.startswith('~'):
-                    raise ValueError('You can not mount directories outside of project directory')
+                    # log.msg('You can not mount directories outside of project directory: %s -> %s' % (path, local_path))
+                    # raise ValueError('')
+                    continue
 
                 path_join = os.path.realpath(os.path.join(path, local_path))
 
-                print '----'
-                print path_join
-                print path_real
-                print '----'
-
                 if not path_join.startswith(path_real):
-                    raise ValueError('You can not mount directories outside of project directory')
+                    continue
+                    # log.msg('You can not mount directories outside of project directory: %s -> %s' % (path, path_real))
 
                 service.volumes.append({
                     'local': path_join,
