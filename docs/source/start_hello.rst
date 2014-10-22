@@ -7,8 +7,19 @@ Deploying hello website
     You can get example code in "hello" folder from our samples repository https://github.com/modera/mcloud-samples/
 
 
-assume we have a hello web-page "public/index.html", that we want to deploy
-as mcloud application::
+Creating files
+=======================
+
+Create folder with name "hello" somewhere. We will fill it with files now.
+
+Application structure is following::
+
+ - public
+    - index.html
+ - mlcoud.yml
+
+
+we will have a hello web-page "public/index.html"::
 
     <!DOCTYPE html>
     <html>
@@ -36,11 +47,9 @@ We use "orchardup/nginx" image that contains nginx that serve everything inside 
 In mcloud.yml we specify, that we will mount current directory to /var/www volume inside container.
 So, our public directory will be accessible from web.
 
-Application structure is following::
 
- - public
-    - index.html
- - mlcoud.yml
+Starting application
+======================
 
 Now, start mcloud shell::
 
