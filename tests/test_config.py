@@ -250,6 +250,34 @@ def test_build_build_volumes_several(tmpdir):
 
 
 
+def test_build_build_volumes_single_file(tmpdir):
+    s = Service()
+    c = YamlConfig()
+
+    tmpdir.join('nginx.conf').write('foo')
+
+    c.process_volumes_build(s, {'volumes': {
+        'nginx.conf': 'bar1',
+    }}, str(tmpdir))
+
+    assert s.volumes == [
+        {'local': str(tmpdir.join('nginx.conf')), 'remote': 'bar1'},
+    ]
+
+def test_build_build_volumes_basepath(tmpdir):
+    s = Service()
+    c = YamlConfig()
+
+    c.process_volumes_build(s, {'volumes': {
+        '.': 'bar1',
+    }}, str(tmpdir))
+
+    assert s.volumes == [
+        {'local': str(tmpdir), 'remote': 'bar1'},
+    ]
+
+
+
 @pytest.mark.parametrize("path", [
     '/root',
     '../',

@@ -211,11 +211,10 @@ class YamlConfig(IConfig):
                     # raise ValueError('')
                     continue
 
-                path_join = os.path.realpath(os.path.join(path, local_path))
-                if not path_join.endswith('/'):
-                    path_join += '/'
 
-                if not path_join.startswith(path_real):
+                path_join = os.path.realpath(os.path.join(path, local_path))
+
+                if local_path != '.' and not path_join.startswith(path_real):
                     continue
                     # log.msg('You can not mount directories outside of project directory: %s -> %s' % (path_join, path_real))
 
