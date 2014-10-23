@@ -1,3 +1,11 @@
+mcloud (0.7.8-1) UNRELEASED; urgency=medium
+
+  * Bugfix: can not mount single file + covered bug with tests
+  * Bugfix: can not mount . because of security filter
+  * New version
+
+ -- Alex <alex@alex-Precision-T1650>  Thu, 23 Oct 2014 10:02:12 +0300
+
 mcloud (0.7.7-1) trusty; urgency=medium
 
   * Small bug fix: can not fetch image without tag
