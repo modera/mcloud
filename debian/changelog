@@ -1,10 +1,9 @@
-mcloud (0.7.8-1) UNRELEASED; urgency=medium
+mcloud (0.7.9-1) trusty; urgency=medium
 
   * Bugfix: can not mount single file + covered bug with tests
   * Bugfix: can not mount . because of security filter
-  * New version
 
- -- Alex <alex@alex-Precision-T1650>  Thu, 23 Oct 2014 10:02:12 +0300
+ -- Alex Rudakov <ribozz@gmail.com>  Thu, 23 Oct 2014 10:04:53 +0300
 
 mcloud (0.7.7-1) trusty; urgency=medium
 
