@@ -49,6 +49,9 @@ def txtimeout(deferred, timeout, fail):
 class ValidationError(Exception):
     pass
 
+class UserError(Exception):
+    pass
+
 
 import sys
 

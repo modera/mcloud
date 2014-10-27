@@ -91,7 +91,6 @@ def main(argv):
 
                 try:
                     yield getattr(client, args.func)(**vars(args))
-
                 except Exception as e:
                     print '\n  %s\n' % color_text(e.message, color='yellow')
 

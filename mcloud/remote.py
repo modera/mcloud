@@ -42,12 +42,13 @@ class ApiRpcServer(object):
             del self.ticket_map[ticket_id]
 
     def task_failed(self, error, ticket_id):
+        print error
         if ticket_id in self.ticket_map:
             if isinstance(error, CancelledError):
                 s = 'Terminated.'
             else:
                 if isinstance(error, Failure):
-                    s = error.value.message
+                    s = str(error.value)
                 else:
                     s = str(error)
 

@@ -73,6 +73,10 @@ class DockerfileImageBuilder(IImageBuilder):
                 t = tarfile.open(mode='w', fileobj=memfile)
                 t.add(self.path, arcname='.')
                 d.callback(memfile.getvalue())
+            except OSError as e:
+                d.errback(Exception('Can not access %s: %s' % (self.path, str(e))))
+            except Exception as e:
+                d.errback(e)
             finally:
                 memfile.close()
 
