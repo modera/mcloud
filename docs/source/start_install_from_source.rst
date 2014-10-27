@@ -33,7 +33,7 @@ Create file /etc/init/mcloud.conf with follwing contents::
     stop on runlevel [!2345]
     respawn
     script
-      /opt/mcloud/bin/mcloud-rpc-server >> /var/log/mcloud.log 2>&1
+      /opt/mcloud/bin/mcloud-server >> /var/log/mcloud.log 2>&1
     end script
 
 Start mcloud service::

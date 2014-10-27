@@ -13,7 +13,7 @@ mcloud command
 
 
 
-mcloud-rpc-server command
+mcloud-server command
 =========================
 
 .. argparse::
