@@ -84,16 +84,6 @@ def main(argv):
 
             log.msg('Starting task: %s' % args.func)
 
-            def ok(result):
-                reactor.callFromThread(reactor.stop)
-
-            def err(failure):
-                print failure
-                print color_text('Error:', color='white', bcolor='red')
-                print failure.value
-                print
-                reactor.callFromThread(reactor.stop)
-
             @inlineCallbacks
             def call_command():
                 client = ApiRpcClient(host=args.host or '127.0.0.1', settings=settings)

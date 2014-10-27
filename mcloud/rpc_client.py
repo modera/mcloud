@@ -691,11 +691,7 @@ class ApiRpcClient(object):
         src = get_storage(source)
         dst = get_storage(destination)
 
-        try:
-            yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove)
-        except FileServerError as e:
-            print '------------------------'
-            print e.message
+        yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove)
 
 
     ############################################################

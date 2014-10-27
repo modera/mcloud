@@ -168,15 +168,13 @@ def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
     if verbose:
         print('Calculating volume differences')
 
+    if verbose:
+        print('Taking remote snapshot')
     snapshot_src = yield src.get_snapshot()
-    if verbose:
-        print('.')
 
-    print 'snapshot'
+    if verbose:
+        print('Taking local snapshot')
     snapshot_dst = yield dst.get_snapshot()
-
-    if verbose:
-        print('.')
 
     volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start))
 

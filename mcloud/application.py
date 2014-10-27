@@ -1,6 +1,7 @@
 from collections import defaultdict
 import json
 import logging
+import re
 import inject
 from mcloud.config import YamlConfig, ConfigParseError
 from mcloud.sync.utils import VolumeNotFound
@@ -109,6 +110,9 @@ class ApplicationController(object):
 
     @defer.inlineCallbacks
     def create(self, name, config, skip_validation=False):
+
+        if not re.match('^%s$' % Application.APP_REGEXP, name):
+            raise ValueError('Invalid name of application. Should be %s' % Application.APP_REGEXP)
 
         # validate first by crating application instance
         if not skip_validation:

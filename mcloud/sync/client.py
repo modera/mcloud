@@ -1,10 +1,10 @@
 import json
-from time import sleep
 from mcloud.sync.transfer import FileUploaderSource, FileUploaderTarget, Monitor
 from mcloud.sync.utils import file_crc, archive
 import os
-from twisted.internet import threads, reactor
+from twisted.internet import threads, reactor, defer
 from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.error import TimeoutError
 from twisted.internet.protocol import ClientFactory
 from twisted.protocols import basic
 from twisted.python import log
@@ -147,8 +147,6 @@ class FileIOCommandClient(basic.LineReceiver):
 
     def connectionLost(self, reason):
 
-        print data
-
         if self.data.startswith('err:'):
             self.factory.controller.completed.errback(FileServerError(self.data))
             return
@@ -249,8 +247,15 @@ class FileClient(object):
 
         return controller.completed
 
+    @inlineCallbacks
     def snapshot(self, **kwargs):
-        return self._exec_command('snapshot', kwargs)
+        try:
+            snapshot = yield self._exec_command('snapshot', kwargs)
+            defer.returnValue(snapshot)
+
+        except TimeoutError as e:
+            raise Exception('Error during snapshoting, Connection timout: %s:%s' % (self.host, self.port))
+
 
     def remove(self, path=None, **kwargs):
         return self._exec_command('remove', {
