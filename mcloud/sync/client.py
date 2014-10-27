@@ -147,6 +147,8 @@ class FileIOCommandClient(basic.LineReceiver):
 
     def connectionLost(self, reason):
 
+        print data
+
         if self.data.startswith('err:'):
             self.factory.controller.completed.errback(FileServerError(self.data))
             return

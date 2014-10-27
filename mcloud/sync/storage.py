@@ -172,6 +172,7 @@ def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
     if verbose:
         print('.')
 
+    print 'snapshot'
     snapshot_dst = yield dst.get_snapshot()
 
     if verbose:
@@ -203,10 +204,9 @@ def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
         tmp_path = mkdtemp()
 
         try:
-            if verbose:
-                log.msg('Syncing ... ')
-
+            print 'Download'
             yield src.download(paths_to_upload, tmp_path)
+            print 'Upload'
             yield dst.upload(paths_to_upload, tmp_path)
 
         finally:

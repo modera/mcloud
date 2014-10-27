@@ -6,9 +6,9 @@ Updating mlcoud
 Mcloud install from packages
 ----------------------------------
 
-Update is easy::
+To update mcloud::
 
-    $ apt-get update && apt-get install mcloud-full
+    $ apt-get update && apt-get install mcloud
 
 And restart service::
 

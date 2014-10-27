@@ -36,4 +36,6 @@ Finding exact cause:
 - check dnsmasq is listening on dockerip 53 port
 - dig @dockerip XXX  # if fails, restart dnsmassq - dnasmasq fail
 - check /etc/resolv.conf contains "nameserver 127.0.0.1" on first line
+- check /etc/dnsmasq.conf contains "server=/mcloud.lh/172.17.42.1#7053" (add it with ip of docker0 interface, if missing)
+
 
