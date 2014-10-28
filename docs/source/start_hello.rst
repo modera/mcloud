@@ -1,10 +1,12 @@
-# Deploying hello website
+Deploying hello website
+=======================
 
 .. note::
     You can get example code in "hello" folder from our samples repository https://github.com/modera/mcloud-samples/
 
 
-## 1. Prepare files
+1. Prepare files
+----------------
 
 Create directory with name "hello" and prepare file structure to be like this:
 
@@ -38,7 +40,8 @@ Contents of **mcloud.yml**
 This configuration will create a deployment with one service called "web". It will use "orchardup/nginx" *Docker* image that contains *Nginx* web server that serve everything inside /var/www directory. Configuration file specifies, that **public/** directory is mapped to /var/www volume inside container. So, our public directory will be accessible from web.
 
 
-## 2. Starting application
+2. Starting application
+-----------------------
 
 Now, go to deployment directory and start mCloud shell:
 
@@ -100,7 +103,8 @@ Contents of *index.html* file should be displayed. You should see same output if
     $ curl hello.mcloud.lh
 
 
-## 3. Open URL in browser
+3. Open URL in browser
+----------------------
 
 If you are running mCloud natively on **Linux**, then opening url in browser should just work.
 
@@ -110,7 +114,8 @@ If you run mCloud on **Vagrant** then add following into your operating system *
 
 192.168.70.2 is the IP address specified as private network address in Vagrantfile.
 
-## 4. Stopping and removing an app
+4. Stopping and removing an app
+-------------------------------
 
 Stop the application:
 
