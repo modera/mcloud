@@ -364,3 +364,4 @@ def test_storage_sync_lot_of_files_local_to_remote(tmpdir):
     yield storage_sync(src, dst, remove=True)
 
     assert directories_synced(another, remote1)
+a

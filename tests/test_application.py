@@ -101,4 +101,3 @@ def test_app_controller():
 
         with pytest.raises(AppDoesNotExist):
             yield controller.get('foo')
-
