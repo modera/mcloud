@@ -8,27 +8,27 @@ Deploying hello website
 1. Prepare files
 ----------------
 
-Create directory with name "hello" and prepare file structure to be like this:
+Create directory with name "hello" and prepare file structure to be like this::
 
-	hello/
-		mcloud.yml
-		public/
-			index.html
+    hello/
+        mcloud.yml
+        public/
+            index.html
 
 Note, if you're using virtual machine to run mCloud then you need to make sure this folder is accessible from guest machine. For Vagrant just put this directory to your machine directory eg. where your Vagrantfile is.
 
-Contents of **index.html**
+Contents of **index.html** ::
 
     <!DOCTYPE html>
     <html>
-    	<head>
-        	<title>Hello World</title>
-    	</head>
-    	<body>Hello from mCloud!</body>
+        <head>
+            <title>Hello World</title>
+        </head>
+        <body>Hello from mCloud!</body>
     </html>
 
 
-Contents of **mcloud.yml**
+Contents of **mcloud.yml** ::
 
     web:
         image: orchardup/nginx
@@ -43,20 +43,20 @@ This configuration will create a deployment with one service called "web". It wi
 2. Starting application
 -----------------------
 
-Now, go to deployment directory and start mCloud shell:
+Now, go to deployment directory and start mCloud shell::
 
     $ cd hello
     $ mcloud
 
 mCloud command prompt will show up.
 
-Now we can **init** our application:
+Now we can **init** our application::
 
     mcloud: ~@me> init hello
 
 Here, "hello" is name of our new application. It is initialized from the configuration that is found from the directory we ran the mCoud shell.
 
-Command **list** will show our newly created application:
+Command **list** will show our newly created application::
 
     mcloud: ~@me> list
 
@@ -66,17 +66,17 @@ Command **list** will show our newly created application:
     |      hello       |        |       |        | hello.mcloud.lh -> [No web]   | /home/alex/dev/mcloud/tmp  |
     +------------------+--------+-------+--------+-------------------------------+----------------------------+
 
-We can "use" the application so we don't need to type application name every time we issue a command:
+We can "use" the application so we don't need to type application name every time we issue a command::
 
     mcloud: ~@me> use hello
 
-Now, lets **start** our application:
+Now, lets **start** our application::
 
     mcloud: hello@me> start
 
 The *hello* application will be provisioned and start all the services.
 
-Verify with **status** command:
+Verify with **status** command::
 
     mcloud: hello@me> status
 
@@ -93,12 +93,12 @@ Couple of things to notice from the output:
 * assigned internal IP address is *172.17.0.2*
 * the web container is detected to expose port *80* thus it is mapped to special internal domain address *hello.mcloud.lh*
 
-You can now open separate terminal and use Curl to load the address:
+You can now open separate terminal and use Curl to load the address::
 
     $ curl 172.17.0.2
 
 
-Contents of *index.html* file should be displayed. You should see same output if you use:
+Contents of *index.html* file should be displayed. You should see same output if you use::
 
     $ curl hello.mcloud.lh
 
@@ -108,7 +108,7 @@ Contents of *index.html* file should be displayed. You should see same output if
 
 If you are running mCloud natively on **Linux**, then opening url in browser should just work.
 
-If you run mCloud on **Vagrant** then add following into your operating system *hosts* file (/etc/hosts on *nix systems, C:\Windows\system32\drivers\etc\hosts on Windows):
+If you run mCloud on **Vagrant** then add following into your operating system *hosts* file (/etc/hosts on *nix systems, C:\Windows\system32\drivers\etc\hosts on Windows)::
 
     192.168.70.2    hello.mcloud.lh
 
@@ -117,15 +117,15 @@ If you run mCloud on **Vagrant** then add following into your operating system *
 4. Stopping and removing an app
 -------------------------------
 
-Stop the application:
+Stop the application::
 
     mcloud: hello@me> stop
 
-Now we see that web.service is OFF, it means that there is container created, but it’s not running. When application is stopped, it preserves all the data that was in container. To remove the data but keep the application in registry, run:
+Now we see that web.service is OFF, it means that there is container created, but it’s not running. When application is stopped, it preserves all the data that was in container. To remove the data but keep the application in registry, run::
 
     mcloud: hello@me> destroy
 
-If you need to remove all traces of the application:
+If you need to remove all traces of the application::
 
     mcloud: hello@me> remove
 

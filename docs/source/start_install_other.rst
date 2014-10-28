@@ -8,20 +8,19 @@ You can install mCloud on any virtual machine of latest Ubuntu build. So if you 
 1. Install Vagrant
 ------------------
 
-Follow guide at `Vagrant website <https://www.vagrantup.com>`_
- to get it installed.
+Follow guide at `Vagrant website <https://www.vagrantup.com>`_ to get it installed.
 
 2. Prepare project directory
 ----------------------------
 
-Create empty directory for your new deployment and download Vagrantfile into it:
+Create empty directory for your new deployment and download Vagrantfile into it::
 
     curl https://raw.githubusercontent.com/modera/mcloud-samples/master/Vagrantfile -O
 
 3. Provision and start new machine
 ----------------------------------
 
-Run vagrant command from the project directory where Vagrantfile is located:
+Run vagrant command from the project directory where Vagrantfile is located::
 
     vagrant up
 
@@ -35,15 +34,15 @@ Wait until vagrant is downloading images and preparing the machine. Provision sc
 4. Log into mCloud terminal
 ---------------------------
 
-To use mCloud command-line type:
+To use mCloud command-line type::
 
     $ vagrant ssh
 
-Now you're in Ubuntu command line. 
+Now you're in Ubuntu command line::
 
     $ mcloud
 
-This starts up mCloud terminal, so you can type commands to manage your deployments:
+Start up mCloud terminal so you can type commands to manage your deployments::
 
     mcloud: ~@me>
 
