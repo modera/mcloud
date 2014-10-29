@@ -1,38 +1,34 @@
-
-===============================================
 Deploying hello website
-===============================================
+=======================
 
 .. note::
     You can get example code in "hello" folder from our samples repository https://github.com/modera/mcloud-samples/
 
 
-Creating files
-=======================
+1. Prepare files
+----------------
 
-Create folder with name "hello" somewhere. We will fill it with files now.
+Create directory with name "hello" and prepare file structure to be like this::
 
-Application structure is following::
+    hello/
+        mcloud.yml
+        public/
+            index.html
 
- - public
-    - index.html
- - mlcoud.yml
+Note, if you're using virtual machine to run mCloud then you need to make sure this folder is accessible from guest machine. For Vagrant just put this directory to your machine directory eg. where your Vagrantfile is.
 
-
-we will have a hello web-page "public/index.html"::
+Contents of **index.html** ::
 
     <!DOCTYPE html>
     <html>
-    <head>
-        <title></title>
-    </head>
-    <body>
-        Hello, mcloud!
-    </body>
+        <head>
+            <title>Hello World</title>
+        </head>
+        <body>Hello from mCloud!</body>
     </html>
 
 
-To deploy this we need to create file mcloud.yml with the following configuration::
+Contents of **mcloud.yml** ::
 
     web:
         image: orchardup/nginx
@@ -41,33 +37,26 @@ To deploy this we need to create file mcloud.yml with the following configuratio
             public: /var/www
 
 
-This will create one service called "web".
-We use "orchardup/nginx" image that contains nginx that serve everything inside /var/www directory.
-
-In mcloud.yml we specify, that we will mount current directory to /var/www volume inside container.
-So, our public directory will be accessible from web.
+This configuration will create a deployment with one service called "web". It will use "orchardup/nginx" *Docker* image that contains *Nginx* web server that serve everything inside /var/www directory. Configuration file specifies, that **public/** directory is mapped to /var/www volume inside container. So, our public directory will be accessible from web.
 
 
-Starting application
-======================
+2. Starting application
+-----------------------
 
-Now, start mcloud shell::
+Now, go to deployment directory and start mCloud shell::
 
     $ cd hello
     $ mcloud
 
-mcloud will show command prompt::
+mCloud command prompt will show up.
 
-    mcloud: ~@me>
-
-
-Now we can init our application with "init" command::
+Now we can **init** our application::
 
     mcloud: ~@me> init hello
 
-"hello" is name of our application.
+Here, "hello" is name of our new application. It is initialized from the configuration that is found from the directory we ran the mCoud shell.
 
-List command will show our newly created application::
+Command **list** will show our newly created application::
 
     mcloud: ~@me> list
 
@@ -77,39 +66,19 @@ List command will show our newly created application::
     |      hello       |        |       |        | hello.mcloud.lh -> [No web]   | /home/alex/dev/mcloud/tmp  |
     +------------------+--------+-------+--------+-------------------------------+----------------------------+
 
-We can "use" new application, so we don't need to typ application name every time::
+We can "use" the application so we don't need to type application name every time we issue a command::
 
-    mcloud: ~@me>  use hello
+    mcloud: ~@me> use hello
 
-    mcloud: hello@me>
+Now, lets **start** our application::
 
-Now, lets start our application::
+    mcloud: hello@me> start
 
-    mcloud: hello@me>  start
-    hello None
-    [2646] Starting application
-    [2646] Got response
-    [2646] Service web.hello is not created. Creating
+The *hello* application will be provisioned and start all the services.
 
-    **************************************************
+Verify with **status** command::
 
-     Service web.hello
-
-    **************************************************
-    [2646] Service web.hello is not running. Starting
-    [2646][web.hello] Starting service
-    [2646][web.hello] Service resolve by name result: 72e364366f1c536b35d602e7c5c29449e65af9094c12d5118f3720a88e4c3d50
-    [2646][web.hello] Starting service...
-    Startng container with config: {'Binds': ['/home/alex/dev/mcloud/tmp/public:/var/www', '/var/run/mcloud:/var/run/mcloud', '/home/alex/dev/mcloud/mcloud/api.py:/usr/bin/@me'], 'DnsSearch': u'hello.mcloud.lh', 'Dns': ['172.17.42.1']}
-    Updating container list
-    result: u'Done.'
-
-    mcloud: hello@me>
-
-
-And list will show the following::
-
-    mcloud: hello@me>  status
+    mcloud: hello@me> status
 
     +--------------+--------+------------+-------+--------+----------+--------------------------+
     | Service name | status |     ip     | cpu % | memory | volumes  |       public urls        |
@@ -118,73 +87,46 @@ And list will show the following::
     +--------------+--------+------------+-------+--------+----------+--------------------------+
 
 
-More detailed info about current application::
-
-
 Couple of things to notice from the output:
-- application is now in running state
-- assigned IP address is 172.17.0.2
-- the web container is detected to expose port 80 thus it is mapped to special internal domain address hello.mcloud.lh
 
+* application is in *running* state
+* assigned internal IP address is *172.17.0.2*
+* the web container is detected to expose port *80* thus it is mapped to special internal domain address *hello.mcloud.lh*
 
-Lets use Curl to load the web page (in separate terminal)::
+You can now open separate terminal and use Curl to load the address::
 
     $ curl 172.17.0.2
 
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title></title>
-    </head>
-    <body>
-        Hello, mcloud!
-    </body>
-    </html>
 
-You should see same output if you use::
+Contents of *index.html* file should be displayed. You should see same output if you use::
 
     $ curl hello.mcloud.lh
 
 
-Open url in browser
----------------------------------------
+3. Open URL in browser
+----------------------
 
-If you are running mcloud natively on **linux**, then opening url in browser should just work.
+If you are running mCloud natively on **Linux**, then opening url in browser should just work.
 
-In case of **MacOS/Windows with Vagrant**, you need to add following into /etc/hosts (or similar file in Windows)::
+If you run mCloud on **Vagrant** then add following into your operating system *hosts* file (/etc/hosts on *nix systems, C:\Windows\system32\drivers\etc\hosts on Windows)::
 
     192.168.70.2    hello.mcloud.lh
 
-192.168.70.2 - is ip address you assigned in your Vagrantfile.
+192.168.70.2 is the IP address specified as private network address in Vagrantfile.
 
-
-Stopping and removing an app
----------------------------------------
+4. Stopping and removing an app
+-------------------------------
 
 Stop the application::
 
-    mcloud: hello@me>  stop
-    [2649] Stoping application
-    [2649] Got response
-    [2649] Service web.hello is running. Stoping
-    result: u'Done.'
+    mcloud: hello@me> stop
 
+Now we see that web.service is OFF, it means that there is container created, but it’s not running. When application is stopped, it preserves all the data that was in container. To remove the data but keep the application in registry, run::
 
-Now we see that web.service is OFF, it means that there is container created, but it’s not running. When application is stopped, it preserves all the data that was in container.
-If you need to remove the data but keep the application in registry, run::
+    mcloud: hello@me> destroy
 
-    mcloud: hello@me>  destroy hello
-    [2650] Destroying application containers
-    [2650] Got response
-    [2650] Destroying container: None
-    [2650] Service web.hello container is created. Destroying
-    result: u'Done.'
+If you need to remove all traces of the application::
 
-If you need to remove all traces of the application, run::
+    mcloud: hello@me> remove
 
-    mcloud: hello@me>  remove hello
-    [2651] Destroying application containers
-    [2651] Got response
-    [2651] Destroying container: None
-    [2651] Service web.hello container is not yet created.
-    result: u'Done.'
+As the result the application, containers and all data is gone.
