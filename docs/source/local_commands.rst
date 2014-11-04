@@ -1,9 +1,9 @@
 
 ==========================================
-Command reference
+Command-line reference
 ==========================================
 
-running command basic syntax is::
+mCloud command-line basic syntax is::
 
     $ mcloud command [... arguments ...]
 
@@ -11,41 +11,43 @@ You can also start mcloud in shell mode::
 
     $ mcloud
 
-Then you can omit "mcloud" prefix.
+Then you can omit *mcloud* prefix.
 
 
 Overview commands
-===================
+=======================
+
+Overview commands are about application / service configuration.
+
 
 List
---------------------
+--------------
 
 List shows all application list::
 
     $ mcloud list [-f]
 
-command have special flag "-f" (follow) that continuously print status report.
+Command have special flag "-f" (follow) that continuously print status report.
+
 
 Status
---------------------
+--------------
 
 Show status of application::
 
     $ mcloud status app [-f]
 
-command have special flag "-f" (follow) that continuously print status report.
+Command have special flag "-f" (follow) that continuously print status report.
 
-Initialize/update/remove
-=======================
 
 Init
------------
+--------------
 
 Initialize new application::
 
     $ mcloud init [appname] [path] [--config]
 
-accepts path as extra argument (by default current directory)
+Accepts path as extra argument (by default current directory)
 app name is directory name by default.
 
 You can specify configuration file explicitly with --config.
@@ -53,18 +55,18 @@ You can specify configuration file explicitly with --config.
 .. note::
     There is shorthand "start --init", which initialize and start newly created application
 
-In case of remote server command will also upload files there.
-You may interrupt this process and coplete it later manually.
+In case of remote server command will also upload files there. You may interrupt this process and complete it later manually.
 
-Update application configuration
------------------------------------
 
-Same as *init*::
+Update
+--------------
+
+Works same way as *init*::
 
     $ mcloud update [appname] [path] [--config]
 
-accepts path as extra argument (by default current directory)
-app name is directory name by default.
+Accepts path as extra argument (by default current directory). App name is current directory name by default.
+
 
 Remove
 --------------
@@ -73,60 +75,72 @@ Removes an application::
 
     $ mcloud remove
 
-Command will destroy all containers and remove application from MCloud listings.
+Command will destroy all containers and remove application from mCloud listings.
 
 
-Application lifecylce
+Application lifecycle
 =======================
 
-Syntax
---------------
+Application lifecycle commands operate in scope of an application or its services.
 
-Lifecycle commands all have common syntax of::
+They all have common syntax of::
 
     $ mcloud {command} [service.][app]
 
-Command can be run also without service name, then action will be applied, to
+Command can be run also without service name, then action will be applied to
 entire application::
 
     $ mcloud {command} app
 
-Also, application name may be skipped, then MCloud will try to restore it from context::
+Also, application name may be skipped. Then mCloud will try to restore it from context::
 
     $ mcloud {command} service.
 
-Note the dot(".") at the end, it specify it's service name not application.
+Note the dot(".") at the end, it specify it's service name not the application.
 
 In shell mode, current application may be set using "use" command. If no application
-is given, then mcloud will use name of current directory as application name.
+is given, then mCloud will use name of current directory name as application name.
 
-Commands
---------------------
-
-Commands are:
-
- - **start** - start application containers, will trigger *create* for containers that are not created yet
- - **stop** - stop application containers
- - **restart** - runs *stop* and *start* sequentially
- - **destroy** - remove application containers, will trigger *stop* for running containers
- - **create** - create application containers without starting them
- - **rebuild** - runs *destroy* and *start* sequentially
-
-**start** has optional --init flag that initialize application if it's not initialized
-
-Order of executions
----------------------
-
-When service name is specified, command is executed on single container.
-When only application name given, command is applied on each container in order they appear
-in mcloud.yml.
-
-Start is special a bit, it first call "create" on every not-creted container, and when every container exist,
-then it starts containers.
+When service name is specified, command is executed on single container. When only application name given, command is applied on each container in order they appear in *mcloud.yml*.
 
 
-Run & debug
-================
+Create
+----------
+
+Create application containers without starting them.
+
+
+Start
+----------
+
+Start application containers, will trigger *create* for containers that are not created yet. Once all containers exist it starts them.
+
+It has optional --init flag that tells mCloud to initialize the application if it's not there.
+
+
+Stop
+----------
+
+Stop application containers.
+
+
+Restart
+----------
+
+Runs *stop* sequentially on all services, then *start* again.
+
+
+Destroy
+----------
+
+Remove application containers. Triggers *stop* for running containers beforehand.
+
+
+Rebuild
+----------
+
+Runs *destroy* on all services. Then *start* again.
+
 
 Run
 ----------
@@ -139,6 +153,7 @@ Command will create copy of container, mount same volumes and execute command.
 
 Command is "bash" by default, which opens interactive terminal.
 
+
 Logs
 ------------
 
@@ -149,6 +164,7 @@ Show container logs::
 Show last 100 lines of container log and follow all new logs.
 Hit Ctrl+C for exit.
 
+
 Inspect
 -------------
 
@@ -156,8 +172,12 @@ Shows docker inspect for a container::
 
     $ mcloud inspect app.service
 
+
 Volume synchronization
 ===========================
+
+Volume commands are about controlling the service volumes and data synchronization.
+
 
 Syntax
 -----------
@@ -177,19 +197,19 @@ service and volume name may be skipped, then command assumes it's main volume of
 If volume spec do not match remote volume format, then command assumes, it is
 just directory name.
 
+
 Work order
 --------------
 
-Command does the following:
-
-1) Command computes snapshot of source and destination locations by collecting list of files,
+#. Command computes snapshot of source and destination locations by collecting list of files,
    calculating modification time diffs. (time diff = server current time - modification time)
-2) Compares result, and if no --force flag, shows diff list to user. (new, updated, removed files)
-3) if no --force flag, ask confirmation from user
-4) Create archive with new and updated files
-5) Transfer archive (progress is displayed)
-6) Extract archive
-7) if no --no-remove flag, removes files.
+#. Compares result, and if no --force flag, shows diff list to user. (new, updated, removed files)
+#. if no --force flag, ask confirmation from user
+#. Create archive with new and updated files
+#. Transfer archive (progress is displayed)
+#. Extract archive
+#. if no --no-remove flag, removes files.
+
 
 Usage patterns
 ----------------
@@ -199,7 +219,8 @@ Usage patterns
 - local folder to remote volume
 - remote volume to remote volume
 
-Variables
+
+Environment variables
 =====================
 
 You can assign extra environment variables that will be passed to containers::
@@ -208,26 +229,33 @@ You can assign extra environment variables that will be passed to containers::
     $ mcloud unset VAR_NAME
     $ mcloud vars
 
-.. note::
-    Variables are assigned on container creation, so you need to rebuild container if you
-    need changes to be applied on running container.
+Variables are assigned on container *creation*, so you need to rebuild container if you need changes to be applied on running container.
+
 
 Application publishing
 ===========================
 
-**Publish** application to url::
+Commands are about assigning the public URLs to the applications, which essentially is often the way how the newly deployed applications get "published" or "unpublished".
+
+
+Publish
+-----------
+
+Assign URL to an application::
 
     $ mcloud publish app my_domain.com [--ssl]
 
 --ssl means https://my_domain.com
 
 .. note::
-    You should publish both --ssl and non-ssl version of url, if your application handles two protocols.
+    You should publish both SSL and non-SSL version of URL if your application handles two protocols.
 
-**Unpublish** is::
 
-    $ mcloud publish my_domain.com [--ssl]
+Unpublish
+-----------
+
+Remove an URL assignment from an application::
+
+    $ mcloud unpublish my_domain.com [--ssl]
 
 Application name is not needed.
-
-

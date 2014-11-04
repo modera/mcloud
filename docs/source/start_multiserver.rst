@@ -1,20 +1,19 @@
 
 ===============================================
-Deploying multicontainer appication
+Deploy multicontainer application
 ===============================================
 
+This time we will deploy bit more complex application. One that have several interconnected containers.
+
+We will deploy a Flask application that stores number of page-views in Redis.
+
+
+Files
+=======================
 
 .. note::
     You can get example code in "flask-redis" folder from our samples repository https://github.com/modera/mcloud-samples/
 
-
-This time we will deploy bit more complex application, that have several containers, that
-communicate to each-other.
-
-We will deploy flask application that will store number of page-views in redis.
-
-Files overview
-=========================
 
 mcloud.yml file
 ----------------------
@@ -44,6 +43,7 @@ Things to note:
 - you can mount not only directories, but also single files (nginx.conf)
 - :ref:`wait` is used
 
+
 app.py
 ------------------
 
@@ -68,6 +68,7 @@ Except couple things:
 
 - run on 0.0.0.0 means application will listen on all available ips. :ref:`localhost`
 - "Redis(host='redis')" - redis hostname is "redis".  :ref:`dns`
+
 
 nginx.conf
 ----------------
@@ -111,6 +112,7 @@ Just couple dependencies there::
 
     Flask
     redis
+
 
 run.sh
 -----------------------
@@ -237,8 +239,3 @@ Now let's check it's running::
     +-------------------+--------+-------------+-------+--------+-----------------+-------------------------------+
 
 Now, if we open url in browser you will see simple page-veiw counter, that takes data from redis.
-
-
-
-
-

@@ -1,7 +1,7 @@
 
 
 ========================================
-Manage MCloud environment
+Manage mCloud environment
 ========================================
 
 .. toctree::
