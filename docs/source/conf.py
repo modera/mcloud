@@ -12,8 +12,6 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-import inject
-
 import os
 import sys
 
@@ -36,7 +34,7 @@ from mcloud import metadata
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
-              'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.viewcode', 'sphinxarg.ext']
+              'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.viewcode']
 
 sys.path.append(os.path.abspath('themes/cloud.modera.org'))
 html_theme_path = ['themes/cloud.modera.org']
@@ -284,6 +282,3 @@ intersphinx_mapping = {
 # <http://sphinx-doc.org/ext/autodoc.html#confval-autoclass_content> for more
 # information.
 autoclass_content = 'both'
-
-inject.configure()
-inject.get_injector_or_die().get_instance = lambda cls: None

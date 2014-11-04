@@ -123,7 +123,7 @@ def list_recursive(ref):
     return ret
 
 
-def compare(src_struct, dst_struct, drift=0, ignored=None):
+def compare(src_struct, dst_struct, drift=0, ignored=None, full=False):
     """
     Compare two directory snapshots returning list of new paths, removed paths, changed files.
 
@@ -152,7 +152,7 @@ def compare(src_struct, dst_struct, drift=0, ignored=None):
         if ignored and is_ignored(ignored, src['_path']):
             continue
 
-        if not name in dst_struct:
+        if full or not name in dst_struct:
             result['new'] += list_recursive(src)
         else:
             dst = dst_struct[name]
@@ -163,14 +163,15 @@ def compare(src_struct, dst_struct, drift=0, ignored=None):
 
                 merge_result(result, compare(src, dst, ignored=ignored))
 
-    for name, dst in dst_struct.items():
-        if name in ignored_patterns:
-            continue
+    if not full:
+        for name, dst in dst_struct.items():
+            if name in ignored_patterns:
+                continue
 
-        if ignored and is_ignored(ignored, dst['_path']):
-            continue
+            if ignored and is_ignored(ignored, dst['_path']):
+                continue
 
-        if not name in src_struct:
-            result['del'].append(ref_path(dst))
+            if not name in src_struct:
+                result['del'].append(ref_path(dst))
 
     return result

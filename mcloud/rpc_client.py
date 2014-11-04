@@ -441,7 +441,7 @@ class ApiRpcClient(object):
         if self.host != '127.0.0.1':
             success = yield self._remote_exec('init', app, config=config.export())
             if success:
-                yield self.sync(path, '%s@%s' % (app, self.host), no_remove=False, force=False)
+                yield self.sync(path, '%s@%s' % (app, self.host), no_remove=False, force=True, full=True)
         else:
             yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export())
 
@@ -684,14 +684,15 @@ class ApiRpcClient(object):
         arg('destination', help='Push destination'),
         arg('--no-remove', help='Disable remove files', default=False, action='store_true'),
         arg('--force', help='Don\'t ask confirmation', default=False, action='store_true'),
+        arg('--full', help='Copy over all the files without diff', default=False, action='store_true'),
     ))
     @inlineCallbacks
-    def sync(self, source, destination, no_remove, force, **kwargs):
+    def sync(self, source, destination, no_remove, force, full, **kwargs):
 
         src = get_storage(source)
         dst = get_storage(destination)
 
-        yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove)
+        yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove, full=full)
 
 
     ############################################################

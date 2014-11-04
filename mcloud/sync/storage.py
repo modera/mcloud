@@ -162,21 +162,23 @@ def diff_has_changes(volume_diff):
     return volume_diff['new'] or volume_diff['upd'] or volume_diff['del']
 
 @inlineCallbacks
-def storage_sync(src, dst, confirm=False, verbose=False, remove=False):
+def storage_sync(src, dst, confirm=False, verbose=False, remove=False, full=False):
     start = time()
 
     if verbose:
         print('Calculating volume differences')
 
     if verbose:
-        print('Taking remote snapshot')
-    snapshot_src = yield src.get_snapshot()
-
-    if verbose:
         print('Taking local snapshot')
-    snapshot_dst = yield dst.get_snapshot()
+    snapshot_src = yield src.get_snapshot()
+    if full:
+        snapshot_dst = {}
+    else:
+        if verbose:
+            print('Taking remote snapshot')
+        snapshot_dst = yield dst.get_snapshot()
 
-    volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start))
+    volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start), full=full)
 
     if not remove:
         volume_diff['del'] = []
