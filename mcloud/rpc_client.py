@@ -728,6 +728,14 @@ class ApiRpcClient(object):
     # Utils
     ############################################################
 
+    @cli('Cleanup docker images')
+    @inlineCallbacks
+    def clean(self, **kwargs):
+        clean_containers = "docker ps -a -notrunc| grep 'Exit' | awk '{print \$1}' | xargs -L 1 -r docker rm"
+        clean_images = "docker images -a -notrunc | grep none | awk '{print \$3}' | xargs -L 1 -r docker rmi"
+        os.system(clean_containers)
+        os.system(clean_images)
+
     @cli('List internal dns records')
     @inlineCallbacks
     def dns(self, **kwargs):
