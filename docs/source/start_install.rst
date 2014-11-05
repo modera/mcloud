@@ -4,17 +4,14 @@ Installation
 ============================================
 
 
-Modera Cloud uses Docker as the core component to model the infrastructure.
-Therefore the principal question to be answered is whether you want to run the cloud:
+mCloud uses Docker as the core component to host the services. Therefore, the first question to be answered is whether you want to install and run everything:
 
-- straight on your machine, or
-- inside a virtual environment
+#. straight on the machine, or
+#. inside a virtual environment
 
-If you are not on Linux then as of today you don't really have other options other than running it inside the virtual machine.
+If you are not on Linux then as of today you don't really have any options other than running it inside the virtual machine. Here are all 4 different ways to help you on board:
 
-
-Basic tutorials:
-
+**Easy & automated** - recommended for local and development machines:
 
 .. toctree::
   :maxdepth: 1
@@ -22,9 +19,7 @@ Basic tutorials:
   start_install_linux
   start_install_other
 
-
-Advanced chapters:
-
+**Manual & flexible** - recommended for remote and production machines:
 
 .. toctree::
   :maxdepth: 1

@@ -1,21 +1,22 @@
 
 ===================
-Mcloud shell
+mCloud shell
 ===================
 
-MCloud shell simplify usage of remote deployments, and as well may be used
+mCloud shell simplify usage of remote deployments, and as well may be used
 locally to shorten commands, if you mostly work with one application.
 
-shell saves you time in following:
+Shell saves you time in following:
 
-- you don't need to type mcloud prefix every time
-- command execution is faster (especially if you execute commands remotely)
-- use command allows not to type host name or application name
+- you don't need to type mcloud prefix every time.
+- command execution is faster (especially if you execute commands remotely).
+- "use" command allows to not type host name or application name.
+
 
 Start shell
 --------------
 
-To execute mcloud command without arguments::
+Execute *mcloud* without arguments::
 
     $ mcloud
 
@@ -23,20 +24,21 @@ To execute mcloud command without arguments::
 Exit shell
 --------------
 
-mcloud command will not react to Ctrl + C command. Instead you should type "exit" or
-hit Ctrl + D.
+Shell will not react to Ctrl+C command. Instead you should type "exit" or
+hit Ctrl+D.
 
 
 Use application
 ----------------------
 
-Use command allow to omit application name, when executing some commands::
+*use* command allow to omit application name, when executing some commands::
 
     mcloud> use myapp
 
     mcloud> status
     mcloud> start
     mcloud> stop
+
 
 System commands
 -------------------------
@@ -51,8 +53,8 @@ If you need to execute set of commands, you can run bash::
 
     mcloud> !bash
 
-To exit, just hit Ctrl+D, and you ar back in mcloud.
-If you messed up, see `http://www.imdb.com/title/tt1375666/` for reference.
+To exit, just hit Ctrl+D, and you are back in mCloud shell. If you messed up, see `http://www.imdb.com/title/tt1375666/` for reference.
+
 
 Switching to remote server
 ----------------------------
@@ -68,10 +70,3 @@ You can combine use remote server with application name::
 To switch back to local server::
 
     mcloud> use @
-
-
-
-
-
-
-

@@ -1,9 +1,9 @@
 
 
-Installation in virtual machine
+Install on virtual machine
 ===============================
 
-You can install mCloud on any virtual machine of latest Ubuntu build. So if you already have the virtual machine up and running please follow `Linux installation guide <start_install_linux.html>`_. 
+You can install mCloud on any virtual machine of latest Ubuntu build. So if you already have the virtual machine up and running please follow `Linux installation guide <start_install_linux.html>`_.
 
 1. Install Vagrant
 ------------------
@@ -17,7 +17,7 @@ Create empty directory for your new deployment and download Vagrantfile into it:
 
     curl https://raw.githubusercontent.com/modera/mcloud-samples/master/Vagrantfile -O
 
-3. Provision and start new machine
+3. Provision the machine
 ----------------------------------
 
 Run vagrant command from the project directory where Vagrantfile is located::
@@ -52,5 +52,3 @@ Next steps
 Proceed to `Hello World guide <start_hello.html>`_ that describes how to set up a simplest deployment with a webserver and static page.
 
 Or in case you feel confident enough you can jump to `Multi-service deployment guide <start_multiserver.html>`_ to see how to set up bit more complex deployment with multiple tiers.
-
-

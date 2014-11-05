@@ -2,91 +2,90 @@
 .. _manual_install:
 
 ===================================
-Manual installation
+Manual install
 ===================================
 
-If you prefer to get more control how mcloud is installed, you can
-install all parts of mcloud by yourself.
+If you prefer to get more control on how mCloud is installed, follow this guide to install all parts by yourself. Following this guideline is also recommended for public deployments.
 
-Prerequisites
+Install Docker
 ============================
 
-Install docker:
-https://docs.docker.com/installation/
+Follow `Docker website <https://docs.docker.com/installation/>`_ to get it installed.
 
 Make sure it's working::
 
     sudo docker run -i -t ubuntu echo -e "OK";
 
 
-Mcloud installation
+mCloud installation
 ==========================
 
 .. note::
     Currently we provide packages for Ubuntu trusty 14.04 only.
-    If you need to install mcloud on other OS, install it from source: :ref:`from_source`
+    If you need to install on any other version follow: :ref:`from_source`
 
 
-Add modera ubuntu repository::
+Add Modera Ubuntu repository::
 
     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1B322208
     echo "deb http://apt.mcloud.io/ trusty main" > /etc/apt/sources.list.d/modera.list
 
-Add haproxy repository::
+Add Haproxy repository::
 
     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1C61B9CD
     echo "deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main" >> /etc/apt/sources.list.d/haproxy.list
 
 
-Install mcloud::
+Install mCloud::
 
     apt-get update && apt-get install mcloud
 
 
-Installing required software
+Installing required dependencies
 =======================================
 
-redis-server
+Redis server
 ------------------------------
 
-Install redis::
+Redis is used to cache the deployment configuration that is initially fed from the *mcloud.yml* files.
+
+Install Redis::
 
     sudo apt-get install redis-server
 
 
-Install dnsmasq server
+Install Dnsmasq server
 ------------------------------
 
-dnsmasq acts as dns proxy for local machine, we will configure it to proxify all request
-to outer dns servers, except mcloud.lh subdomain.
+Dnsmasq acts as DNS proxy for local machine, we will configure it to proxify all requests
+to outer DNS servers, except *mcloud.lh* subdomain.
 
-Install dnamasq:
+Install Dnsmasq::
 
     sudo apt-get install dnsmasq
 
-Replace content of /etc/dnsmasq.conf file with following 3 lines::
+Replace content of */etc/dnsmasq.conf* file with following 3 lines::
 
     interface=lo
     interface=docker0
     server=/mcloud.lh/172.17.42.1#7053
 
-Replace '172.17.42.1' with your docker interface ip. You can get it using ifconfig command::
+Replace *172.17.42.1* with your docker interface IP. You can get it using *ifconfig*::
 
     $ ifconfig docker0
 
-Start dnsmasq server::
+Start Dnsmasq server::
 
     $ sudo service dnsmasq start
 
 
-Checking installation
+Verify installation
 =======================================
 
-
-Just start mcloud shell::
+Just start mCloud shell::
 
     $ mcloud
 
     mcloud: ~@me>
 
-Hit Ctrl+D to exit mcloud shell.
+Hit Ctrl+D to exit.

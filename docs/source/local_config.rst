@@ -1,15 +1,13 @@
 
 ==========================================
-Create config for your MCloud application
+mcloud.yml file
 ==========================================
 
-Every applicatioin in mcloud runs inside one or several containers.
-To describe those containers we will use mcloud.yml configuration file.
+Every application in mCloud runs inside one or several Docker containers. To describe those containers we  use *mcloud.yml* configuration file.
 
-Syntax is very easy and you may already be familiar with it, if you ever tried docker's Fig.
+Syntax is very easy and you may already be familiar with it if you ever tried Docker's Fig.
 
-Example mcoud.yml::
-
+Example mcloud.yml::
 
     redis:
         image: redis
@@ -27,30 +25,26 @@ Example mcoud.yml::
         volumes:
             nginx.conf: /etc/nginx.conf
 
-Each top level key is service name. You can give containers any name. It should be short, descriptive, and unique per
-application.
+Each top level key is the service name. You can give containers any name. It should be short, descriptive, and unique per application. As these are used to create internal hostnames for services please keep in mind to keep the names clear of any special characters.
 
 .. _single_process:
 .. note::
-    Each container should run only one process.
+    Each container should run only one process. This provides lot of flexibility and ease debugging and application configuration. For example, scaling is not possible if you have more than one process inside containers.
 
-    This provides lot of flexibility and ease debugging and application configuration.
-    For example, scaling is not possible if you have more than one process inside containers.
 
 Selecting services to run
 ==========================
 
 Before configuring containers, you should know what kind of containers you really need.
-Here is we give several layout containers, to give you an idea what you may need
+Here we give several container layouts, to give you an idea what you may need
 for your application.
+
 
 Static web page
 -------------------------
 Bunch of html files, images, css.
 
-You need:
-
-- http server that can serve static quickly
+You need a http server that can serve static quickly.
 
 Containers:
 
@@ -64,9 +58,10 @@ Config::
             nginx.conf: /etc/nginx.conf
         ...
 
-Dynamic appliction application
+
+Dynamic application
 --------------------------------
-Nodejs/php/python/java backend and some static folder with files (css js)
+Nodejs/php/python/java backend and some static folder with files (css js).
 
 You may need:
 
@@ -77,40 +72,40 @@ You may need:
 - cache
 - outgoing mail server
 
-Containers that would be useful:
+Containers:
 
 - nginx or lighthttpd container  (https://registry.hub.docker.com/_/nginx/)
 - application server of your choice:
-
    - for php - php-fpm (https://registry.hub.docker.com/_/php/)
    - for java, tomcat, jetty, etc. (https://registry.hub.docker.com/_/java/)
    - for python, gunicorn, uwsgi, etc.. (https://registry.hub.docker.com/_/python/)
    - for ruby, unicorn .. (https://registry.hub.docker.com/_/ruby/)
    - ...
-
 - cron, same as application server, but specify "cmd: cron -f"
 - mysql, postgree, oracle, some other (https://registry.hub.docker.com/_/mysql/)
 - postfix (https://registry.hub.docker.com/u/catatnight/postfix/)
 - memcache/redis (https://registry.hub.docker.com/_/redis/)
 
-Depending on application complexity, container set ay vary, but you get in idea.
+Depending on application complexity, container set may vary, but you get an idea.
+
 
 Selecting an image for each container
 ======================================
 
 Main thing to configure is what image to use inside container.
-There is two options:
+There are two options:
 
 1) Use "image:" to use one of prebuilt containers available in `https://registry.hub.docker.com/`
-2) Build your own imgae with "build:" directive, to specify dicrectory, where
+2) Build your own image with "build:" directive, to specify directory, where
    Dockerfile is stored.
+
 
 Attaching volumes
 =======================
 
 Parts of your containers that contain dynamic data, should be mounted as volumes.
 
-Also volumes allow to syncronize, backup and restore parts of container filesystem.
+Also volumes allow to synchronize, backup and restore parts of container filesystem.
 
 Examples of when you should use volumes:
 
@@ -138,11 +133,11 @@ Example volumes usage:
 Volumes may be used to share files between containers. If you mount same folder into two different containers,
 they will see changes of each other.
 
+
 Command
 ==============
 
-Every container run single command inside container.
-Command should run single command, that shouldn't daemonize.
+Every container run single command inside container. Container should run single command, that shouldn't daemonize.
 
 Command to run is specified using "cmd:" directive.
 
@@ -159,10 +154,11 @@ Example commands:
 
 Bash scripts
 ----------------
+
 executing bash scripts maybe very useful when you need to do some preparations before actual
 application start.
 
-Example, you may install dependencies in bash script, just before app start::
+For example, you may install dependencies in bash script, just before app start::
 
     #!/bin/bash
     # this is statt_my_app.sh
@@ -173,6 +169,7 @@ Example, you may install dependencies in bash script, just before app start::
     php-fpm  # run php, this will block
 
 Run it as "cmd: bash statt_my_app.sh"
+
 
 Common rules for command
 ---------------------------
@@ -209,8 +206,3 @@ Example::
     env:
         MY_NICE_VAR: 123
         ANOTHER: just some text
-
-
-
-
-

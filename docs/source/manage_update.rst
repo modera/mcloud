@@ -1,12 +1,12 @@
 
 
-Updating mlcoud
+Updating mCloud
 ============================================
 
-Mcloud install from packages
+mCloud install from packages
 ----------------------------------
 
-To update mcloud::
+To update::
 
     $ apt-get update && apt-get install mcloud
 
@@ -15,9 +15,8 @@ And restart service::
     $ sudo service mcloud restart
 
 
-Manualy installed mcloud update
+Manualy installed mCloud update
 ----------------------------------
-
 
 Update is easy::
 
@@ -28,15 +27,13 @@ And restart service::
     $ sudo service mcloud restart
 
 
-Source installed mcloud update
+Source installed mCloud update
 ----------------------------------
 
-Update mcloud and dependencies::
+Update mCloud and dependencies::
 
     $ sudo /opt/mcloud/bin/pip install -U mcloud
 
 And restart service::
 
     $ sudo service mcloud restart
-
-

@@ -1,13 +1,13 @@
 
 
 ===========================================
-Deploying applications to remote server
+Deploying to remote server
 ===========================================
 
-MCloud allows to deploy application to remote servers, same easily
+mCloud allows to deploy application to remote servers, same easily
 as to localserver, without any code modification.
 
-Before deploy mcloud, you need to prepare server. Server needed is any
+Before deploy mCloud, you need to prepare server. Server needed is any
 virtualmachine with ubuntu 14.04x64 on board.
 
 Here is quickstart for common cloud providers:
@@ -20,9 +20,8 @@ Here is quickstart for common cloud providers:
 
 .. note::
 
-    AWS has Free Tier program that allow to try AWS & mcloud for free and host one simple site
-    free forever.
-    However DigitalOcean has more democratic pricing and easier user interface.
+    *AWS* has Free Tier program that allow to try AWS & mCloud for free and host one simple site
+    free forever. However, *DigitalOcean* has more democratic pricing and easier user interface.
 
 
 After you have a remote servers dig into one of this topics:
@@ -36,4 +35,3 @@ After you have a remote servers dig into one of this topics:
     remote_remove.rst
     remote_zero_down.rst
     remote_ssl.rst
-

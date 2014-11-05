@@ -1,5 +1,7 @@
-Deploying hello website
+Deploy Hello World
 =======================
+
+This guide shows how to set up the simplest possible deployment on mCloud - a webserver with one static page in it.
 
 .. note::
     You can get example code in "hello" folder from our samples repository https://github.com/modera/mcloud-samples/
@@ -108,7 +110,7 @@ Contents of *index.html* file should be displayed. You should see same output if
 
 If you are running mCloud natively on **Linux**, then opening url in browser should just work.
 
-If you run mCloud on **Vagrant** then add following into your operating system *hosts* file (/etc/hosts on *nix systems, C:\Windows\system32\drivers\etc\hosts on Windows)::
+If you run mCloud on **Vagrant** then add following into your operating system *hosts* file (/etc/hosts on *nix systems, C:\\Windows\\system32\\drivers\\etc\\hosts on Windows)::
 
     192.168.70.2    hello.mcloud.lh
 
