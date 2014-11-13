@@ -3,7 +3,6 @@ import sys
 import netifaces
 
 import inject
-from mcloud.application import ApplicationVolumeResolver
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
@@ -11,7 +10,6 @@ import txredisapi
 from twisted.python import log
 from mcloud.plugins.internal_api import InternalApiPlugin
 from mcloud.plugins.metrics import MetricsPlugin
-from mcloud.sync.server import FileServer
 from mcloud.util import txtimeout
 
 
@@ -126,10 +124,6 @@ def entry_point():
         log.msg('Starting rpc listener on port %d' % rpc_port)
         server = Server(port=rpc_port)
         server.bind()
-
-        log.msg('Starting file listener on port %d' % file_port)
-        file_server = FileServer(host='0.0.0.0', port=file_port, file_resolver=ApplicationVolumeResolver())
-        file_server.bind()
 
         log.msg('Dumping resolv conf')
 

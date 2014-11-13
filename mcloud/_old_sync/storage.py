@@ -123,26 +123,6 @@ class VolumeStorageLocal(object):
         _remove_path(real_path)
 
 
-def get_storage(ref):
-    match = re.match('^((%(app_regex)s)\.)?(%(service_regex)s)@([a-z0-9A-Z\-\.]+)(:([0-9]+))?(:(.*))?$' % {
-        'app_regex': Application.APP_REGEXP,
-        'service_regex': Application.SERVICE_REGEXP,
-    }, ref)
-    if match:
-        service = match.group(2)
-        app = match.group(3)
-        host = match.group(4)
-        port = match.group(6) or 7081
-        port = int(port)
-        volume = match.group(8)
-
-        # if not re.match('^[0-9\.]+$', host):
-        #     host = BlockingResolver().getHostByName(host)
-
-        return VolumeStorageRemote(host, port, app_name=app, service=service, volume=volume)
-    else:
-        return VolumeStorageLocal(ref)
-
 
 def print_diff(volume_diff):
     cnt = 0
@@ -162,57 +142,20 @@ def diff_has_changes(volume_diff):
     return volume_diff['new'] or volume_diff['upd'] or volume_diff['del']
 
 @inlineCallbacks
-def storage_sync(src, dst, confirm=False, verbose=False, remove=False, full=False):
-    start = time()
+def storage_sync(src, dst, confirm=False, verbose=False, remove=False, full=True):
 
-    if verbose:
-        print('Calculating volume differences')
+    tmp_path = mkdtemp()
 
-    if verbose:
-        print('Taking local snapshot')
-    snapshot_src = yield src.get_snapshot()
-    if full:
-        snapshot_dst = {}
-    else:
-        if verbose:
-            print('Taking remote snapshot')
-        snapshot_dst = yield dst.get_snapshot()
+    try:
+        print 'Download'
+        yield src.download(paths_to_upload, tmp_path)
+        print 'Upload'
+        yield dst.upload(paths_to_upload, tmp_path)
 
-    volume_diff = compare(snapshot_src, snapshot_dst, drift=(time() - start), full=full)
-
-    if not remove:
-        volume_diff['del'] = []
-
-    if not diff_has_changes(volume_diff):
-        print('Files are in sync already.')
-        return
-
-    if confirm:
-        diff_len, diff = print_diff(volume_diff)
-        if diff_len > 30:
-            if query_yes_no('Too much changes - can\'t print. Open with less?', default='yes'):
-                pydoc.pager('Changes to be applied (press q for exit, and then confirm with y/n):%s' % diff)
-        else:
-            print diff
-
-        if not query_yes_no('Apply changes?', default='no'):
-            return
-
-    paths_to_upload = volume_diff['new'] + volume_diff['upd']
-
-    if len(paths_to_upload):
-        tmp_path = mkdtemp()
-
-        try:
-            print 'Download'
-            yield src.download(paths_to_upload, tmp_path)
-            print 'Upload'
-            yield dst.upload(paths_to_upload, tmp_path)
-
-        finally:
-            if len(paths_to_upload):
-                rmtree(tmp_path)
-            pass
+    finally:
+        if len(paths_to_upload):
+            rmtree(tmp_path)
+        pass
 
     for path in volume_diff['del']:
         print('Removing %s' % path)

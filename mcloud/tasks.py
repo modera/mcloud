@@ -1,4 +1,9 @@
 import inspect
+import random
+import string
+from mcloud.container import PrebuiltImageBuilder
+from mcloud.service import Service
+from mcloud.sync import VolumeNotFound
 import os
 
 import re
@@ -341,6 +346,83 @@ class TaskService(object):
         self.event_bus.once('task.failure.%s' % ticket_id, d.cancel)
 
         return d
+
+
+    @inlineCallbacks
+    def task_sync_stop(self, ticket_id, app_name, sync_ticket_id):
+        s = Service()
+        s.app_name = app_name
+        s.name = '%s_%s_%s' % (app_name, '_rsync_', sync_ticket_id)
+
+        yield s.inspect()
+
+        if s.is_running():
+            self.task_log(ticket_id, 'Stopping rsync container.')
+            yield s.stop(ticket_id)
+
+        if s.is_created():
+            self.task_log(ticket_id, 'Destroying rsync container.')
+            yield s.destroy(ticket_id)
+
+
+    @inlineCallbacks
+    def task_sync(self, ticket_id, app_name, service_name, volume):
+
+        app = yield self.app_controller.get(app_name)
+
+        config = yield app.load()
+
+
+        s = Service()
+        s.app_name = app_name
+        s.name = '%s_%s_%s' % (app_name, '_rsync_', ticket_id)
+        s.image_builder = PrebuiltImageBuilder(image='modera/rsync')
+        s.ports = [873]
+
+        if service_name:
+
+            if not volume:
+                raise VolumeNotFound('In case of service name is provided, volume name is mandatory!')
+
+            services = config.get_services()
+
+            service_full_name = '%s.%s' % (service_name, app_name)
+            try:
+                service = services[service_full_name]
+
+                all_volumes = service.list_volumes()
+                if not volume in all_volumes:
+                    raise VolumeNotFound('Volume with name %s no found!' % volume)
+
+                volume_name = all_volumes[volume]
+                s.volumes_from = service_full_name
+
+            except KeyError:
+                raise VolumeNotFound('Service with name %s was not found!' % service_name)
+
+        else:
+            s.volumes = [{
+                'local': app.config['path'],
+                'remote': '/volume'
+            }]
+            volume_name = '/volume'
+
+        s.env = {
+            'USERNAME': ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(32)),
+            'PASSWORD': ''.join(random.choice(string.ascii_lowercase + string.punctuation + string.digits) for _ in range(32)),
+            'ALLOW': '*'
+        }
+
+        yield s.start(ticket_id)
+
+        defer.returnValue({
+            'env': s.env,
+            'container': s.name,
+            'port': s.public_ports()['873'][0]['HostPort'],
+            'volume': volume_name,
+            'ticket_id': ticket_id
+        })
+
 
 
     @inlineCallbacks

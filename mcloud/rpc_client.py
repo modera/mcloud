@@ -2,11 +2,12 @@ import json
 import sys
 import uuid
 import argparse
+import subprocess
+from decorator import contextmanager
 from mcloud.application import Application
 from mcloud.attach import AttachStdinProtocol
 from mcloud.config import YamlConfig
-from mcloud.sync.client import FileServerError
-from mcloud.sync.storage import get_storage, storage_sync
+from mcloud.sync import get_storage, rsync_folder
 from mcloud.util import txtimeout
 
 import re
@@ -124,6 +125,14 @@ class ApiRpcClient(object):
 
         self.current_client = None
         self.current_task = None
+
+    @contextmanager
+    def override_host(self, host):
+        back = self.host
+        self.host = host
+        yield
+        self.host = back
+
 
     @inlineCallbacks
     def _remote_exec(self, task_name, *args, **kwargs):
@@ -674,7 +683,6 @@ class ApiRpcClient(object):
 
 
 
-
     ############################################################
     # File synchronization
     ############################################################
@@ -682,17 +690,25 @@ class ApiRpcClient(object):
     @cli('Push appliction volume application', arguments=(
         arg('source', help='Push source'),
         arg('destination', help='Push destination'),
-        arg('--no-remove', help='Disable remove files', default=False, action='store_true'),
-        arg('--force', help='Don\'t ask confirmation', default=False, action='store_true'),
-        arg('--full', help='Copy over all the files without diff', default=False, action='store_true'),
+        arg('--path', help='Subpath to synchronize', default=None),
+        arg('--no-remove', help='Disable removing files on destination', default=False, action='store_true'),
+        arg('--update', help='Compare modification time and size, skip if match.', default=False, action='store_true'),
+        arg('--watch', help='Keep watching and uploading changed files', default=False, action='store_true'),
     ))
     @inlineCallbacks
-    def sync(self, source, destination, no_remove, force, full, **kwargs):
+    def sync(self, source, destination, **kwargs):
 
-        src = get_storage(source)
-        dst = get_storage(destination)
+        src_type, src_args = get_storage(source)
+        dst_type, dst_args = get_storage(destination)
 
-        yield storage_sync(src, dst, confirm=not force, verbose=True, remove=not no_remove, full=full)
+        if src_type == 'remote' and dst_type == 'local':
+            yield rsync_folder(self, src_args, dst_args, options=kwargs)
+
+        elif src_type == 'local' and dst_type == 'remote':
+            yield rsync_folder(self, dst_args, src_args, reverse=True, options=kwargs)
+
+        else:
+            print('%s to %s is not supported' % (src_type, dst_type))
 
 
     ############################################################

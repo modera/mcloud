@@ -4,7 +4,6 @@ import logging
 import re
 import inject
 from mcloud.config import YamlConfig, ConfigParseError
-from mcloud.sync.utils import VolumeNotFound
 import os
 from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks
