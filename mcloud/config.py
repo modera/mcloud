@@ -3,6 +3,7 @@ from copy import deepcopy
 import json
 import collections
 from abc import abstractmethod
+from shutil import copyfile
 from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
 from mcloud.util import Interface
 import os
@@ -260,6 +261,18 @@ class YamlConfig(IConfig):
 
             # expose mcloud api
             s.volumes.append({'local': '/var/run/mcloud', 'remote': '/var/run/mcloud'})
-            s.volumes.append({'local': dirname(__file__) + '/api.py', 'remote': '/usr/bin/@me'})
+
+            # prevents monting paths with versions inside
+            # like "/usr/share/python/mcloud/lib/python2.7/site-packages/mcloud-0.7.11-py2.7.egg/mcloud/api.py"
+            if os.path.exists('/var/mcloud_api.py') or os.access('/var/', os.W_OK):
+                # copy to some constant location
+                copyfile(dirname(__file__) + '/api.py', '/var/mcloud_api.py')
+                # prevents write by others
+                os.chmod('/var/mcloud_api.py', 0755)
+                # then mount
+                s.volumes.append({'local': '/var/mcloud_api.py', 'remote': '/usr/bin/@me'})
+            else:
+                # seems to be we are in unprivileged mode (dev?), so just mount as it is
+                s.volumes.append({'local': dirname(__file__) + '/api.py', 'remote': '/usr/bin/@me'})
 
             self.services[name] = s
