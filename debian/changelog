@@ -1,4 +1,4 @@
-mcloud (0.7.11-1) UNRELEASED; urgency=medium
+mcloud (0.8.1-1) trusty; urgency=medium
 
   * New version
   * Merge branch master of github.com:modera/mcloud
@@ -19,8 +19,13 @@ mcloud (0.7.11-1) UNRELEASED; urgency=medium
   * Minor changes in docs
   * [docs] mcloud-rpc-server -
   * Docs update
+  * Fixed tests
+  * CLOUD-60: fix problem with version updates on ubuntu and @me
+    command.
+  * Merge branch master of github.com:modera/mcloud
+  * Cleanup docker container
 
- -- Alex <alex@alex-Precision-T1650>  Thu, 06 Nov 2014 13:17:44 +0200
+ -- Alex <alex@alex-Precision-T1650>  Fri, 14 Nov 2014 09:28:53 +0200
 
 mcloud (0.7.9-1) trusty; urgency=medium
 
@@ -107,5 +112,8 @@ mcloud (0.5.18-6) trusty; urgency=medium
   * Add symlink to bin directory 
   * Fixing broken package 
   * Improved package structure to use debhelper better
+
+ -- Alex Rudakov <ribozz@gmail.com>  Thu, 09 Oct 2014 12:27:46 +0300
+er better
 
  -- Alex Rudakov <ribozz@gmail.com>  Thu, 09 Oct 2014 12:27:46 +0300

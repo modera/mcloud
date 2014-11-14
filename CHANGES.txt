@@ -1,20 +1,28 @@
+0.8.1 2014-11-14T09:24:40.263009
+    *Fixed tests
+    *CLOUD-60: fix problem with version updates on ubuntu and @me command.
+    *Rsync based sync + --watch
+    *Merge branch 'master' of github.com:modera/mcloud
+    *Cleanup docker container & images
+    *Refining docs, clearing typos. Updated the docs layout page and styles.
+
 0.7.11 2014-11-06T13:17:44.158563
     *Merge branch 'master' of github.com:modera/mcloud
-	    *Cleanup docker container & images
-	    *Refining docs, clearing typos. Updated the docs layout page and styles.
-	    *Removed extra deps from docs generator
-	    *Merge
-	    *Try to fix broken tests
-	    *Fixing stupid Sphinx format quirks.
-	    *Fixing docs formatting problems.
-	    *Getting started docs improvements.
-	    *Tests fixes
-	    *[CLOUD-17] Fix error on 'bad path' in 'build:', better error output
-	    *[CLOUD-21] Name checking for application + snapshot errors, in better way
-	    *Merge branch 'master' of github.com:modera/mcloud
-	    *Minor changes in docs
-	    *[docs] mcloud-rpc-server -> mcloud-server
-	    *Docs update
+    *Cleanup docker container & images
+    *Refining docs, clearing typos. Updated the docs layout page and styles.
+    *Removed extra deps from docs generator
+    *Merge
+    *Try to fix broken tests
+    *Fixing stupid Sphinx format quirks.
+    *Fixing docs formatting problems.
+    *Getting started docs improvements.
+    *Tests fixes
+    *[CLOUD-17] Fix error on 'bad path' in 'build:', better error output
+    *[CLOUD-21] Name checking for application + snapshot errors, in better way
+    *Merge branch 'master' of github.com:modera/mcloud
+    *Minor changes in docs
+    *[docs] mcloud-rpc-server -> mcloud-server
+    *Docs update
 
 0.7.10 2014-11-06T13:15:45.564089
     *New version
