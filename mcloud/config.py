@@ -67,9 +67,11 @@ class OrderedDictYAMLLoader(yaml.Loader):
             mapping[key] = value
         return mapping
 
+
+
 class YamlConfig(IConfig):
 
-    def __init__(self, file=None, source=None, app_name=None, path=None):
+    def __init__(self, file=None, source=None, app_name=None, path=None, env=None):
 
         if not file is None:
             if not os.path.exists(str(file)):
@@ -87,6 +89,8 @@ class YamlConfig(IConfig):
         self.services = OrderedDict()
 
         self.config = None
+
+        self.env = env
 
     def get_services(self):
         """
@@ -114,7 +118,7 @@ class YamlConfig(IConfig):
 
             path = self.path
 
-            self.prepare(config=cfg)
+            cfg = self.prepare(config=cfg)
 
             self.validate(config=cfg)
 
@@ -132,6 +136,22 @@ class YamlConfig(IConfig):
     def export(self):
         return json.dumps(self.config)
 
+    def filter_env(self, config):
+        if not isinstance(config, dict):
+            return config
+
+        result = OrderedDict()
+        for key, val in config.items():
+            if key[0] == '~':
+                if key[1:] == self.env:
+                    if not isinstance(val, dict):
+                        raise TypeError('Child items of ~xxx elements must be dictionaries')
+                    result.update(self.filter_env(val))
+            else:
+                result[key] = self.filter_env(val)
+
+        return result
+
     def prepare(self, config):
         """
         Apply preprocessing to yaml config
@@ -140,6 +160,8 @@ class YamlConfig(IConfig):
         :return:
         """
 
+        config = self.filter_env(config)
+
         for service, cfg in config.items():
             if 'extend' in cfg:
                 new_config = deepcopy(config[cfg['extend']])
@@ -147,6 +169,8 @@ class YamlConfig(IConfig):
                 del new_config['extend']
 
                 config[service] = new_config
+
+        return config
 
     def validate(self, config):
         try:
@@ -226,6 +250,8 @@ class YamlConfig(IConfig):
 
     def process_env_build(self, service, config, path):
         service.env = {}
+        if self.env:
+            service.env['env'] = self.env
 
         if 'env' in config and len(config['env']):
             for name, val in config['env'].items():
@@ -265,12 +291,16 @@ class YamlConfig(IConfig):
             # prevents monting paths with versions inside
             # like "/usr/share/python/mcloud/lib/python2.7/site-packages/mcloud-0.7.11-py2.7.egg/mcloud/api.py"
             if os.path.exists('/var/mcloud_api.py') or os.access('/var/', os.W_OK):
-                # copy to some constant location
-                copyfile(dirname(__file__) + '/api.py', '/var/mcloud_api.py')
-                # prevents write by others
-                os.chmod('/var/mcloud_api.py', 0755)
-                # then mount
-                s.volumes.append({'local': '/var/mcloud_api.py', 'remote': '/usr/bin/@me'})
+
+                try:
+                    # copy to some constant location
+                    copyfile(dirname(__file__) + '/api.py', '/var/mcloud_api.py')
+                    # prevents write by others
+                    os.chmod('/var/mcloud_api.py', 0755)
+                    # then mount
+                    s.volumes.append({'local': '/var/mcloud_api.py', 'remote': '/usr/bin/@me'})
+                except IOError:
+                    s.volumes.append({'local': dirname(__file__) + '/api.py', 'remote': '/usr/bin/@me'})
             else:
                 # seems to be we are in unprivileged mode (dev?), so just mount as it is
                 s.volumes.append({'local': dirname(__file__) + '/api.py', 'remote': '/usr/bin/@me'})

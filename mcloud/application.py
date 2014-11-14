@@ -29,8 +29,13 @@ class Application(object):
     def load(self, need_details=False):
 
         try:
+            if 'env' in self.config and self.config['env']:
+                env = self.config['env']
+            else:
+                env = 'dev'
+
             if 'source' in self.config:
-                yaml_config = YamlConfig(source=self.config['source'], app_name=self.name, path=self.config['path'])
+                yaml_config = YamlConfig(source=self.config['source'], app_name=self.name, path=self.config['path'], env=env)
             elif 'path' in self.config:
                 yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mcloud.yml'), app_name=self.name, path=self.config['path'])
             else:
@@ -122,10 +127,13 @@ class ApplicationController(object):
         defer.returnValue(Application(config, name=name))
 
     @defer.inlineCallbacks
-    def update_source(self, name, source, skip_validation=False):
+    def update_source(self, name, source, skip_validation=False, env=None):
 
         app = yield self.get(name)
         app.config.update({'source': source})
+
+        if env:
+            app.config.update({'env': env})
 
         # validate first by crating application instance
         if not skip_validation:

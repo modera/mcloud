@@ -15,7 +15,7 @@ def test_none_to_parser():
     YamlConfig()
 
 
-def test_load_config_prepare(tmpdir):
+def test_load_config_prepare():
     config = {
         'foo': {
             'image': 'foo',
@@ -33,9 +33,9 @@ def test_load_config_prepare(tmpdir):
 
     yc = YamlConfig()
 
-    yc.prepare(config)
+    processed = yc.prepare(config)
 
-    assert config['bar'] == {
+    assert processed['bar'] == {
         'image': 'foo',
         'env': {
             'bar': 'baz'
@@ -43,6 +43,67 @@ def test_load_config_prepare(tmpdir):
         'cmd': 'other'
     }
 
+def test_filter_env_non_dict():
+    """
+    pass through non-dict elements
+    """
+    yc = YamlConfig(env='xx')
+    result = yc.filter_env('foo')
+    assert result == 'foo'
+
+def test_filter_env_dict_no_env():
+    """
+    pass through dict elements without ~
+    """
+    yc = YamlConfig(env='xx')
+    flexmock(yc).should_call('filter_env').with_args({'foo': 'bar'}).once()
+    flexmock(yc).should_call('filter_env').with_args('bar').once()
+    result = yc.filter_env({'foo': 'bar'})
+
+    assert result == {'foo': 'bar'}
+
+def test_filter_env_remove():
+    """
+    ~xxx syntax: remove elements that not match
+    """
+    yc = YamlConfig(env='xx')
+    result = yc.filter_env({
+        '~foo': 'bar'
+    })
+    assert result == {}
+
+def test_filter_env_non_dict_in_match():
+    """
+    ~xxx syntax: should contain dict
+    """
+    yc = YamlConfig(env='foo')
+
+    with pytest.raises(TypeError):
+        yc.filter_env({
+            '~foo': 'bar'
+        })
+
+def test_filter_env_keep():
+    """
+    ~xxx syntax: keep elements that match
+    """
+    yc = YamlConfig(env='foo')
+    flexmock(yc).should_call('filter_env').with_args({'~foo': {'bar': 'baz'}}).once().and_return({'bar': 'baz'})
+    flexmock(yc).should_call('filter_env').with_args({'bar': 'baz'}).once().and_return({'bar': 'baz'})
+    flexmock(yc).should_call('filter_env').with_args('baz').once().and_return('baz')
+    result = yc.filter_env({
+        '~foo': {'bar': 'baz'}
+    })
+    assert result == {'bar': 'baz'}
+
+
+def test_load_config_prepare_env():
+    yc = YamlConfig(env='myenv')
+
+    flexmock(yc).should_receive('filter_env').with_args({'foo': {'bar': 'baz'}}).once().and_return({'fas': {'bar': 'baz'}})
+    processed = yc.prepare({'foo': {'bar': 'baz'}})
+
+    assert processed == {'fas': {'bar': 'baz'}}
 
 def test_load_config(tmpdir):
     p = tmpdir.join('mcloud.yml')
@@ -50,18 +111,18 @@ def test_load_config(tmpdir):
 
     config = YamlConfig(file=p.realpath(), app_name='myapp')
 
-    flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once()
-    flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
-    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar')]), path=None, app_name='myapp').once()
+    flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once().and_return({'foo': 'bar1'})
+    flexmock(config).should_receive('validate').with_args({'foo': 'bar1'}).once()
+    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar1')]), path=None, app_name='myapp').once()
     config.load()
 
 
 def test_load_config_from_config():
     config = YamlConfig(source='{"foo": "bar"}', app_name='myapp')
 
-    flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once()
-    flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once()
-    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar')]), path=None, app_name='myapp').once()
+    flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once().and_return({'foo': 'bar1'})
+    flexmock(config).should_receive('validate').with_args({'foo': 'bar1'}).once()
+    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar1')]), path=None, app_name='myapp').once()
     config.load()
 
 
@@ -71,8 +132,8 @@ def test_load_config_not_valid(tmpdir):
 
     config = YamlConfig(file=p.realpath(), app_name='myapp')
 
-    flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once()
-    flexmock(config).should_receive('validate').with_args({'foo': 'bar'}).once().and_raise(ValueError('boo'))
+    flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once().and_return({'foo': 'bar1'})
+    flexmock(config).should_receive('validate').with_args({'foo': 'bar1'}).once().and_raise(ValueError('boo'))
     flexmock(config).should_receive('process').times(0)
 
     with pytest.raises(ConfigParseError):
@@ -306,15 +367,15 @@ def test_build_build_env_empty():
 
 def test_build_build_env_none():
     s = Service()
-    c = YamlConfig()
+    c = YamlConfig(env='dev')
 
     c.process_env_build(s, {}, '/base/path')
-    assert s.env == {}
+    assert s.env == {'env': 'dev'}
 
 
 def test_build_build_env_several():
     s = Service()
-    c = YamlConfig()
+    c = YamlConfig(env='prod')
 
     c.process_env_build(s, {'env': {
         'foo1': 'bar1',
@@ -323,6 +384,7 @@ def test_build_build_env_several():
     }}, '/base/path')
 
     assert s.env == {
+        'env': 'prod',
         'foo1': 'bar1',
         'foo2': 'bar2',
         'foo3': 'bar3',
