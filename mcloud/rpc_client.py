@@ -3,7 +3,7 @@ import sys
 import uuid
 import argparse
 import subprocess
-from decorator import contextmanager
+from contextlib import contextmanager
 from mcloud.application import Application
 from mcloud.attach import AttachStdinProtocol
 from mcloud.config import YamlConfig
@@ -432,10 +432,11 @@ class ApiRpcClient(object):
     @cli('Creates a new application', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
         arg('path', help='Path', nargs='?', default='.'),
-        arg('--config', help='Config to use', nargs='?', default=None),
+        arg('--env', help='Application environment'),
+        arg('--config', help='Config to use', default=None),
     ))
     @inlineCallbacks
-    def init(self, ref, path, config=None, **kwargs):
+    def init(self, ref, path, config=None, env=None, **kwargs):
 
         app, service = self.parse_app_ref(ref, kwargs, app_only=True)
 
@@ -448,7 +449,7 @@ class ApiRpcClient(object):
         config.load(process=False)
 
         if self.host != '127.0.0.1':
-            success = yield self._remote_exec('init', app, config=config.export())
+            success = yield self._remote_exec('init', app, config=config.export(), env=env)
             if success:
                 yield self.sync(path, '%s@%s' % (app, self.host), no_remove=False, force=True, full=True)
         else:
@@ -457,10 +458,11 @@ class ApiRpcClient(object):
     @cli('Update application configuration', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
         arg('path', help='Path', nargs='?', default='.'),
+        arg('--env', help='Application environment'),
         arg('--config', help='Config to use', nargs='?', default=None),
     ))
     @inlineCallbacks
-    def update(self, ref, path, config=None, **kwargs):
+    def update(self, ref, path, config=None, env=None, **kwargs):
 
         app, service = self.parse_app_ref(ref, kwargs, app_only=True)
 
@@ -472,7 +474,7 @@ class ApiRpcClient(object):
         config = YamlConfig(file=config_file, app_name=app)
         config.load(process=False)
 
-        yield self._remote_exec('update', app, config=config.export())
+        yield self._remote_exec('update', app, config=config.export(), env=env)
 
 
     ############################################################
