@@ -394,7 +394,7 @@ class TaskService(object):
                 if not volume in all_volumes:
                     raise VolumeNotFound('Volume with name %s no found!' % volume)
 
-                volume_name = all_volumes[volume]
+                volume_name = volume
                 s.volumes_from = service_full_name
 
             except KeyError:
