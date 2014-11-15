@@ -43,7 +43,7 @@ class TaskService(object):
         pass
 
     @inlineCallbacks
-    def task_init(self, ticket_id, name, path=None, config=None):
+    def task_init(self, ticket_id, name, path=None, config=None, env=None):
         """
         Initialize new application
 
@@ -52,10 +52,6 @@ class TaskService(object):
         :param path: Path to the application
         :return:
         """
-
-        print name
-        print path
-        print config
 
         app = None
         try:
@@ -75,12 +71,12 @@ class TaskService(object):
             if not os.path.exists(path):
                 os.makedirs(path, 0700)
 
-        yield self.app_controller.create(name, {'path': path, 'source': config})
+        yield self.app_controller.create(name, {'path': path, 'source': config, 'env': env})
 
         defer.returnValue(True)
 
     @inlineCallbacks
-    def task_update(self, ticket_id, name, config=None):
+    def task_update(self, ticket_id, name, config=None, env=None):
         """
         Initialize new application
 
@@ -90,7 +86,7 @@ class TaskService(object):
         :return:
         """
 
-        yield self.app_controller.update_source(name, config)
+        yield self.app_controller.update_source(name, config, env=env)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
