@@ -43,6 +43,8 @@ class Application(object):
 
             yaml_config.load()
 
+            
+
             yield defer.gatherResults([service.inspect() for service in yaml_config.get_services().values()])
 
             if need_details:

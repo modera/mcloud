@@ -1,3 +1,8 @@
+0.8.2 2014-11-14T17:10:18.689901
+    *Merge branch 'master' into 0.8
+	    *CLOUD-9 ~xxx syntax in configs
+	    *New version deployed
+
 0.8.1 2014-11-14T09:24:40.263009
     *Fixed tests
     *CLOUD-60: fix problem with version updates on ubuntu and @me command.

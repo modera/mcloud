@@ -1,3 +1,11 @@
+mcloud (0.8.2-1) trusty; urgency=medium
+
+  * Merge branch master into 0.8
+  * CLOUD-9 ~xxx syntax in configs
+  * New version deployed
+
+ -- Alex <alex@alex-pc>  Fri, 14 Nov 2014 17:10:46 +0200
+
 mcloud (0.8.1-1) trusty; urgency=medium
 
   * New version
