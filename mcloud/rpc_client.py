@@ -337,8 +337,9 @@ class ApiRpcClient(object):
                 else:
                     raise ValueError('Can not parse application/service name')
 
-        if not app and require_app:
-            raise ValueError('You should provide application name.')
+        if not app:
+            app = os.path.basename(os.getcwd())
+            # raise ValueError('You should provide application name.')
 
         if service and app_only:
             raise ValueError('Command cannot be applied to single service')
@@ -689,9 +690,25 @@ class ApiRpcClient(object):
     # File synchronization
     ############################################################
 
-    @cli('Push appliction volume application', arguments=(
-        arg('source', help='Push source'),
-        arg('destination', help='Push destination'),
+    @cli('Push appliction volume', arguments=(
+        arg('volume', help='Volume name'),
+        arg('host', help='Host name', default=None, nargs='?'),
+        arg('--app', help='Application name', default=None),
+        arg('--path', help='Subpath to synchronize', default=None),
+        arg('--no-remove', help='Disable removing files on destination', default=False, action='store_true'),
+        arg('--update', help='Compare modification time and size, skip if match.', default=False, action='store_true'),
+        arg('--watch', help='Keep watching and uploading changed files', default=False, action='store_true'),
+    ))
+    @inlineCallbacks
+    def push(self, volume, host, **kwargs):
+        app, service = self.parse_app_ref(None, kwargs, app_only=True)
+        config = yield self._remote_exec('config', app)
+        print config
+
+
+    @cli('Syncronize application volumes', arguments=(
+        arg('source', help='source'),
+        arg('destination', help='destination'),
         arg('--path', help='Subpath to synchronize', default=None),
         arg('--no-remove', help='Disable removing files on destination', default=False, action='store_true'),
         arg('--update', help='Compare modification time and size, skip if match.', default=False, action='store_true'),

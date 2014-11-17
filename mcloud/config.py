@@ -98,6 +98,24 @@ class YamlConfig(IConfig):
         """
         return self.services
 
+    def get_volumes(self):
+        """
+        @rtype: dict[str, str]
+        """
+        try:
+            return self.config['@volumes']
+        except KeyError:
+            return {}
+
+    def get_hosts(self):
+        """
+        @rtype: dict[str, str]
+        """
+        try:
+            return self.config['@hosts']
+        except KeyError:
+            return {}
+
     def get_service(self, name):
         """
         @rtype: Service
@@ -188,7 +206,23 @@ class YamlConfig(IConfig):
                         basestring: basestring
                     },
 
-                    'cmd': basestring
+                    'cmd': basestring,
+
+                    '@volumes': {
+                        basestring: basestring
+                    },
+
+                    '@hosts': {
+                        basestring: basestring
+                    },
+
+                    '@events': {
+                        basestring: basestring
+                    },
+
+                    '@deploy': {
+                        basestring: [basestring]
+                    },
 
                 }
             })(config)

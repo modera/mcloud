@@ -116,7 +116,6 @@ def test_load_config(tmpdir):
     flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar1')]), path=None, app_name='myapp').once()
     config.load()
 
-
 def test_load_config_from_config():
     config = YamlConfig(source='{"foo": "bar"}', app_name='myapp')
 

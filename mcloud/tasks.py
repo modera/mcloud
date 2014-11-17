@@ -243,6 +243,24 @@ class TaskService(object):
 
 
     @inlineCallbacks
+    def task_config(self, ticket_id, name):
+        """
+        Show application detailed status
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
+        app = yield self.app_controller.get(name)
+        config = yield app.load()
+
+        defer.returnValue({
+            'hosts': config.get_hosts(),
+            'volumes': config.get_volumes(),
+        })
+
+
+    @inlineCallbacks
     def task_status(self, ticket_id, name):
         """
         Show application detailed status
