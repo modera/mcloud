@@ -86,6 +86,7 @@ setup(
         'confire',
         'scandir',
         'readline',
+        'datadiff',
         'bashutils'
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.

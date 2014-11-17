@@ -103,7 +103,7 @@ class YamlConfig(IConfig):
         @rtype: dict[str, str]
         """
         try:
-            return self.config['@volumes']
+            return self.config['$volumes']
         except KeyError:
             return {}
 
@@ -112,7 +112,7 @@ class YamlConfig(IConfig):
         @rtype: dict[str, str]
         """
         try:
-            return self.config['@hosts']
+            return self.config['$hosts']
         except KeyError:
             return {}
 
@@ -193,7 +193,7 @@ class YamlConfig(IConfig):
     def validate(self, config):
         try:
             Schema({
-                Required(basestring): {
+                basestring: {
                     'wait': int,
                     'image': basestring,
                     'build': basestring,
@@ -207,29 +207,37 @@ class YamlConfig(IConfig):
                     },
 
                     'cmd': basestring,
+                },
 
-                    '@volumes': {
-                        basestring: basestring
-                    },
+                '$volumes': {
+                    basestring: basestring
+                },
 
-                    '@hosts': {
-                        basestring: basestring
-                    },
+                '$hosts': {
+                    basestring: basestring
+                },
 
-                    '@events': {
-                        basestring: basestring
-                    },
+                '$events': {
+                    basestring: [basestring]
+                },
 
-                    '@deploy': {
-                        basestring: [basestring]
-                    },
+                '$deploy': {
+                    basestring: [basestring]
+                },
 
-                }
             })(config)
 
-            for service in config.values():
+            has_service = False
+            for key, service in config.items():
+                if key[0] == '$':
+                    continue
                 if not 'image' in service and not 'build' in service:
                     raise ValueError('You should define "image" or "build" as a vay to build a container.')
+
+                has_service = True
+            if not has_service:
+                raise ValueError('You should define at least one service')
+
         except MultipleInvalid as e:
             raise ValueError(e)
 
@@ -307,6 +315,9 @@ class YamlConfig(IConfig):
     def process(self, config, path, app_name=None):
 
         for name, service in config.items():
+            if name[0] == '$':
+                continue
+
             if app_name:
                 name = '%s.%s' % (name, app_name)
 

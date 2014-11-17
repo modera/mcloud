@@ -31,7 +31,7 @@ Deploy new code & structure to tenant B
 
     $ mcloud sync . tenantB_flask-redis@<ip-here>
     $ mcloud -h <ip-here> restart tenantB_flask-redis
-    $ mcloud -h <ip-here> update tenantB_flask-redis mcloud.yml
+    $ mcloud -h <ip-here> config --update tenantB_flask-redis
 
 Copy data from live server::
 

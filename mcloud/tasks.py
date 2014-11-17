@@ -86,7 +86,7 @@ class TaskService(object):
         :return:
         """
 
-        yield self.app_controller.update_source(name, config, env=env)
+        yield self.app_controller.update_source(name, source=config, env=env)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
@@ -255,6 +255,9 @@ class TaskService(object):
         config = yield app.load()
 
         defer.returnValue({
+            'path': app.config['path'],
+            'env': app.get_env(),
+            'source': app.config['source'],
             'hosts': config.get_hosts(),
             'volumes': config.get_volumes(),
         })

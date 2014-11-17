@@ -5,6 +5,7 @@ import signal
 from bashutils.colors import color_text
 import inject
 from mcloud.interrupt import InterruptManager
+from mcloud.remote import TaskFailure
 
 from mcloud.rpc_client import arg_parser, ApiRpcClient, ClientProcessInterruptHandler
 from mcloud.shell import mcloud_shell
@@ -92,7 +93,7 @@ def main(argv):
                 try:
                     yield getattr(client, args.func)(**vars(args))
                 except Exception as e:
-                    print '\n  %s\n' % color_text(e.message, color='yellow')
+                    print '\n  %s\n' % color_text('%s: %s' % (type(e), str(e)), color='yellow')
 
                 interrupt_manager.manual_interrupt()
 

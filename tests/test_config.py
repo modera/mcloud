@@ -171,6 +171,38 @@ def test_load_config_not_valid(tmpdir):
                 'foo3': 'bar3',
             }
 
+        },
+
+        '$volumes': {
+            'mysql': 'foo:/bar/baz',
+            'app': 'foo1:/bar/baz',
+        },
+
+        '$hosts': {
+            'prod': 'some@example.com',
+            'dev': 'another@example.com',
+        },
+
+        '$events': {
+            'foo': [
+                'bar',
+                'baz',
+            ],
+            'baz': [
+                'bar',
+                'baz',
+            ],
+        },
+
+        '$deploy': {
+            'foo': [
+                'bar',
+                'baz',
+            ],
+            'baz': [
+                'bar',
+                'baz',
+            ],
         }
     }
 ])
@@ -438,6 +470,30 @@ def test_get_service_no():
 
     with pytest.raises(UnknownServiceError):
         c.get_service('baz')
+
+def test_get_volumes():
+    c = YamlConfig()
+    c.config = {
+        '$volumes': [
+            {'foo': 'bar'}
+        ]
+    }
+    assert c.get_volumes() == [
+        {'foo': 'bar'}
+    ]
+
+def test_get_hosts():
+    c = YamlConfig()
+    c.config = {
+        '$hosts': [
+            {'foo': 'bar'}
+        ]
+    }
+    assert c.get_hosts() == [
+        {'foo': 'bar'}
+    ]
+
+
 
 
 

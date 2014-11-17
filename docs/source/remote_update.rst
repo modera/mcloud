@@ -14,5 +14,5 @@ And restarting application::
 If you changed configuration in mcloud.yml, you may need to deploy changes to
 container structure as well::
 
-    $ mcloud -h <ip-here> update flask-redis mcloud.yml
+    $ mcloud -h <ip-here> config --update flask-redis
 

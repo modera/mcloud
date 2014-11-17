@@ -1,9 +1,12 @@
+from difflib import unified_diff, Differ
 import json
 import sys
 import uuid
 import argparse
 import subprocess
 from contextlib import contextmanager
+from bashutils.colors import color_text
+import datadiff
 from mcloud.application import Application
 from mcloud.attach import AttachStdinProtocol
 from mcloud.config import YamlConfig
@@ -20,6 +23,7 @@ from twisted.internet import defer, stdio
 from twisted.internet.defer import inlineCallbacks, CancelledError
 from twisted.internet.error import ConnectionRefusedError
 from mcloud import metadata
+import yaml
 
 
 def format_epilog():
@@ -337,8 +341,9 @@ class ApiRpcClient(object):
                 else:
                     raise ValueError('Can not parse application/service name')
 
-        if not app:
+        if not app and require_app:
             app = os.path.basename(os.getcwd())
+            print('Using folder name as application name: %s\n' % app)
             # raise ValueError('You should provide application name.')
 
         if service and app_only:
@@ -456,26 +461,67 @@ class ApiRpcClient(object):
         else:
             yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export())
 
-    @cli('Update application configuration', arguments=(
+    @cli('Application configuration', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
-        arg('path', help='Path', nargs='?', default='.'),
-        arg('--env', help='Application environment'),
+        arg('--set-env', help='Set application environment'),
         arg('--config', help='Config to use', nargs='?', default=None),
+        arg('--update', default=False, action='store_true', help='Update config'),
+        arg('--diff', default=False, action='store_true', help='Show diff only, do not update'),
     ))
     @inlineCallbacks
-    def update(self, ref, path, config=None, env=None, **kwargs):
-
+    def config(self, ref, diff=False, config=None, update=False, set_env=None, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs, app_only=True)
 
-        if config:
-            config_file = os.path.expanduser(config)
+        app_config = yield self._remote_exec('config', app)
+
+        old_config = YamlConfig(source=unicode(app_config['source']), app_name=app)
+        old_config.load(process=False)
+        from collections import OrderedDict
+        yaml.add_representer(unicode, yaml.representer.SafeRepresenter.represent_unicode)
+        yaml.add_representer(OrderedDict, yaml.representer.SafeRepresenter.represent_dict)
+        olds = yaml.dump(old_config.config, default_flow_style=False)
+
+
+        if not update and not diff and not set_env:
+            x = PrettyTable(["Name", "Value"], hrules=ALL, align='l', header=False)
+            x.align = "l"
+            x.add_row(['Config', olds])
+            x.add_row(['Environment', app_config['env']])
+            x.add_row(['Path', app_config['path']])
+            print(x)
+
         else:
-            config_file = os.path.join(path, 'mcloud.yml')
+            if config:
+                config_file = os.path.expanduser(config)
+            else:
+                config_file = os.path.join(app_config['path'], 'mcloud.yml')
 
-        config = YamlConfig(file=config_file, app_name=app)
-        config.load(process=False)
+            print('Using file: %s' % config_file)
 
-        yield self._remote_exec('update', app, config=config.export(), env=env)
+            new_config = YamlConfig(file=config_file, app_name=app)
+            new_config.load(process=False)
+
+            if diff:
+                news = yaml.dump(new_config.config, default_flow_style=False)
+
+                if olds == news:
+                    print('Configs are identical.')
+                else:
+
+                    for line in unified_diff(olds.splitlines(1), news.splitlines(1)):
+                        if line.endswith('\n'):
+                            line = line[0:-1]
+                        if line.startswith('+'):
+                            print color_text(line, color='green')
+                        elif line.startswith('-'):
+                            print color_text(line, color='green')
+                        else:
+                            print line
+            else:
+                if set_env and not update:
+                    yield self._remote_exec('update', app, env=set_env)
+                else:
+                    yield self._remote_exec('update', app, config=new_config.export(), env=set_env)
 
 
     ############################################################

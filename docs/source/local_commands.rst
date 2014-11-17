@@ -58,14 +58,19 @@ You can specify configuration file explicitly with --config.
 In case of remote server command will also upload files there. You may interrupt this process and complete it later manually.
 
 
-Update
+Config
 --------------
 
-Works same way as *init*::
+Updates and displays mcloud.yml configuration.
 
-    $ mcloud update [appname] [path] [--config]
+    $ mcloud config [appname] [--config] [--set-env] [--diff]
 
-Accepts path as extra argument (by default current directory). App name is current directory name by default.
+Examples::
+
+    $ mcloud config mysqapp                   # shows current configuration
+    $ mcloud config mysqapp --set-env prod    # set environment to prod
+    $ mcloud config mysqapp --update          # reloads configuration
+    $ mcloud config mysqapp --diff            # shows difference between current config and mcloud.yml file
 
 
 Remove
