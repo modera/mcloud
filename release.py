@@ -78,7 +78,7 @@ if __name__ == "__main__":
             from debian import changelog
 
             with open('debian/changelog') as f:
-                dch = changelog.Changelog()
+                dch = changelog.Changelog(f)
                 dch.new_block()
                 dch.set_author('Alex Rudakov <ribozz@gmail.com>')
                 dch.set_date(strftime('%a, %d %b %Y %H:%M:%S %z'))
@@ -89,7 +89,9 @@ if __name__ == "__main__":
 
             for commit in repo.iter_commits('%s..%s' % (ref.tag.tag, new_tag_name)):
                 message = commit.message.strip()
-                dch.add_change(message)
+                dch.add_change('')
+                dch.add_change('    * %s' % message)
+                dch.add_change('')
                 logs.append(message)
 
             with open('debian/changelog', 'w+') as f:
