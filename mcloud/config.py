@@ -135,7 +135,6 @@ class YamlConfig(IConfig):
                 cfg = json.JSONDecoder(object_pairs_hook=collections.OrderedDict).decode(self._source)
 
             path = self.path
-
             cfg = self.prepare(config=cfg)
 
             self.validate(config=cfg)
@@ -298,7 +297,7 @@ class YamlConfig(IConfig):
         if 'env' in config and len(config['env']):
             for name, val in config['env'].items():
                 service.env[name] = str(val)
-
+    #2dhqiyN5ig
     def process_image_build(self, service, config, path):
 
         # way to build
