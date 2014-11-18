@@ -87,12 +87,14 @@ if __name__ == "__main__":
                 dch.set_urgency('medium')
                 dch.set_version('%s-1' % new_tag_name)
 
+            dch.add_change('')
+
             for commit in repo.iter_commits('%s..%s' % (ref.tag.tag, new_tag_name)):
                 message = commit.message.strip()
-                dch.add_change('')
                 dch.add_change('  * %s' % message)
-                dch.add_change('')
                 logs.append(message)
+
+            dch.add_change('')
 
             with open('debian/changelog', 'w+') as f:
                 dch.write_to_open_file(f)
