@@ -88,6 +88,7 @@ if __name__ == "__main__":
 
         sys.stdout.write(new_ref.tag.tag)
 
+
     else:
 
         sys.stdout.write('0')
