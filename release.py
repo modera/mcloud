@@ -97,8 +97,6 @@ if __name__ == "__main__":
 
             data = '%s %s\n    *%s\n\n' % (new_tag_name, datetime.datetime.now().isoformat(), '\n\t    *'.join(logs))
 
-            os.chdir('../')
-
             file_prepend('CHANGES.txt', data)
 
         sys.stdout.write(new_ref.tag.tag)
