@@ -6,7 +6,6 @@ import argparse
 import subprocess
 from contextlib import contextmanager
 from bashutils.colors import color_text
-import datadiff
 from mcloud.application import Application
 from mcloud.attach import AttachStdinProtocol
 from mcloud.config import YamlConfig
@@ -756,7 +755,7 @@ class ApiRpcClient(object):
         arg('source', help='source'),
         arg('destination', help='destination'),
         arg('--path', help='Subpath to synchronize', default=None),
-        arg('--no-remove', help='Disable removing files on destination', default=False, action='store_true'),
+        arg('--remove', help='Disable removing files on destination', default=False, action='store_true'),
         arg('--update', help='Compare modification time and size, skip if match.', default=False, action='store_true'),
         arg('--watch', help='Keep watching and uploading changed files', default=False, action='store_true'),
     ))
