@@ -1,3 +1,12 @@
+0.8.3 2014-11-18T11:59:31.626507
+    *Bugfixes and improvements
+	    *Remove broken submodule
+	    *update -> config
+	    *STarted implementing push/pull
+	    *Merge branch 'master' of github.com:modera/mcloud
+	    *Fix broken sync for subvolumes
+	    *MCloud 0.8.2
+
 0.8.2 2014-11-14T17:10:18.689901
     *Merge branch 'master' into 0.8
 	    *CLOUD-9 ~xxx syntax in configs

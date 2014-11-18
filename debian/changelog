@@ -1,10 +1,33 @@
+mcloud (0.8.3-3) trusty; urgency=medium
+
+  * fixes
+
+ -- Alex Rudakov <ribozz@gmail.com>  Tue, 18 Nov 2014 12:32:18 +0200
+
+mcloud (0.8.3-2) trusty; urgency=medium
+
+  * fixes
+
+ -- Alex Rudakov <ribozz@gmail.com>  Tue, 18 Nov 2014 12:32:18 +0200
+
+mcloud (0.8.3-1) trusty; urgency=medium
+
+  * Bugfixes and improvements
+  * Remove broken submodule
+  * update -
+  * STarted implementing push/pull
+  * Merge branch master of github.com:modera/mcloud
+  * Fix broken sync for subvolumes
+
+ -- Alex Rudakov <ribozz@gmail.com>  Tue, 18 Nov 2014 12:32:18 +0200
+
 mcloud (0.8.2-1) trusty; urgency=medium
 
   * Merge branch master into 0.8
   * CLOUD-9 ~xxx syntax in configs
   * New version deployed
 
- -- Alex <alex@alex-pc>  Fri, 14 Nov 2014 17:10:46 +0200
+ -- Alex <ribozz@gmail.com>  Fri, 14 Nov 2014 17:10:46 +0200
 
 mcloud (0.8.1-1) trusty; urgency=medium
 
@@ -33,7 +56,7 @@ mcloud (0.8.1-1) trusty; urgency=medium
   * Merge branch master of github.com:modera/mcloud
   * Cleanup docker container
 
- -- Alex <alex@alex-Precision-T1650>  Fri, 14 Nov 2014 09:28:53 +0200
+ -- Alex <ribozz@gmail.com>  Fri, 14 Nov 2014 09:28:53 +0200
 
 mcloud (0.7.9-1) trusty; urgency=medium
 
