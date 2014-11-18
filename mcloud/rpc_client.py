@@ -262,30 +262,27 @@ class ApiRpcClient(object):
     def print_app_list(self, data):
 
         x = PrettyTable(["Application name", "status", "cpu %", "memory", "Web", "Path"], hrules=ALL)
+        x.align = 'l'
         for app in data:
 
             app_cpu = 0.0
             app_mem = 0
             web = ''
 
+            service_status = ''
+
             for service in app['services']:
                 app_mem += int(service['memory'])
                 app_cpu += float(service['cpu'])
 
-            if app['running']:
-                app_status = app['status']
-                services_cpu_list = ('%.2f' % app_cpu) + '%'
-                services_memory_list = str(app_mem) + 'M'
+                if service['created']:
+                    service_status += ('^' if service['running'] else 'o')
+                else:
+                    service_status = 'x'
 
-            elif app['status'] == 'error':
-                app_status = 'ERROR: %s' % app['message']
-                web = app['message']
-                services_cpu_list = ''
-                services_memory_list = ''
-            else:
-                app_status = ''
-                services_cpu_list = ''
-                services_memory_list = ''
+            app_status = service_status
+            services_cpu_list = ('%.2f' % app_cpu) + '%'
+            services_memory_list = str(app_mem) + 'M'
 
             if app['status'] != 'error':
                 web_service_ = 'No web'
@@ -474,13 +471,14 @@ class ApiRpcClient(object):
 
         app_config = yield self._remote_exec('config', app)
 
-        old_config = YamlConfig(source=unicode(app_config['source']), app_name=app)
+        parser_env = set_env or app_config['env']
+
+        old_config = YamlConfig(source=unicode(app_config['source']), app_name=app, env=parser_env)
         old_config.load(process=False)
         from collections import OrderedDict
         yaml.add_representer(unicode, yaml.representer.SafeRepresenter.represent_unicode)
         yaml.add_representer(OrderedDict, yaml.representer.SafeRepresenter.represent_dict)
         olds = yaml.dump(old_config.config, default_flow_style=False)
-
 
         if not update and not diff and not set_env:
             x = PrettyTable(["Name", "Value"], hrules=ALL, align='l', header=False)
@@ -496,9 +494,7 @@ class ApiRpcClient(object):
             else:
                 config_file = os.path.join(app_config['path'], 'mcloud.yml')
 
-            print('Using file: %s' % config_file)
-
-            new_config = YamlConfig(file=config_file, app_name=app)
+            new_config = YamlConfig(file=config_file, app_name=app, env=parser_env)
             new_config.load(process=False)
 
             if diff:
@@ -514,7 +510,7 @@ class ApiRpcClient(object):
                         if line.startswith('+'):
                             print color_text(line, color='green')
                         elif line.startswith('-'):
-                            print color_text(line, color='green')
+                            print color_text(line, color='red')
                         else:
                             print line
             else:
@@ -540,9 +536,10 @@ class ApiRpcClient(object):
     @cli('Start containers', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
         arg('--init', help='Initialize applications if not exist yet', default=False, action='store_true'),
+        arg('--env', help='Application environment'),
     ))
     @inlineCallbacks
-    def start(self, ref, init=False, **kwargs):
+    def start(self, ref, init=False, env=None, **kwargs):
 
         app, service = self.parse_app_ref(ref, kwargs)
 
@@ -550,7 +547,7 @@ class ApiRpcClient(object):
             app_instance = yield self.get_app(app)
 
             if not app_instance:
-                yield self.init(app, os.getcwd())
+                yield self.init(app, os.getcwd(), env=env)
 
 
         data = yield self._remote_exec('start', self.format_app_srv(app, service))

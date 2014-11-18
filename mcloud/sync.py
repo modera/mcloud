@@ -78,7 +78,7 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
         command = ['rsync']
 
         command.append('--recursive')
-        command.append('--safe-links')  # only links from same directory
+        command.append('--links')  # only links from same directory
         command.append('--perms')  # keep permissions
         command.append('--times')  # keep modification time
         command.append('--numeric-ids')  # keep file ownership

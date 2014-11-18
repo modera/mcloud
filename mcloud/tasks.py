@@ -729,9 +729,9 @@ class TaskService(object):
         """
         self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
-        service = config.get_service(service_name)
-        if not service.is_running():
-            defer.returnValue('Not running')
+        service = config.get_service('%s.%s' % (service_name, name))
+        if not service.is_created():
+            defer.returnValue('Not created')
         else:
             if not service.is_inspected():
                 ret = yield service.inspect()
