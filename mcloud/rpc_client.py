@@ -472,12 +472,13 @@ class ApiRpcClient(object):
 
         parser_env = set_env or app_config['env']
 
-        old_config = YamlConfig(source=unicode(app_config['source']), app_name=app, env=parser_env)
-        old_config.load(process=False)
-        from collections import OrderedDict
-        yaml.add_representer(unicode, yaml.representer.SafeRepresenter.represent_unicode)
-        yaml.add_representer(OrderedDict, yaml.representer.SafeRepresenter.represent_dict)
-        olds = yaml.dump(old_config.config, default_flow_style=False)
+        if diff or (not update and not set_env):
+            old_config = YamlConfig(source=unicode(app_config['source']), app_name=app, env=parser_env)
+            old_config.load(process=False)
+            from collections import OrderedDict
+            yaml.add_representer(unicode, yaml.representer.SafeRepresenter.represent_unicode)
+            yaml.add_representer(OrderedDict, yaml.representer.SafeRepresenter.represent_dict)
+            olds = yaml.dump(old_config.config, default_flow_style=False)
 
         if not update and not diff and not set_env:
             x = PrettyTable(["Name", "Value"], hrules=ALL, align='l', header=False)
