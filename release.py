@@ -14,6 +14,7 @@ Implement following release procedure:
 import argparse
 import datetime
 import pipes
+from time import strftime
 import os
 import re
 from git import Repo
@@ -71,23 +72,45 @@ if __name__ == "__main__":
         new_ref = repo.create_tag(new_tag_name, message='New version: %s' % new_tag_name)
 
 
-        os.chdir('debian')
         logs = []
 
         if ref:
+            from debian import changelog
+
+            with open('debian/changelog') as f:
+                dch = changelog.Changelog(f)
+                dch.new_block()
+                dch.set_author('Alex Rudakov <ribozz@gmail.com>')
+                dch.set_date(strftime('%a, %d %b %Y %H:%M:%S %z'))
+                dch.set_distributions('trusty')
+                dch.set_package('mcloud')
+                dch.set_urgency('medium')
+                dch.set_version('%s-1' % new_tag_name)
+
+            dch.add_change('')
+
             for commit in repo.iter_commits('%s..%s' % (ref.tag.tag, new_tag_name)):
                 message = commit.message.strip()
-                os.system('dch -v %s-1 %s' % (new_tag_name, message))
+                dch.add_change('  * %s' % message)
                 logs.append(message)
 
-            data = '%s %s\n    *%s\n\n' % (new_tag_name, datetime.datetime.now().isoformat(), '\n\t    *'.join(logs))
+            dch.add_change('')
 
-            os.chdir('../')
+            with open('debian/changelog', 'w+') as f:
+                dch.write_to_open_file(f)
+
+            data = '%s %s\n    *%s\n\n' % (new_tag_name, datetime.datetime.now().isoformat(), '\n\t    *'.join(logs))
 
             file_prepend('CHANGES.txt', data)
 
         sys.stdout.write(new_ref.tag.tag)
 
+
     else:
 
         sys.stdout.write('0')
+
+
+
+
+
