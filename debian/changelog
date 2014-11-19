@@ -145,6 +145,3 @@ mcloud (0.5.18-6) trusty; urgency=medium
   * Improved package structure to use debhelper better
 
  -- Alex Rudakov <ribozz@gmail.com>  Thu, 09 Oct 2014 12:27:46 +0300
-er better
-
- -- Alex Rudakov <ribozz@gmail.com>  Thu, 09 Oct 2014 12:27:46 +0300
