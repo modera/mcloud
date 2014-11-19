@@ -257,9 +257,9 @@ class TaskService(object):
         defer.returnValue({
             'path': app.config['path'],
             'env': app.get_env(),
-            'source': app.config['source'],
-            'hosts': config.get_hosts(),
-            'volumes': config.get_volumes(),
+            'source': app.config['source'] if 'source' in app.config else {},
+            'hosts': config.get_hosts() if hasattr(config, 'get_hosts') else {},
+            'volumes': config.get_volumes() if hasattr(config, 'get_volumes') else {},
         })
 
 
