@@ -92,9 +92,9 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
 
         command.append('--verbose')
 
-        if not 'no_remove' in options or options['no_remove'] is False:
-            command.append('--delete')  # remove files if missing in source
-            command.append('--delete-excluded')  # allow deletion of excluded files
+        # if 'remove' in options or options['remove'] is True:
+        #     command.append('--delete')  # remove files if missing in source
+        #     command.append('--delete-excluded')  # allow deletion of excluded files
 
         if 'update' in options and options['update'] is True:
             command.append('--update')  # partial update
@@ -105,6 +105,7 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
         else:
             command.append(dst_dir)
             command.append(src_ref)
+
 
         process = subprocess.Popen(command, env=env)
         process.wait()
