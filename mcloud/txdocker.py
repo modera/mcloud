@@ -1,3 +1,4 @@
+from base64 import b64decode
 import json
 import logging
 from urllib import urlencode
@@ -111,7 +112,7 @@ class DockerTwistedClient(object):
                 if match:
                     result['image_id'] = match.group(1)
 
-        response = yield self._post('build', data=dockerfile, headers=headers, response_handler=None)
+        response = yield self._post('build?t=mcloud_image_%s' % ticket_id, data=dockerfile, headers=headers, response_handler=None)
         yield txhttp.collect(response, on_content)
         defer.returnValue(result['image_id'])
 
@@ -179,20 +180,27 @@ class DockerTwistedClient(object):
         return r
 
     @inlineCallbacks
-    def attach(self, container_id, ticket_id):
+    def attach(self, container_id, ticket_id, skip_terminal=False):
 
         d = defer.Deferred()
         protocol = Attach(d, container_id)
 
+        def stdin_on_input(channel, data):
+            protocol.stdin_on_input(data)
+
+        def stdout_write(data):
+            self.task_stdout(ticket_id, data)
+
+        def log_write(data):
+            self.task_log(ticket_id, b64decode(data))
+
         try:
-            def stdout_write(data):
-                self.task_stdout(ticket_id, data)
-            protocol.stdout_write = stdout_write
+            if skip_terminal:
+                protocol.stdout_write = log_write
+            else:
+                protocol.stdout_write = stdout_write
 
-            def stdin_on_input(channel, data):
-                protocol.stdin_on_input(data)
-
-            self.eb.on('task.stdin.%s' % int(ticket_id), stdin_on_input)
+                self.eb.on('task.stdin.%s' % int(ticket_id), stdin_on_input)
 
             f = AttachFactory(protocol)
             reactor.connectUNIX('/var/run/docker.sock', f)
@@ -200,7 +208,8 @@ class DockerTwistedClient(object):
             yield d
 
         finally:
-            self.eb.cancel('task.stdin.%s' % int(ticket_id), stdin_on_input)
+            if not skip_terminal:
+                self.eb.cancel('task.stdin.%s' % int(ticket_id), stdin_on_input)
 
 
     def events(self, on_event):

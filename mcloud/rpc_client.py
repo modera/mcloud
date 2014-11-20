@@ -700,9 +700,12 @@ class ApiRpcClient(object):
         arg('command', help='Command to execute', default='/bin/bash', nargs='?'),
         arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
     ))
-    def run(self, ref, command, no_tty=True, **kwargs):
+    def run(self, ref, command, no_tty=False, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs, require_service=True)
-        return self._exec_remote_with_pty('run', self.format_app_srv(app, service), command)
+        if no_tty:
+            return self._remote_exec('run', self.format_app_srv(app, service), command)
+        else:
+            return self._exec_remote_with_pty('run', self.format_app_srv(app, service), command)
 
     ############################################################
 

@@ -184,8 +184,11 @@ class Service(object):
 
         yield self.client.start_container(name, ticket_id=ticket_id, config=run_config)
 
-        yield self.client.resize(name, width=size[1], height=size[0])
-        yield self.client.attach(name, ticket_id)
+        if size:
+            yield self.client.resize(name, width=size[1], height=size[0])
+            yield self.client.attach(name, ticket_id)
+        else:
+            yield self.client.attach(name, ticket_id, skip_terminal=True)
 
     @inlineCallbacks
     def start(self, ticket_id):
