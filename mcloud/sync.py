@@ -70,6 +70,13 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
         if 'path' in options and not options['path'] is None:
             src_ref = os.path.join(src_ref, options['path'])
             dst_dir = os.path.join(dst_dir, options['path'])
+        else:
+            if not src_ref.endswith('/'):
+                src_ref += '/'                    
+
+        # rsync requires "/" at the end
+        if os.path.isdir(dst_dir) and not dst_dir.endswith('/'):
+            dst_dir += '/'
 
         env = {
             'RSYNC_PASSWORD': data['env']['PASSWORD']
@@ -92,7 +99,7 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
 
         command.append('--verbose')
 
-        # if 'remove' in options or options['remove'] is True:
+        # if not 'no_remove' in options or options['no_remove'] is False:
         #     command.append('--delete')  # remove files if missing in source
         #     command.append('--delete-excluded')  # allow deletion of excluded files
 
@@ -105,7 +112,6 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
         else:
             command.append(dst_dir)
             command.append(src_ref)
-
 
         process = subprocess.Popen(command, env=env)
         process.wait()
