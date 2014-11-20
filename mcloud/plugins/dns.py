@@ -26,9 +26,14 @@ class DnsPlugin(Plugin):
             if 'web_service' in app and app['web_service']:
                 apps[app['fullname']] = app['web_ip']
 
-            if 'public_urls' in  app and app['public_urls'] and 'web_ip' in app:
-                for url in app['public_urls']:
-                    apps[url] = app['web_ip']
+            if 'public_urls' in app and app['public_urls'] and 'web_ip' in app:
+                for target in app['public_urls']:
+                    if not target['service']:
+                        apps[target['url']] = app['web_ip']
+                    else:
+                        for service in app['services']:
+                            if service['shortname'] == target['service']:
+                                apps[target['url']] = service['ip']
 
         log.msg('Installing new dns list: %s' % str(apps))
 

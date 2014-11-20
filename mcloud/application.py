@@ -206,7 +206,12 @@ class ApplicationController(object):
                 if 'public_app' in dep and dep['public_app']:
                     if not dep['public_app'] in pub_apps:
                         pub_apps[dep['public_app']] = []
-                    pub_apps[dep['public_app']].append(dep['name'])
+
+                    pub_apps[dep['public_app']].append({
+                        'url': dep['name'],
+                        'service': dep['public_service'] if 'public_service' in dep else None
+                    })
+
             except ValueError:
                 pass
 
