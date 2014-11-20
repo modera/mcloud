@@ -126,30 +126,53 @@ class HaproxyConfig(object):
             if not 'web_ip' in app or not app['web_ip']:
                 continue
 
-            domains = [app['fullname']]
-            ssl_domains = []
+            plain_domains = {app['web_ip']: [app['fullname']]}
+            ssl_domains = {}
 
             if app['public_urls']:
-                for url in app['public_urls']:
-                    if url.startswith('https://'):
-                        ssl_domains.append(url[8:])
+                for target in app['public_urls']:
+
+                    if not target['service']:
+                        if target['url'].startswith('https://'):
+                            if not service['ip'] in ssl_domains:
+                                ssl_domains[app['web_ip']] = []
+                            ssl_domains[app['web_ip']].append(target['url'][8:])
+                        else:
+                            if not service['ip'] in plain_domains:
+                                plain_domains[app['web_ip']] = []
+                            plain_domains[app['web_ip']].append(target['url'])
+
                     else:
-                        domains.append(url)
+                        for service in app['services']:
+                            if service['shortname'] == target['service']:
+
+                                if target['url'].startswith('https://'):
+                                    if not service['ip'] in ssl_domains:
+                                        ssl_domains[service['ip']] = []
+                                    ssl_domains[service['ip']].append(target['url'][8:])
+                                else:
+                                    if not service['ip'] in plain_domains:
+                                        plain_domains[service['ip']] = []
+                                    plain_domains[service['ip']].append(target['url'])
 
             if ssl_domains:
-                proxy_ssl_apps.append({
-                    'name': app['fullname'],
-                    'domains': ssl_domains,
-                    'backends': [{'name': 'backend_ssl_%s' % app['fullname'], 'ip': app['web_ip'], 'port': 443}]
+                for ip, domains in ssl_domains.items():
+                    proxy_ssl_apps.append({
+                        'name': '%s_%s' % (app['fullname'], ip.replace('.', '_')),
+                        'domains': domains,
+                        'backends': [{'name': 'backend_ssl_%s_%s' % (app['fullname'], ip.replace('.', '_')), 'ip': ip, 'port': 443}]
+                    })
+
+            for ip, domains in plain_domains.items():
+                proxy_apps.append({
+                    'name': '%s_%s' % (app['fullname'], ip.replace('.', '_')),
+                    'domains': domains,
+                    'backends': [{'name': 'backend_%s_%s' % (app['fullname'], ip.replace('.', '_')), 'ip': ip, 'port': 80}]
                 })
 
-            proxy_apps.append({
-                'name': app['fullname'],
-                'domains': domains,
-                'backends': [{'name': 'backend_%s' % app['fullname'], 'ip': app['web_ip'], 'port': 80}]
-            })
-
         log.msg('Writing haproxy config')
+
+        print proxy_apps
 
         with open('/etc/haproxy/haproxy.cfg', 'w') as f:
             f.write(template.render({'apps': proxy_apps, 'ssl_apps': proxy_ssl_apps}))

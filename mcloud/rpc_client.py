@@ -239,9 +239,17 @@ class ApiRpcClient(object):
                 if 'web_service' in app and app['web_service'] == service['name']:
                     web.append('http://' + app['fullname'] + '/')
 
-                    if 'public_urls' in app and app['public_urls']:
-                        for url in app['public_urls']:
-                            web.append('http://' + url + '/')
+                if 'public_urls' in app and app['public_urls']:
+                    for target in app['public_urls']:
+                        url_ = target['url'] + '/'
+                        if not url_.startswith('http://'):
+                            url_ = 'http://' + url_
+
+                        if not 'service' in target and 'web_service' in app and app['web_service'] == service['name']:
+                            web.append(url_)
+
+                        if 'service' in target and target['service'] == service['shortname']:
+                            web.append(url_)
 
             x.add_row([
                 service['name'],
@@ -284,17 +292,25 @@ class ApiRpcClient(object):
             services_memory_list = str(app_mem) + 'M'
 
             if app['status'] != 'error':
-                web_service_ = 'No web'
+                web_service_ = None
                 if 'web_service' in app and app['web_service']:
                     web_service_ = app['web_service']
                     if web_service_.endswith(app['name']):
                         web_service_ = web_service_[0:-len(app['name']) - 1]
 
-                web = '%s -> [%s]' % (app['fullname'], web_service_)
+                if web_service_:
+                    web = '%s -> [%s]' % (app['fullname'], web_service_)
 
                 if 'public_urls' in app and app['public_urls']:
-                    for url in app['public_urls']:
-                        web += '\n' + '%s -> [%s]' % (url, web_service_)
+                    for target in app['public_urls']:
+                        url_ = target['url'] + '/'
+                        if not url_.startswith('http://'):
+                            url_ = 'http://' + url_
+                        if 'service' in target and target['service']:
+                            web += '\n' + '%s -> [%s]' % (url_, target['service'])
+                        else:
+                            if web_service_:
+                                web += '\n' + '%s -> [%s]' % (url_, web_service_)
 
             x.add_row([app['name'], app_status, services_cpu_list, services_memory_list, web, app['config']['path']])
 
@@ -653,19 +669,18 @@ class ApiRpcClient(object):
     @cli('Publish an application', arguments=(
         arg('ref', help='Application name', default=None, nargs='?'),
         arg('domain', help='Domain to publish'),
-
         arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
     ))
     @inlineCallbacks
     def publish(self, domain, ref, ssl=False, **kwargs):
-        app, service = self.parse_app_ref(ref, kwargs, app_only=True)
+        app_name, service = self.parse_app_ref(ref, kwargs, require_app=True)
 
-        app = yield self.get_app(app)
+        app = yield self.get_app(app_name)
 
         if not app:
             print 'App not found. Can\'t publish'
         else:
-            yield self._remote_exec('publish', self.format_domain(domain, ssl), app['name'])
+            yield self._remote_exec('publish', self.format_domain(domain, ssl), app_name, service)
 
     @cli('Unpublish an application', arguments=(
         arg('domain', help='Domain to unpublish'),

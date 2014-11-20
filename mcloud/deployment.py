@@ -13,17 +13,19 @@ class Deployment(object):
 
     app_controller = inject.attr(ApplicationController)
 
-    def __init__(self, name=None, public_app=None):
+    def __init__(self, name=None, public_app=None, public_service=None):
         super(Deployment, self).__init__()
 
         self.name = name
         self.public_app = public_app
+        self.public_service = public_service
 
     @property
     def config(self):
         return {
             'name': self.name,
-            'public_app': self.public_app
+            'public_app': self.public_app,
+            'public_service': self.public_service,
         }
 
     def load_data(self, *args, **kwargs):
@@ -76,18 +78,19 @@ class DeploymentController(object):
         defer.returnValue([Deployment(**json.loads(config)) for name, config in config.items()])
 
     @inlineCallbacks
-    def publish_app(self, deployment_name, app_name):
+    def publish_app(self, deployment_name, app_name, service_name):
         try:
             deployment = yield self.get(deployment_name)
         except DeploymentDoesNotExist:
             deployment = yield self.create(deployment_name)
 
         deployment.public_app = app_name
+        deployment.public_service = service_name
 
         yield self._persist_dployment(deployment)
 
         app_data = yield self.app_controller.list()
-        self.eb.fire_event('containers-updated', apps=app_data)
+        self.eb.fire_event('containers.updated', apps=app_data)
 
 
     @inlineCallbacks
@@ -95,7 +98,7 @@ class DeploymentController(object):
         yield self.remove(deployment_name)
 
         app_data = yield self.app_controller.list()
-        self.eb.fire_event('containers-updated', apps=app_data)
+        self.eb.fire_event('containers.updated', apps=app_data)
 
     def _persist_dployment(self, deployment):
         return self.redis.hset('mcloud-deployments', deployment.name, json.dumps(deployment.config))

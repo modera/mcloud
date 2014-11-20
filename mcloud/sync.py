@@ -72,7 +72,7 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
             dst_dir = os.path.join(dst_dir, options['path'])
         else:
             if not src_ref.endswith('/'):
-                src_ref += '/'                    
+                src_ref += '/'
 
         # rsync requires "/" at the end
         if os.path.isdir(dst_dir) and not dst_dir.endswith('/'):
