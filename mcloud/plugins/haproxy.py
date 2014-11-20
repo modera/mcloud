@@ -133,14 +133,15 @@ class HaproxyConfig(object):
                 for target in app['public_urls']:
 
                     if not target['service']:
-                        if target['url'].startswith('https://'):
-                            if not app['web_ip'] in ssl_domains:
-                                ssl_domains[app['web_ip']] = []
-                            ssl_domains[app['web_ip']].append(target['url'][8:])
-                        else:
-                            if not app['web_ip'] in plain_domains:
-                                plain_domains[app['web_ip']] = []
-                            plain_domains[app['web_ip']].append(target['url'])
+                        if 'web_ip' in app and app['web_ip']:
+                            if target['url'].startswith('https://'):
+                                if not app['web_ip'] in ssl_domains:
+                                    ssl_domains[app['web_ip']] = []
+                                ssl_domains[app['web_ip']].append(target['url'][8:])
+                            else:
+                                if not app['web_ip'] in plain_domains:
+                                    plain_domains[app['web_ip']] = []
+                                plain_domains[app['web_ip']].append(target['url'])
 
                     else:
                         for service in app['services']:
