@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
             for commit in repo.iter_commits('%s..%s' % (ref.tag.tag, new_tag_name)):
                 message = commit.message.strip()
-                dch.add_change('  * %s' % message)
+                dch.add_change('  * %s' % re.sub('\s+', ' ', message))
                 logs.append(message)
 
             dch.add_change('')
