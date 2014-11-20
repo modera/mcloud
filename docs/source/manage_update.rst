@@ -1,9 +1,7 @@
 
 
-Updating mCloud
-============================================
-
-mCloud install from packages
+Updating ModeraCloud
+=========================================ModeraCloudCloud install from packages
 ----------------------------------
 
 To update::
@@ -15,7 +13,7 @@ And restart service::
     $ sudo service mcloud restart
 
 
-Manualy installed mCloud update
+Manualy ModeraCloudled ModeraCloud update
 ----------------------------------
 
 Update is easy::
@@ -27,10 +25,10 @@ And restart service::
     $ sudo service mcloud restart
 
 
-Source installed mCloud update
-----------------------------------
+SoModeraCloudnstalled ModeraCloud update
+-----------------------ModeraCloud-----
 
-Update mCloud and dependencies::
+Update ModeraCloud and dependencies::
 
     $ sudo /opt/mcloud/bin/pip install -U mcloud
 

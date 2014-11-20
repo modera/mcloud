@@ -3,7 +3,7 @@
 mcloud.yml file
 ==========================================
 
-Every application in mCloud runs inside one or several Docker containers. To describe those containers we  use *mcloud.yml* configuration file.
+Every application in ModeraCloud runs inside one or several Docker containers. To describe those containers we  use *mcloud.yml* configuration file.
 
 Syntax is very easy and you may already be familiar with it if you ever tried Docker's Fig.
 

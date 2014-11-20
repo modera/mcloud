@@ -4,7 +4,7 @@ Installation
 ============================================
 
 
-mCloud uses Docker as the core component to host the services. Therefore, the first question to be answered is whether you want to install and run everything:
+ModeraCloud uses Docker as the core component to host the services. Therefore, the first question to be answered is whether you want to install and run everything:
 
 #. straight on the machine, or
 #. inside a virtual environment

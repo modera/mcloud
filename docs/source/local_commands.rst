@@ -3,7 +3,7 @@
 Command-line reference
 ==========================================
 
-mCloud command-line basic syntax is::
+ModeraCloudCloud command-line basic syntax is::
 
     $ mcloud command [... arguments ...]
 
@@ -80,7 +80,7 @@ Removes an application::
 
     $ mcloud remove
 
-Command will destroy all containers and remove application from mCloud listings.
+Command will destroy all containers and remove applicaModeraCloudoderaCloudCloud listings.
 
 
 Application lifecycle
@@ -97,14 +97,14 @@ entire application::
 
     $ mcloud {command} app
 
-Also, application name may be skipped. Then mCloud will try to restore it from context::
+Also, application name mModeraCloudskipModeraCloudhen ModeraCloud will try to restore it from context::
 
     $ mcloud {command} service.
 
 Note the dot(".") at the end, it specify it's service name not the application.
 
-In shell mode, current application may be set using "use" command. If no application
-is given, then mCloud will use name of current directory name as application name.
+In shell mode, current application may be set using "use" command. If ModeraCloudlication
+ModeraClouden, then ModeraCloud will use name of current directory name as application name.
 
 When service name is specified, command is executed on single container. When only application name given, command is applied on each container in order they appear in *mcloud.yml*.
 
@@ -119,8 +119,7 @@ Start
 ----------
 
 Start application containers, will trigger *create* for containers that are not created yet. Once all containers exist it starts them.
-
-It has optional --init flag that tells mCloud to initialize the application if it's not there.
+ModeraClouds optional --iModeraCloudag that tells ModeraCloud to initialize the application if it's not there.
 
 
 Stop

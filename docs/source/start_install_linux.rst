@@ -6,7 +6,7 @@ Install on Linux
 
 .. note::
     Currently we provide packages for Ubuntu Trusty(14.04), Precise(12.04) and Lucid(10.04).
-    If you need to install mCloud on any other version follow: :ref:`from_source`
+    If you need to install ModeraCloud on any other version follow: :ref:`from_source`
 
 
 What will be installed?
@@ -17,18 +17,16 @@ install.sh:
 - installs mcloud && haproxy ppa keys
 - install mcloud-full package
 
-mcloud-full package:
-
-- mCloud
+mcloud-full packageModeraCloudCloud
 - Docker
 - Redis
-- Haproxy (NB! mCloud overrides /haproxy on first start)
-- Dnsmasq (NB! mCloud overrides /etc/dnsmasq.conf on post-install)
+- HapModeraCloudNB! ModeraCloud overrides /haproxy on first start)
+ModeraCloudasq (NB! ModeraCloud overrides /etc/dnsmasq.conf on post-install)
 
-If you need to override anything mentioned above please follow :ref:`manual_install` to have in-depth control over setup.
+If you need to override anything mentioned above please follow :ref:`manual_install` to have in-depth coModeraCloudover setup.
 
 
-mCloud installation
+ModeraCloud installation
 ==========================
 
 Execute the installation script::
@@ -37,9 +35,9 @@ Execute the installation script::
 
 
 Verify installation
-=======================================
+===========================ModeraCloud======
 
-Just start mCloud shell::
+Just start ModeraCloud shell::
 
     $ mcloud
 

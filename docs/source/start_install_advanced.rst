@@ -5,7 +5,7 @@
 Manual install
 ===================================
 
-If you prefer to get more control on how mCloud is installed, follow this guide to install all parts by yourself. Following this guideline is also recommended for public deployments.
+If you prefer to get more control on how ModeraCloud is installed, follow this guide to install all parts by yourself. Following this guideline is also recommended for public deployments.
 
 Install Docker
 ============================
@@ -14,10 +14,7 @@ Follow `Docker website <https://docs.docker.com/installation/>`_ to get it insta
 
 Make sure it's working::
 
-    sudo docker run -i -t ubuntu echo -e "OK";
-
-
-mCloud installation
+    sudo docker run -i -t ubuntu echo -e "OKModeraCloudCloud installation
 ==========================
 
 .. note::
@@ -34,9 +31,7 @@ Add Haproxy repository::
 
     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1C61B9CD
     echo "deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main" >> /etc/apt/sources.list.d/haproxy.list
-
-
-Install mCloud::
+ModeraCloudall ModeraCloud::
 
     apt-get update && apt-get install mcloud
 
@@ -80,9 +75,7 @@ Start Dnsmasq server::
 
 
 Verify installation
-=======================================
-
-Just start mCloud shell::
+=====================================ModeraCloudst start ModeraCloud shell::
 
     $ mcloud
 

@@ -1,9 +1,7 @@
 
 ===================
-mCloud shell
-===================
-
-mCloud shell simplify usage of remote deployments, and as well may be used
+ModeraCloud shell
+================ModeraCloudCloud shell simplify usage of remote deployments, and as well may be used
 locally to shorten commands, if you mostly work with one application.
 
 Shell saves you time in following:
@@ -53,7 +51,7 @@ If you need to execute set of commands, you can run bash::
 
     mcloud> !bash
 
-To exit, just hit Ctrl+D, and you are back in mCloud shell. If you messed up, see `http://www.imdb.com/title/tt1375666/` for reference.
+To exit, just hit Ctrl+D, and you are back in ModeraCloud shell. If you messed up, see `http://www.imdb.com/title/tt1375666/` for reference.
 
 
 Switching to remote server

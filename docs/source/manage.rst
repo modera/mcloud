@@ -1,7 +1,7 @@
 
 
 ========================================
-Manage mCloud environment
+Manage ModeraCloud environment
 ========================================
 
 .. toctree::

@@ -3,7 +3,7 @@
 Welcome
 ==============
 
-Welcome to *mCloud* - a tool that helps you manage Docker based deployments.
+Welcome to *ModeraCloud* - a tool that helps you manage Docker based deployments.
 
 - Describe deployment in a simple configuration file.
 - Keep the configuration in a VCS with your application code.

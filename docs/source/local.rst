@@ -1,9 +1,9 @@
 
 ==============================
-Local development with mCloud
+Local development with ModeraCloud
 ==============================
 
-mCloud applies it's best effort to provide tooling that help making developer
+ModeraCloud applies it's best effort to provide tooling that help making developer
 life easier.
 
 For developer mloud means:
@@ -14,7 +14,7 @@ For developer mloud means:
 - Nice urls like myapp.mcloud.lh
 - Simple communication with services: *mysql -h mysql.myapp.mcloud.lh*
 
-This chapter will describe how mCloud operates plus some useful patterns for development.
+This chapter will describe how ModeraCloud operates plus some useful patterns for development.
 
 
 .. toctree::

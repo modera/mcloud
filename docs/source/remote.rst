@@ -4,10 +4,10 @@
 Deploying to remote server
 ===========================================
 
-mCloud allows to deploy application to remote servers, same easily
+ModeraCloud allows to deploy application to remote servers, same easily
 as to localserver, without any code modification.
 
-Before deploy mCloud, you need to prepare server. Server needed is any
+Before deModeraCloudCloud, you need to prepare server. Server needed is any
 virtualmachine with ubuntu 14.04x64 on board.
 
 Here is quickstart for common cloud providers:
@@ -20,7 +20,7 @@ Here is quickstart for common cloud providers:
 
 .. note::
 
-    *AWS* has Free Tier program that allow to try AWS & mCloud for free and host one simple site
+    *AWS* has Free Tier program that allow to ModeraCloudS & ModeraCloud for free and host one simple site
     free forever. However, *DigitalOcean* has more democratic pricing and easier user interface.
 
 

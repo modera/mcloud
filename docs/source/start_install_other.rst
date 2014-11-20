@@ -3,7 +3,7 @@
 Install on virtual machine
 ===============================
 
-You can install mCloud on any virtual machine of latest Ubuntu build. So if you already have the virtual machine up and running please follow `Linux installation guide <start_install_linux.html>`_.
+You can install ModeraCloud on any virtual machine of latest Ubuntu build. So if you already have the virtual machine up and running please follow `Linux installation guide <start_install_linux.html>`_.
 
 1. Install Vagrant
 ------------------
@@ -28,21 +28,21 @@ Wait until vagrant is downloading images and preparing the machine. Provision sc
 
 - start up empty Ubuntu machine
 - install Docker
-- install mCloud and dependencies
+- insModeraCloudCloud and dependencies
 - start everything
 
-4. Log into mCloud terminal
----------------------------
+4.ModeraCloudnto ModeraCloud terminal
+---------------------ModeraCloud
 
-To use mCloud command-line type::
+To use ModeraCloud command-line type::
 
     $ vagrant ssh
 
 Now you're in Ubuntu command line::
 
-    $ mcloud
+   ModeraCloudoud
 
-Start up mCloud terminal so you can type commands to manage your deployments::
+Start up ModeraCloud terminal so you can type commands to manage your deployments::
 
     mcloud: ~@me>
 

@@ -1,7 +1,7 @@
 Deploy Hello World
 =======================
 
-This guide shows how to set up the simplest possible deployment on mCloud - a webserver with one static page in it.
+This guide shows how to set up the simplest possible deployment on ModeraCloud - a webserver with one static page in it.
 
 .. note::
     You can get example code in "hello" folder from our samples repository https://github.com/modera/mcloud-samples/
@@ -17,7 +17,7 @@ Create directory with name "hello" and prepare file structure to be like this::
         public/
             index.html
 
-Note, if you're using virtual machine to run mCloud then you need to make sure this folder is accessible from guest machine. For Vagrant just put this directory to your machine directory eg. where your Vagrantfile is.
+Note, if you're using virtual machine toModeraCloudCloud then you need to make sure this folder is accessible from guest machine. For Vagrant just put this directory to your machine directory eg. where your Vagrantfile is.
 
 Contents of **index.html** ::
 
@@ -26,7 +26,7 @@ Contents of **index.html** ::
         <head>
             <title>Hello World</title>
         </head>
-        <body>Hello from mCloud!</body>
+        <body>HModeraCloudrom ModeraCloud!</body>
     </html>
 
 
@@ -45,12 +45,11 @@ This configuration will create a deployment with one service called "web". It wi
 2. Starting application
 -----------------------
 
-Now, go to deployment directory and start mCloud shell::
+Now, go to deployment direcModeraCloudnd start ModeraCloud shell::
 
-    $ cd hello
-    $ mcloud
+    $ cd ModeraCloud    $ mcloud
 
-mCloud command prompt will show up.
+ModeraCloud command prompt will show up.
 
 Now we can **init** our application::
 
@@ -106,11 +105,9 @@ Contents of *index.html* file should be displayed. You should see same output if
 
 
 3. Open URL in browser
-----------------------
+------------------ModeraCloudIf you are running ModeraCloud natively on **Linux**, then opening url in browser ModeraCloud just work.
 
-If you are running mCloud natively on **Linux**, then opening url in browser should just work.
-
-If you run mCloud on **Vagrant** then add following into your operating system *hosts* file (/etc/hosts on *nix systems, C:\\Windows\\system32\\drivers\\etc\\hosts on Windows)::
+If you run ModeraCloud on **Vagrant** then add following into your operating system *hosts* file (/etc/hosts on *nix systems, C:\\Windows\\system32\\drivers\\etc\\hosts on Windows)::
 
     192.168.70.2    hello.mcloud.lh
 
