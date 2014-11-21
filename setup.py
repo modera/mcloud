@@ -69,6 +69,7 @@ setup(
     install_requires=[
         'jinja2',
         'texttable',
+        'klein',
         'twisted',
         'txredisapi',
         'inject',
