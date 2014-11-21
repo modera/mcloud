@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>ModeraCloud</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="globalsign-domain-verification" content="tjPuJ5jX4j4pATIppQupGylEnRoAvy36OTtyE8Og39" />
+	<link href="/assets/css/modera.min.css" rel="stylesheet" media="screen" />
+	<link href="/assets/css/font-awesome.min.css" rel="stylesheet" media="screen" />
+	<link href="/assets/css/modera-theme.min.css" rel="stylesheet" media="screen" />
+	<link rel="shortcut icon" type="image/png" href="/assets/images/mcloudicon.png?v=3">
+</head>
+<body id="page-base" ng-app="modera" data-spy="scroll" data-target=".sidebar-column" data-offset="100">
+
+
+
+<!-- content wrap starts -->
+<div id="wrap" data-spy="affix" data-offset-top="145">
+
+
+
+<!-- hero unit -->
+<div class="jumbotron md-hero md-cloud-hero">
+	<div class="md-hero-inner">
+		<div class="container">
+				<h1 class="text-center"><img src="/assets/images/mcloudlogo.svg" height="60" alt="ModeraCloud"></h1>
+				<div class="version text-center">Beta</div>
+		</div>
+	</div>
+</div>
+
+
+
+<nav class="navbar navbar-default navbar-static-top" role="navigation">
+	<div class="container">
+		<div class="navbar-header">
+				<a class="navbar-brand" href="/">
+					<span>ModeraCloud</span>
+				</a>
+				<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+						<span class="sr-only">Toggle navigation</span>
+						<i class="fa fa-bars"></i>
+				</button>
+		</div>
+		<div class="collapse navbar-collapse navbar-ex1-collapse">
+			<ul class="nav navbar-nav navbar-left">
+				<li class="active">
+					<a href="/">
+						<i class="fa fa-home"></i>
+						At a glance
+					</a>
+				</li>
+		        <li>
+					<a href="/docs/">
+						<i class="fa fa-book"></i>
+						Documentation
+					</a>
+				</li>
+				<!-- <li>
+					<a href="/blog">
+						<i class="fa fa-rss"></i>
+						Blog
+					</a>
+				</li> -->
+			</ul>
+			<ul class="nav navbar-nav navbar-right">
+				<li id="btn-scroll-up">
+					<a href="#">
+						<i class="fa fa-arrow-up"></i>
+						Scroll up
+					</a>
+				</li>
+			</ul>
+		</div>
+	</div>
+</nav>
+
+
+
+<div class="jumbotron md-content-hero">
+		<div class="container text-center">
+
+		</div>
+</div>
+
+<!--<div class="md-shaded" id="cloud-intro">-->
+		<!--<div class="container">-->
+            <!--COntainer-->
+		<!--</div>-->
+<!--</div>-->
+
+
+<!-- features + LNS -->
+<a name="features" id="features" class="anchor"></a>
+<div class="container">
+		<div class="row">
+
+		</div>
+</div>
+
+</div><!--/#wrap -->
+
+
+<!-- fixed footer -->
+<footer>
+	<div class="container">
+		<p class="text-muted">
+		    Designed and developed in <strong>Modera R&amp;D labs</strong>.
+		</p>
+	</div>
+</footer>
+
+
+<!--
+  here's mr. Java Script.
+  There's a bit mess for now - we use
+  - JQuery std lib for bootstrap
+  - Angular for ui logic
+  We also have Angular lib for bootstrap but this is yet not integrated:
+  Work To Be Done
+-->
+<script src="https://code.jquery.com/jquery.js"></script>
+<!--script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular-resource.min.js"></script>
+<script src="/angular/modera.js"></script-->
+<!-- Bootstrap helpers compiled -->
+<script src="/assets/js/modera.js"></script>
+<script src="/components/reconnectingWebsocket/reconnecting-websocket.js"></script>
+<script src="/assets/js/mcloud.js"></script>
+
+
+<!-- Asciinema trigger show and hide -->
+<script>
+$(function () {
+	$('#cinemaBtn').hide();
+	$('#terminal').hover(
+		function () {
+			$('#cinemaBtn').show();
+		},
+		function () {
+			$('#cinemaBtn').hide();
+		});
+});
+</script>
+
+
+</body>
+</html>

@@ -14,10 +14,13 @@ class DnsPlugin(Plugin):
     eb = inject.attr(EventBus)
     app_controller = inject.attr(ApplicationController)
     redis = inject.attr(txredisapi.Connection)
+    web_listen_ip = inject.attr('dns-server')
 
     @inlineCallbacks
     def dump(self, apps_list):
-        apps = {}
+        apps = {
+            'mcloud.lh': self.web_listen_ip
+        }
 
         for app in apps_list:
             for service in app['services']:

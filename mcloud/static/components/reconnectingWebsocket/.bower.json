@@ -1,0 +1,33 @@
+{
+  "name": "reconnecting-websocket",
+  "main": "reconnecting-websocket.js",
+  "homepage": "https://github.com/joewalnes/reconnecting-websocket",
+  "authors": [
+    "Joe Walnes",
+    "headlessme <contact@coggle.it>"
+  ],
+  "description": "A small decorator for the JavaScript WebSocket API that automatically reconnects",
+  "moduleType": [
+    "amd",
+    "globals",
+    "node"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "_release": "592c441b27",
+  "_resolution": {
+    "type": "branch",
+    "branch": "master",
+    "commit": "592c441b27224600836ddb2975482665be5c0060"
+  },
+  "_source": "git://github.com/joewalnes/reconnecting-websocket.git",
+  "_target": "*",
+  "_originalSource": "reconnectingWebsocket",
+  "_direct": true
+}

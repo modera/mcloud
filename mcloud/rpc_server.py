@@ -3,9 +3,11 @@ import sys
 import netifaces
 
 import inject
+from mcloud.web import mcloud_web
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
+from twisted.web.server import Site
 import txredisapi
 from twisted.python import log
 from mcloud.plugins.internal_api import InternalApiPlugin
@@ -150,6 +152,9 @@ def entry_point():
 
         log.msg('Listen dns on ip %s:53' % dns_server_ip)
         listen_dns(dns_prefix, dns_server_ip, 7053)
+
+        log.msg('Start internal web server')
+        reactor.listenTCP(8080, Site(mcloud_web()), interface=dns_server_ip)
 
         log.msg('Listen metrics')
         MetricsPlugin()
