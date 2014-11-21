@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     if not ref or ref.commit.hexsha != repo.head.commit.hexsha:
         new_tag_name = '%s.%d' % (branch_name, max_key + 1)
-        new_ref = repo.create_tag(new_tag_name, message='New version: %s' % new_tag_name)
+        # new_ref = repo.create_tag(new_tag_name, message='New version: %s' % new_tag_name)
 
 
         logs = []
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
             file_prepend('CHANGES.txt', data)
 
-        sys.stdout.write(new_ref.tag.tag)
+        sys.stdout.write(new_tag_name)
 
 
     else:
