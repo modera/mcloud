@@ -128,6 +128,7 @@ function McloudIO(host, port) {
     }
 
     function request(task, args, kwargs) {
+        console.log('call', task, args, kwargs);
         return me.wait_connect().then(function() {
 
             return new Promise(function(resolve, reject) {
@@ -144,6 +145,10 @@ function McloudIO(host, port) {
         return request('ping').then(function(response) {
             console.log('response', response);
         });
+    };
+
+    me.kill = function(task_id) {
+        return request('kill', [], {ticket_id: task_id});
     };
 
     me._task_start = function(args, kwargs) {
@@ -169,19 +174,28 @@ function McloudIO(host, port) {
 
     me.list = function() {
         return me.call_task(['list']);
-    }
+    };
 
     me.inspect = function(app, service) {
         return me.call_task(['inspect', app, service]);
+    };
+
+    me.logs = function(service_name) {
+        return me._task_start(['logs', service_name]);
     }
 }
 
 function McloudIOTask(api, task_id) {
     Events(this);
     var me = this;
+    me.id = task_id;
 
     api.on('task.success.' + task_id, function(data) {
         me.emit('complete', data);
+    });
+
+    api.on('task.progress.' + task_id, function(data) {
+        me.emit('progress', data);
     });
 
 
