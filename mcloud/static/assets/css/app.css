@@ -1,0 +1,9 @@
+
+
+.app-list .nav-tabs > li {
+    margin-bottom: -2px;
+}
+
+.app-list .refresh-link {
+    cursor: pointer;
+}

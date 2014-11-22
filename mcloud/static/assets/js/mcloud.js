@@ -1,13 +1,17 @@
 
+
 function Events(target){
-  var events = {}, A = Array;
+  var events = {}, once = {};
   target = target || this;
     /**
      *  On: listen to events
      */
-    target.on = function(type, func, ctx){
+    target.on = function(type, func, ctx, once){
       events[type] || (events[type] = []);
-      events[type].push({f:func, c:ctx})
+      events[type].push({f:func, c:ctx, once: once})
+    };
+    target.once = function(type, func, ctx){
+        target.on(type, func, ctx, true);
     };
     /**
      *  Off: stop listening to event / specific callback
@@ -21,10 +25,19 @@ function Events(target){
      * Emit: send event, callbacks will be triggered
      */
     target.emit = function(){
-      var args = A.apply([], arguments);
-      var list = events[args.shift()] || [];
+      var args = Array.apply([], arguments);
+      var type = args.shift();
+
+      var list = events[type] || [];
+      list = Array.apply([], list);
+
       var i = list.length;
-      for(var j=0;j<i;j++) list[j].f.apply(list[j].c, args)
+      for(var j=0;j<i;j++) {
+          list[j].f.apply(list[j].c, args);
+          if (list[j].once) {
+              target.off(type, list[j].f);
+          }
+      }
     };
 }
 var u, module, cjs = module != u;
@@ -36,12 +49,36 @@ function McloudIO(host, port) {
     var me = this;
     me.request_id = 0;
     me.requests = {};
+    me.online = false;
 
     me.api = new ReconnectingWebSocket('ws://' + host + ':' + (port || 7080));
 
-
     me.api.onopen = function() {
-        me.emit('connect')
+        me.emit('connect');
+        me.online = true;
+    };
+
+    me.api.onclose = function() {
+        me.emit('disconnect');
+        me.online = false;
+    };
+
+    /**
+     * Waits for connection
+     *
+     * @returns {Promise}
+     */
+    me.wait_connect = function() {
+        return new Promise(function(resolve, reject) {
+            if (me.online) {
+                console.log('already online');
+                resolve();
+            }
+            me.once('connect', function() {
+                console.log('connect event');
+                resolve();
+            });
+        });
     };
 
     me.api.onmessage = function(e) {
@@ -91,12 +128,16 @@ function McloudIO(host, port) {
     }
 
     function request(task, args, kwargs) {
-        return new Promise(function(resolve, reject) {
-            me.requests[call(task, args, kwargs)] = {
-                resolve: resolve,
-                reject: reject
-            };
+        return me.wait_connect().then(function() {
+
+            return new Promise(function(resolve, reject) {
+                me.requests[call(task, args, kwargs)] = {
+                    resolve: resolve,
+                    reject: reject
+                };
+            });
         });
+
     }
 
     me.ping = function() {
@@ -111,12 +152,27 @@ function McloudIO(host, port) {
         });
     };
 
+    me.call_task = function(args, kwargs) {
+        return new Promise(function(resolve, reject) {
+
+            me._task_start(args, kwargs).then(function(task) {
+                task.on('complete', function(result) {
+                    resolve(result);
+                })
+            });
+        });
+    };
+
     /**
      * Public api
      */
 
     me.list = function() {
-        return me._task_start(['list'])
+        return me.call_task(['list']);
+    }
+
+    me.inspect = function(app, service) {
+        return me.call_task(['inspect', app, service]);
     }
 }
 
@@ -124,35 +180,19 @@ function McloudIOTask(api, task_id) {
     Events(this);
     var me = this;
 
-    console.log('task.success.' + task_id);
     api.on('task.success.' + task_id, function(data) {
-        console.log('Success!!!!');
         me.emit('complete', data);
-    })
+    });
+
+
 }
 
 
-var io = new McloudIO(location.hostname);
-io.on('connect', function() {
-    console.log('I am connected!');
-
-    io.ping();
-    io.list().then(function(task) {
-        console.log('List result:', task);
-
-        task.on('complete', function(result) {
-            console.log('Task completed', result);
-        })
-    });
-});
-
-io.on('raw_message', function(data) {
-    console.log('Raw message', data);
-});
-
-io.on('event', function(name, data) {
-    console.log('Raw event', name, data);
-});
+//var io = new McloudIO(location.hostname);
+//
+//io.list().then(function(result) {
+//    console.log('List result:', result);
+//});
 
 
 

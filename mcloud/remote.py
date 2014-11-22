@@ -128,7 +128,7 @@ class ApiRpcServer(object):
         reactor.callLater(0, _do_start)
 
         self.ticket_map[ticket_id] = client
-        defer.returnValue(json.dumps({'success': True, 'id': ticket_id}))
+        defer.returnValue({'success': True, 'id': ticket_id})
 
     def xmlrpc_is_completed(self, ticket_id):
         d = self.redis.get('mcloud-ticket-%s-completed' % ticket_id)
@@ -456,7 +456,6 @@ class Client(object):
     def call(self, task, *args, **kwargs):
 
         result = yield self.call_sync('task_start', task.name, *args, **kwargs)
-        result = json.loads(result)
 
         if result['success']:
             task.id = result['id']

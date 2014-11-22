@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="mcloudApp">
 <head>
 	<title>ModeraCloud</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,9 +7,31 @@
 	<link href="/assets/css/modera.min.css" rel="stylesheet" media="screen" />
 	<link href="/assets/css/font-awesome.min.css" rel="stylesheet" media="screen" />
 	<link href="/assets/css/modera-theme.min.css" rel="stylesheet" media="screen" />
+	<link href="/assets/css/app.css" rel="stylesheet" media="screen" />
 	<link rel="shortcut icon" type="image/png" href="/assets/images/mcloudicon.png?v=3">
+
+    <!--
+      here's mr. Java Script.
+      There's a bit mess for now - we use
+      - JQuery std lib for bootstrap
+      - Angular for ui logic
+      We also have Angular lib for bootstrap but this is yet not integrated:
+      Work To Be Done
+    -->
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <!--script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular-resource.min.js"></script>
+    <script src="/angular/modera.js"></script-->
+    <!-- Bootstrap helpers compiled -->
+    <script src="/assets/js/modera.js"></script>
+    <script src="/components/reconnectingWebsocket/reconnecting-websocket.js"></script>
+    <script src="/components/angular/angular.js"></script>
+    <script src="/assets/js/mcloud.js"></script>
+    <script src="/assets/js/app.js"></script>
+
+
 </head>
-<body id="page-base" ng-app="modera" data-spy="scroll" data-target=".sidebar-column" data-offset="100">
+<body id="page-base" data-spy="scroll" data-target=".sidebar-column" data-offset="100">
 
 
 
@@ -29,72 +51,86 @@
 </div>
 
 
+<div class="container app-list" ng-controller="McloudAppsCtrl">
+    <div class="row">
+        <div class="col-xs-12" style="padding-top: 30px;" ng-click="foo()">
+            <!--<div role="tabpanel">-->
+              <ul class="nav nav-tabs">
+                  <li role="presentation" ng-class="{active: selection.app == 'new'}" style="margin-left: 15px;">
+                      <a href="#" ng-click="select_app('new')">
+                          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> New application
+                      </a>
+                  </li>
+                  <li role="presentation" ng-class="{active: app == selection.app}"  ng-repeat="app in apps">
+                      <a href="#" ng-click="select_app(app)">{{ app.name }}</a>
+                  </li>
+                  <li role="presentation" style="float: right;">
+                      <a class="refresh-link" ng-click="update_apps()">
+                          <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Refresh
+                      </a>
+                  </li>
+              </ul>
 
-<nav class="navbar navbar-default navbar-static-top" role="navigation">
-	<div class="container">
-		<div class="navbar-header">
-				<a class="navbar-brand" href="/">
-					<span>ModeraCloud</span>
-				</a>
-				<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
-						<span class="sr-only">Toggle navigation</span>
-						<i class="fa fa-bars"></i>
-				</button>
-		</div>
-		<div class="collapse navbar-collapse navbar-ex1-collapse">
-			<ul class="nav navbar-nav navbar-left">
-				<li class="active">
-					<a href="/">
-						<i class="fa fa-home"></i>
-						At a glance
-					</a>
-				</li>
-		        <li>
-					<a href="/docs/">
-						<i class="fa fa-book"></i>
-						Documentation
-					</a>
-				</li>
-				<!-- <li>
-					<a href="/blog">
-						<i class="fa fa-rss"></i>
-						Blog
-					</a>
-				</li> -->
-			</ul>
-			<ul class="nav navbar-nav navbar-right">
-				<li id="btn-scroll-up">
-					<a href="#">
-						<i class="fa fa-arrow-up"></i>
-						Scroll up
-					</a>
-				</li>
-			</ul>
-		</div>
-	</div>
-</nav>
+            <!--</div>-->
 
+            <div class="panel" ng-if="selection.app" style="margin-top: 30px;">
+                <table class="table table-hover" ng-if="selection.app.services">
+                  <thead>
+                    <tr>
+                      <th>Service</th>
+                      <th>Cpu</th>
+                      <th>Memory</th>
+                        <th>ip</th>
+                        <th>Running</th>
+                    </tr>
+                  </thead>
+                  <tr ng-repeat="service in selection.app.services" ng-click="select_service(service)">
+                      <td>{{ service.shortname }}</td>
+                      <td>{{ service.cpu }}</td>
+                      <td>{{ service.memory }}</td>
+                      <td>{{ service.ip }}</td>
+                      <td>{{ service.running }}</td>
+                  </tr>
+                </table>
 
+                <div class="well well-lg" ng-if="selection.app == 'new'" style="border: 2px dashed darkgray; border-radius: 10px;">
+                    <span style="font-size: 30px; color: darkgray;">
+                        Drag and drop your mcloud.yml here.
+                    </span>
+                </div>
+            </div>
 
-<div class="jumbotron md-content-hero">
-		<div class="container text-center">
+            <div ng-if="selection.service">
+                <h2>{{ selection.service.name }}</h2>
 
-		</div>
-</div>
+                <hr />
 
-<!--<div class="md-shaded" id="cloud-intro">-->
-		<!--<div class="container">-->
-            <!--COntainer-->
-		<!--</div>-->
-<!--</div>-->
-
-
-<!-- features + LNS -->
-<a name="features" id="features" class="anchor"></a>
-<div class="container">
-		<div class="row">
-
-		</div>
+                <!--<div class="container">-->
+                    <div class="row">
+                        <div class="col-xs-2">
+                            <ul class="nav nav-pills nav-stacked">
+                                 <li role="presentation" class="active"><a href="#">Inspect</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-xs-10">
+                             <table class="table table-striped">
+                              <thead>
+                                <tr>
+                                  <th>Param</th>
+                                  <th>Value</th>
+                                </tr>
+                              </thead>
+                              <tr ng-repeat="(key, val) in selection.service.inspect">
+                                  <td>{{ key }}</td>
+                                  <td style="white-space: pre; font-family: monospace; font-size: 12px;">{{ val|json }}</td>
+                              </tr>
+                            </table>
+                        </div>
+                    </div>
+                <!--</div>-->
+            </div>
+        </div>
+    </div>
 </div>
 
 </div><!--/#wrap -->
@@ -110,22 +146,6 @@
 </footer>
 
 
-<!--
-  here's mr. Java Script.
-  There's a bit mess for now - we use
-  - JQuery std lib for bootstrap
-  - Angular for ui logic
-  We also have Angular lib for bootstrap but this is yet not integrated:
-  Work To Be Done
--->
-<script src="https://code.jquery.com/jquery.js"></script>
-<!--script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
-<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular-resource.min.js"></script>
-<script src="/angular/modera.js"></script-->
-<!-- Bootstrap helpers compiled -->
-<script src="/assets/js/modera.js"></script>
-<script src="/components/reconnectingWebsocket/reconnecting-websocket.js"></script>
-<script src="/assets/js/mcloud.js"></script>
 
 
 <!-- Asciinema trigger show and hide -->
