@@ -10,6 +10,7 @@
   "private": true,
   "dependencies": {
     "angular": "~1.2.26",
-    "reconnectingWebsocket": "*"
+    "reconnectingWebsocket": "*",
+    "term.js": "~0.0.3"
   }
 }
