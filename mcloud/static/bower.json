@@ -9,7 +9,8 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
-    "angular": "~1.3.3",
-    "reconnectingWebsocket": "*"
+    "angular": "~1.2.26",
+    "reconnectingWebsocket": "*",
+    "term.js": "~0.0.3"
   }
 }

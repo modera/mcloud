@@ -17,3 +17,5 @@ global-exclude *.pyc
 # include requirements.txt
 include setup.py
 # include tox.ini
+
+recursive-include mcloud/static *

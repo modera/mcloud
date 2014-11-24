@@ -105,7 +105,8 @@ setup(
         # 'gui_scripts': [
         #     'mcloud_gui = mcloud.gui:entry_point'
         # ]
-    }
+    },
+    include_package_data = True,
 
     # extras
     # 'Werkzeug'
