@@ -1,13 +1,13 @@
 import os
 from klein import Klein
 from twisted.web.static import File
+from pkg_resources import resource_filename
 
 app = Klein()
-
-base_path = os.path.dirname(__file__)
+static_dir = resource_filename(__name__, 'static/')
 
 @app.route('/', branch=True)
 def static(request):
-    return File(os.path.join(base_path, 'static/'))
+    return File(static_dir)
 
 mcloud_web = app.resource

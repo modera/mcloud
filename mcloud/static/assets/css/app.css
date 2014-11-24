@@ -7,3 +7,8 @@
 .app-list .refresh-link {
     cursor: pointer;
 }
+
+.terminal {
+    font-family: Monospace, Monaco, Consolas;
+    font-size: 12px;
+}

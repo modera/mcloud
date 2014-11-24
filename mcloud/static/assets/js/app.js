@@ -31,8 +31,12 @@ mcloudApp.controller('McloudAppsCtrl', function ($scope, $interval) {
     $scope.select_service = function(service) {
         $scope.kill_service_tasks();
 
-        if ($scope.selection.service && $scope.selection.service.terminal) {
-            $scope.selection.service.terminal.destroy();
+        if ($scope.selection.service && $scope.selection.service.log_terminal) {
+            $scope.selection.service.log_terminal.destroy();
+        }
+
+        if ($scope.selection.service && $scope.selection.service.run_terminal) {
+            $scope.selection.service.run_terminal.destroy();
         }
 
         $scope.selection.service = service;
@@ -58,21 +62,50 @@ mcloudApp.controller('McloudAppsCtrl', function ($scope, $interval) {
     $scope.service_logs = function(service) {
         $scope.selection.service_tab = 'logs';
 
-        if (!service.terminal) {
-            service.terminal = new Terminal({
+        if (!service.log_terminal) {
+            service.log_terminal = new Terminal({
+              cols: 80,
+              rows: 24,
+              screenKeys: false
+            });
+        }
+
+        io.logs(service.name).then(function(task) {
+            service.log_terminal.reset();
+            $scope.service_tasks.push(task.id);
+
+            task.on('progress', function(data) {
+                if (service.log_terminal) {
+                    service.log_terminal.writeln(data);
+                }
+            });
+
+            $scope.$apply();
+        });
+    };
+
+    $scope.service_run = function(service) {
+        $scope.selection.service_tab = 'run';
+
+        if (!service.run_terminal) {
+            service.run_terminal = new Terminal({
               cols: 80,
               rows: 24,
               screenKeys: true
             });
         }
 
-        io.logs(service.name).then(function(task) {
+        io.run(service.name, 'bash', 80, 40).then(function(task) {
+            service.run_terminal.reset();
+
             $scope.service_tasks.push(task.id);
 
-            task.on('progress', function(data) {
-                if (service.terminal) {
-                    service.terminal.writeln(data);
-                }
+            task.on('stdout', function(data) {
+                service.run_terminal.write(atob(data));
+            });
+
+            service.run_terminal.on('data', function(data) {
+               task.stdin(btoa(data));
             });
 
             $scope.$apply();
@@ -100,12 +133,16 @@ mcloudApp.controller('McloudAppsCtrl', function ($scope, $interval) {
 });
 
 mcloudApp.directive('xterm', function() {
+    console.log('Registred');
 
   function link(scope, element, attrs) {
       var term = null;
+      console.log('Directive works!');
 
       scope.$watch(attrs.term, function (value){
           term = value;
+
+          console.log(term);
 
           if (term) {
               term.open(element[0]);
@@ -115,6 +152,7 @@ mcloudApp.directive('xterm', function() {
   }
 
   return {
+      restrict: 'E',
       link: link
   };
 });

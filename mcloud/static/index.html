@@ -119,6 +119,9 @@
                                  <li role="presentation" ng-class="{'active': selection.service_tab == 'logs'}">
                                      <a ng-click="service_logs(selection.service)">Logs</a>
                                  </li>
+                                 <li role="presentation" ng-class="{'active': selection.service_tab == 'run'}">
+                                     <a ng-click="service_run(selection.service)">Terminal</a>
+                                 </li>
                             </ul>
                         </div>
                         <div class="col-xs-10" ng-if="selection.service_tab == 'inspect'">
@@ -136,7 +139,10 @@
                             </table>
                         </div>
                         <div class="col-xs-10" ng-if="selection.service_tab == 'logs'">
-                            <xterm term="selection.service.terminal"/>
+                            <xterm term="selection.service.log_terminal" />
+                        </div>
+                        <div class="col-xs-10" ng-if="selection.service_tab == 'run'">
+                            <xterm term="selection.service.run_terminal" />
                         </div>
                     </div>
                 <!--</div>-->

@@ -71,7 +71,6 @@ function McloudIO(host, port) {
     me.wait_connect = function() {
         return new Promise(function(resolve, reject) {
             if (me.online) {
-                console.log('already online');
                 resolve();
             }
             me.once('connect', function() {
@@ -115,7 +114,7 @@ function McloudIO(host, port) {
     me.on('response', me.on_response);
 
 
-    function call(task, args, kwargs) {
+    me.call = function(task, args, kwargs) {
         var rqid = me.request_id++;
         me.api.send(JSON.stringify({
             task: task,
@@ -125,21 +124,21 @@ function McloudIO(host, port) {
         }));
 
         return rqid;
-    }
+    };
 
-    function request(task, args, kwargs) {
+    me.request = function(task, args, kwargs) {
         console.log('call', task, args, kwargs);
         return me.wait_connect().then(function() {
 
             return new Promise(function(resolve, reject) {
-                me.requests[call(task, args, kwargs)] = {
+                me.requests[me.call(task, args, kwargs)] = {
                     resolve: resolve,
                     reject: reject
                 };
             });
         });
 
-    }
+    };
 
     me.ping = function() {
         return request('ping').then(function(response) {
@@ -148,11 +147,11 @@ function McloudIO(host, port) {
     };
 
     me.kill = function(task_id) {
-        return request('kill', [], {ticket_id: task_id});
+        return me.request('kill', [], {ticket_id: task_id});
     };
 
     me._task_start = function(args, kwargs) {
-        return request('task_start', args, kwargs).then(function(result) {
+        return me.request('task_start', args, kwargs).then(function(result) {
             return new McloudIOTask(me, result.id);
         });
     };
@@ -182,6 +181,10 @@ function McloudIO(host, port) {
 
     me.logs = function(service_name) {
         return me._task_start(['logs', service_name]);
+    };
+
+    me.run = function(service_name, commmand, width, height) {
+        return me._task_start(['run', service_name, commmand, [height, width]]);
     }
 }
 
@@ -198,6 +201,17 @@ function McloudIOTask(api, task_id) {
         me.emit('progress', data);
     });
 
+    api.on('task.stdout.' + task_id, function(data) {
+        me.emit('stdout', data);
+    });
+
+    api.on('task.failure.' + task_id, function(data) {
+        me.emit('failure', data);
+    });
+
+    me.stdin = function(data) {
+        api.call('stdin', [], {ticket_id: task_id, data: data});
+    }
 
 }
 
