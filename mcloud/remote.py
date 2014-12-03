@@ -183,9 +183,10 @@ class Server(object):
 
     settings = inject.attr('settings')
 
-    def __init__(self, port=7080):
+    def __init__(self, port=7080, no_ssl=False):
         self.port = port
         self.clients = []
+        self.no_ssl = False
 
 
     @inlineCallbacks
@@ -278,7 +279,7 @@ class Server(object):
 
         try:
 
-            if self.settings and self.settings.ssl.enabled:
+            if not self.no_ssl and self.settings and self.settings.ssl.enabled:
 
                 from OpenSSL import SSL
 
@@ -304,7 +305,11 @@ class Server(object):
 
                 reactor.listenSSL(self.port, factory, myContextFactory)
             else:
-                reactor.listenTCP(self.port, factory)
+                print '*' * 60
+                print 'INSECURE MODE'
+                print 'Running on 127.0.0.1 only'
+                print '*' * 60
+                reactor.listenTCP(self.port, factory, interface='127.0.0.1')
         except:
             log.err()
 
@@ -340,7 +345,7 @@ class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):
 
 
 class Client(object):
-    def __init__(self, host='127.0.0.1', port=7080, settings=None):
+    def __init__(self, host='127.0.0.1', port=7080, settings=None, no_ssl=False):
         self.port = port
         self.host = host
         self.onc = None
@@ -348,6 +353,7 @@ class Client(object):
         self.request_id = 0
         self.request_map = {}
         self.settings = settings
+        self.no_ssl = no_ssl
 
         self.task_map = {}
 
@@ -411,7 +417,7 @@ class Client(object):
         key_path = os.path.expanduser('~/.mcloud/%s.key' % self.host)
         crt_path = os.path.expanduser('~/.mcloud/%s.crt' % self.host)
 
-        if os.path.exists(key_path) and os.path.exists(crt_path):
+        if not self.no_ssl and os.path.exists(key_path) and os.path.exists(crt_path):
 
             from mcloud.ssl import CtxFactory
 

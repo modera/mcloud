@@ -84,10 +84,10 @@ def test_request_response():
 
     #log.startLogging(sys.stdout)
 
-    server = Server(port=9998)
+    server = Server(port=9998, no_ssl=True)
     server.bind()
 
-    client = Client(port=9998)
+    client = Client(port=9998, no_ssl=True)
     yield client.connect()
 
     response = yield client.call_sync('ping')
@@ -114,10 +114,10 @@ def test_request_response_no_such_command():
 
     log.startLogging(sys.stdout)
 
-    server = Server(port=9996)
+    server = Server(port=9996, no_ssl=True)
     server.bind()
 
-    client = Client(port=9996)
+    client = Client(port=9996, no_ssl=True)
     yield client.connect()
 
     with pytest.raises(ApiError):
@@ -169,11 +169,11 @@ def test_tasks():
     api.tasks['baz'] = task.foo
 
     # start server -> real server on tcp port
-    server = Server(port=9997)
+    server = Server(port=9997, no_ssl=True)
     server.bind()
 
     # real client connecton here
-    client = Client(port=9997)
+    client = Client(port=9997, no_ssl=True)
     yield client.connect()
 
 
@@ -275,11 +275,11 @@ def test_task_terminate():
     api.tasks['baz'] = task.foo
 
     # start server -> real server on tcp port
-    server = Server(port=9997)
+    server = Server(port=9997, no_ssl=True)
     server.bind()
 
     # real client connecton here
-    client = Client(port=9997)
+    client = Client(port=9997, no_ssl=True)
     yield client.connect()
 
 
