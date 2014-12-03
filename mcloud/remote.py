@@ -278,8 +278,6 @@ class Server(object):
 
         try:
 
-            print self.settings.ssl.ca
-
             if self.settings and self.settings.ssl.enabled:
 
                 from OpenSSL import SSL
