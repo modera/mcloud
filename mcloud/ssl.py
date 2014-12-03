@@ -5,14 +5,16 @@ from twisted.internet import ssl
 
 class CtxFactory(ssl.ClientContextFactory):
 
-    settings = inject.attr('settings')
+    def __init__(self, key, crt):
+        self.key = key
+        self.crt = crt
 
     def getContext(self):
         from OpenSSL import SSL
 
         self.method = SSL.SSLv23_METHOD
         ctx = ssl.ClientContextFactory.getContext(self)
-        ctx.use_certificate_file(self.settings.ssl.cert)
-        ctx.use_privatekey_file(self.settings.ssl.key)
+        ctx.use_certificate_file(self.crt)
+        ctx.use_privatekey_file(self.key)
 
         return ctx
