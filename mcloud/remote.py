@@ -414,20 +414,21 @@ class Client(object):
 
         self.onc = defer.Deferred()
 
-        key_path = os.path.expanduser('~/.mcloud/%s.key' % self.host)
-        crt_path = os.path.expanduser('~/.mcloud/%s.crt' % self.host)
+        if not self.no_ssl and self.host != '127.0.0.1':
 
-        if not self.no_ssl and os.path.exists(key_path) and os.path.exists(crt_path):
+            key_path = os.path.expanduser('~/.mcloud/%s.key' % self.host)
+            crt_path = os.path.expanduser('~/.mcloud/%s.crt' % self.host)
+
+            if not os.path.exists(key_path):
+                raise ValueError('Key for server "%s" not found in file "%s"' % (self.host, key_path))
+
+            if not os.path.exists(crt_path):
+                raise ValueError('Key for server "%s" not found in file "%s"' % (self.host, crt_path))
 
             from mcloud.ssl import CtxFactory
 
             reactor.connectSSL(self.host, self.port, factory, CtxFactory(key_path, crt_path))
         else:
-            if self.host != '127.0.0.1':
-                print '*' * 60
-                print 'Warning! Unsecure connection to remote machine.'
-                print '*' * 60
-
             reactor.connectTCP(self.host, self.port, factory)
 
         return self.onc
