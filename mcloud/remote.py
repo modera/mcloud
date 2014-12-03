@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import inject
 from mcloud.events import EventBus
@@ -277,11 +278,19 @@ class Server(object):
 
         try:
 
+            print self.settings.ssl.ca
+
             if self.settings and self.settings.ssl.enabled:
 
                 from OpenSSL import SSL
 
                 from twisted.internet import ssl
+
+                print '*' * 60
+                print 'Running in secure mode'
+                print 'Ssl key:         %s' % self.settings.ssl.key
+                print 'Ssl certificate: %s' % self.settings.ssl.cert
+                print '*' * 60
 
                 myContextFactory = ssl.DefaultOpenSSLContextFactory(
                     self.settings.ssl.key, self.settings.ssl.cert
@@ -292,7 +301,8 @@ class Server(object):
 
                 # Since we have self-signed certs we have to explicitly
                 # tell the server to trust them.
-                ctx.load_verify_locations(self.settings.ssl.cert)
+
+                ctx.load_verify_locations(self.settings.ssl.ca)
 
                 reactor.listenSSL(self.port, factory, myContextFactory)
             else:
@@ -400,11 +410,20 @@ class Client(object):
 
         self.onc = defer.Deferred()
 
-        if self.settings and self.settings.ssl.enabled:
+        key_path = os.path.expanduser('~/.mcloud/%s.key' % self.host)
+        crt_path = os.path.expanduser('~/.mcloud/%s.crt' % self.host)
+
+        if os.path.exists(key_path) and os.path.exists(crt_path):
+
             from mcloud.ssl import CtxFactory
 
-            reactor.connectSSL(self.host, self.port, factory, CtxFactory())
+            reactor.connectSSL(self.host, self.port, factory, CtxFactory(key_path, crt_path))
         else:
+            if self.host != '127.0.0.1':
+                print '*' * 60
+                print 'Warning! Unsecure connection to remote machine.'
+                print '*' * 60
+
             reactor.connectTCP(self.host, self.port, factory)
 
         return self.onc

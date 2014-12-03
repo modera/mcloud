@@ -67,8 +67,9 @@ def entry_point():
 
     class SslConfiguration(Configuration):
         enabled = False
-        key = '/etc/mcloud/ssl.key'
-        cert = '/etc/mcloud/ssl.crt'
+        key = '/etc/mcloud/server.key'
+        cert = '/etc/mcloud/server.crt'
+        ca = '/etc/mcloud/ca.crt'
 
     class MyAppConfiguration(Configuration):
 
