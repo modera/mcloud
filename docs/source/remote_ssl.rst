@@ -25,6 +25,10 @@ And put three files into /etc/mcloud:
 - server.crt
 - server.key
 
+Put correct privileges to files::
+
+    sudo chmod go-rwx -R /etc/mcloud
+
 Restart mcloud server::
 
     sudo service mcloud restart
@@ -35,10 +39,10 @@ Local machine
 
 Put certificates files into ~/.mcloud/:
 
-- 127.0.0.1.crt
-- 127.0.0.1.key
+- my_server.crt
+- my_server.key
 
-Instead of 127.0.0.1 put your hostname you use to connect to mcloud.
+Instead of "my_server" put your hostname you use to connect to mcloud.
 
 Now `mcloud` command will autodetect and use your certificates.
 

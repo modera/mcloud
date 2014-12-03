@@ -93,7 +93,14 @@ def main(argv):
                 try:
                     yield getattr(client, args.func)(**vars(args))
                 except Exception as e:
-                    print '\n  %s\n' % color_text('%s: %s' % (type(e), str(e)), color='yellow')
+                    label = type(e)
+                    if isinstance(e, ValueError):
+                        label = 'error'
+
+                    print '\n  %s: %s\n' % (
+                        color_text(label, color='cyan'),
+                        color_text(str(e), color='yellow'),
+                    )
 
                 interrupt_manager.manual_interrupt()
 
