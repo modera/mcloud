@@ -1,7 +1,9 @@
+import datetime
 import inject
 
-from twisted.internet import ssl
-from twisted.internet.iocpreactor import reactor
+from twisted.internet import ssl, reactor
+from twisted.internet.defer import inlineCallbacks
+import txredisapi
 
 
 class CtxFactory(ssl.ClientContextFactory):
@@ -32,7 +34,7 @@ def verifyCallback(connection, x509, errnum, errdepth, ok):
         # return False
     return True
 
-def listen_ssl(resource, interface, port):
+def listen_ssl(port, resource, interface):
 
     settings = inject.instance('settings')
 
@@ -51,6 +53,6 @@ def listen_ssl(resource, interface, port):
     # tell the server to trust them.
 
     ctx.load_verify_locations(settings.ssl.ca)
-    ctx.set_session_id('id')
+    ctx.set_session_id(str(datetime.datetime.now()))
 
     reactor.listenSSL(port, resource, myContextFactory, interface=interface)

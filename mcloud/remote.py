@@ -1,4 +1,5 @@
 import json
+from mcloud.ssl import listen_ssl
 import os
 import sys
 import inject
@@ -257,17 +258,6 @@ class Server(object):
         """
         self.tasks[name] = callback
 
-    def verifyCallback(self, connection, x509, errnum, errdepth, ok):
-
-        if not ok:
-            print 'invalid cert from subject:', x509.get_subject()
-            return False
-        else:
-            print 'Subject is: %s' % x509.get_subject().commonName
-            print "Certs are fine"
-            # return False
-        return True
-
     def bind(self):
         """
         Start listening on the port specified
@@ -281,9 +271,6 @@ class Server(object):
 
             if not self.no_ssl and self.settings and self.settings.ssl.enabled:
 
-                from OpenSSL import SSL
-
-                from twisted.internet import ssl
 
                 print '*' * 60
                 print 'Running in secure mode'
@@ -291,19 +278,10 @@ class Server(object):
                 print 'Ssl certificate: %s' % self.settings.ssl.cert
                 print '*' * 60
 
-                myContextFactory = ssl.DefaultOpenSSLContextFactory(
-                    self.settings.ssl.key, self.settings.ssl.cert
-                )
-                ctx = myContextFactory.getContext()
+                print self.settings.websocket_ip
 
-                ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.verifyCallback)
+                listen_ssl(self.port, factory, interface=self.settings.websocket_ip)
 
-                # Since we have self-signed certs we have to explicitly
-                # tell the server to trust them.
-
-                ctx.load_verify_locations(self.settings.ssl.ca)
-
-                reactor.listenSSL(self.port, factory, myContextFactory)
             else:
                 print '*' * 60
                 print 'INSECURE MODE'

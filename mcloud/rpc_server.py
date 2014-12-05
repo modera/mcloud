@@ -3,7 +3,7 @@ import sys
 import netifaces
 
 import inject
-from mcloud.web import mcloud_web, listen_web
+from mcloud.web import listen_web
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
@@ -119,21 +119,15 @@ def entry_point():
         tasks = inject.instance(TaskService)
         api.tasks = tasks.collect_tasks()
 
+        print settings
+
         log.msg('Starting rpc listener on port %d' % settings.websocket_port)
         server = Server(port=settings.websocket_port)
         server.bind()
 
-        log.msg('Dumping resolv conf')
-
-        # dns
-        # dump_resolv_conf(dns_server_ip)
-
         if settings.haproxy or args.haproxy:
             log.msg('Haproxy plugin')
             HaproxyPlugin()
-
-        # log.msg('Datadog plugin')
-        # DatadogPlugin()
 
         log.msg('Monitor plugin')
         DockerMonitorPlugin()
@@ -151,8 +145,8 @@ def entry_point():
 
 
         if settings.web:
-            # log.msg('Start internal web server')
-            # reactor.listenTCP(8080, Site(mcloud_web()), interface=dns_server_ip)
+        #     log.msg('Start internal web server')
+        #     reactor.listenTCP(8080, Site(mcloud_web()), interface=dns_server_ip)
             listen_web(settings)
 
         log.msg('Listen metrics')
