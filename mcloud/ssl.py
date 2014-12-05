@@ -31,6 +31,7 @@ def verifyCallback(connection, x509, errnum, errdepth, ok):
     else:
         print 'Subject is: %s' % x509.get_subject().commonName
         print "Certs are fine"
+
         # return False
     return True
 
@@ -43,11 +44,12 @@ def listen_ssl(port, resource, interface):
     from twisted.internet import ssl
 
     myContextFactory = ssl.DefaultOpenSSLContextFactory(
-        settings.ssl.key, settings.ssl.cert
+        settings.ssl.key, settings.ssl.cert, sslmethod=SSL.SSLv23_METHOD
     )
     ctx = myContextFactory.getContext()
 
-    ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, verifyCallback)
+    ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_CLIENT_ONCE | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, verifyCallback)
+    ctx.set_session_cache_mode(SSL.SESS_CACHE_BOTH)
 
     # Since we have self-signed certs we have to explicitly
     # tell the server to trust them.

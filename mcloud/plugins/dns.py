@@ -16,10 +16,13 @@ class DnsPlugin(Plugin):
     redis = inject.attr(txredisapi.Connection)
     web_listen_ip = inject.attr('dns-server')
 
+    settings = inject.attr('settings')
+    """ @var McloudConfiguration """
+
     @inlineCallbacks
     def dump(self, apps_list):
         apps = {
-            'mcloud.lh': self.web_listen_ip
+        #     'mcloud.lh': self.settings.web_ip
         }
 
         for app in apps_list:

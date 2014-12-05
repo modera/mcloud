@@ -1,4 +1,5 @@
 import json
+from autobahn.twisted.resource import WSGIRootResource, WebSocketResource
 from mcloud.ssl import listen_ssl
 import os
 import sys
@@ -11,9 +12,13 @@ from twisted.internet.defer import inlineCallbacks, AlreadyCalledError, Cancelle
 from autobahn.twisted.websocket import WebSocketServerFactory
 from autobahn.twisted.websocket import WebSocketClientFactory
 from twisted.python.failure import Failure
+from twisted.web.server import Site
 import txredisapi
 
 from twisted.python import log
+
+from twisted.web.static import File
+from pkg_resources import resource_filename
 
 from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketServerProtocol
 
@@ -187,7 +192,7 @@ class Server(object):
     def __init__(self, port=7080, no_ssl=False):
         self.port = port
         self.clients = []
-        self.no_ssl = False
+        self.no_ssl = no_ssl
 
 
     @inlineCallbacks
@@ -262,12 +267,15 @@ class Server(object):
         """
         Start listening on the port specified
         """
-        factory = WebSocketServerFactory("ws://localhost:%s" % self.port, debug=False)
+        factory = WebSocketServerFactory("wss://localhost:%s/ws" % self.port, debug=False)
         factory.noisy = False
         factory.server = self
         factory.protocol = MdcloudWebsocketServerProtocol
 
+        web_resource = File(resource_filename(__name__, 'static/'))
         try:
+
+            rootResource = WSGIRootResource(web_resource, {'ws': WebSocketResource(factory)})
 
             if not self.no_ssl and self.settings and self.settings.ssl.enabled:
 
@@ -278,16 +286,16 @@ class Server(object):
                 print 'Ssl certificate: %s' % self.settings.ssl.cert
                 print '*' * 60
 
-                print self.settings.websocket_ip
+                listen_ssl(self.port, Site(rootResource), interface=self.settings.websocket_ip)
 
-                listen_ssl(self.port, factory, interface=self.settings.websocket_ip)
+
 
             else:
                 print '*' * 60
                 print 'INSECURE MODE'
                 print 'Running on 127.0.0.1 only'
                 print '*' * 60
-                reactor.listenTCP(self.port, factory, interface='127.0.0.1')
+                reactor.listenTCP(self.port, Site(rootResource), interface='127.0.0.1')
         except:
             log.err()
 
@@ -385,17 +393,17 @@ class Client(object):
                     raise Exception('Unknown task id: %s' % task_id)
 
     def connect(self):
-        factory = WebSocketClientFactory("ws://%s:%s" % (self.host, self.port), debug=False)
+        factory = WebSocketClientFactory("ws://%s:%s/ws/" % (self.host, self.port), debug=False)
         factory.noisy = True
         factory.protocol = MdcloudWebsocketClientProtocol
         factory.protocol.client = self
 
         self.onc = defer.Deferred()
 
-        if not self.no_ssl and self.host != '127.0.0.1':
+        key_path = os.path.expanduser('~/.mcloud/%s.key' % self.host)
+        crt_path = os.path.expanduser('~/.mcloud/%s.crt' % self.host)
 
-            key_path = os.path.expanduser('~/.mcloud/%s.key' % self.host)
-            crt_path = os.path.expanduser('~/.mcloud/%s.crt' % self.host)
+        if not self.no_ssl and self.host != '127.0.0.1':
 
             if not os.path.exists(key_path):
                 raise ValueError('Key for server "%s" not found in file "%s"' % (self.host, key_path))

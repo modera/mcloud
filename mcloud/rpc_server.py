@@ -3,11 +3,9 @@ import sys
 import netifaces
 
 import inject
-from mcloud.web import listen_web
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
-from twisted.web.server import Site
 import txredisapi
 from twisted.python import log
 from mcloud.plugins.internal_api import InternalApiPlugin
@@ -25,6 +23,7 @@ def get_argparser():
 
     parser = argparse.ArgumentParser(description='Mcloud rpc server')
     parser.add_argument('--config', default='/etc/mcloud/mcloud-server.yml', help='Config file path')
+    parser.add_argument('--no-ssl', default=False, action='store_true', help='Disable ssl')
 
     return parser
 
@@ -43,8 +42,6 @@ class McloudConfiguration(Configuration):
 
     dns_ip = None
     dns_port = 7053
-
-    web_ip = None
 
     websocket_ip = '0.0.0.0'
     websocket_port = 7080
@@ -73,11 +70,11 @@ def entry_point():
 
     settings = _McloudConfiguration.load()
 
+    if args.no_ssl:
+        settings.ssl.enabled = False
+
     if not settings.dns_ip:
         settings.dns_ip = netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
-
-    if not settings.web_ip:
-        settings.web_ip = settings.dns_ip
 
 
     @inlineCallbacks
@@ -119,13 +116,11 @@ def entry_point():
         tasks = inject.instance(TaskService)
         api.tasks = tasks.collect_tasks()
 
-        print settings
-
         log.msg('Starting rpc listener on port %d' % settings.websocket_port)
         server = Server(port=settings.websocket_port)
         server.bind()
 
-        if settings.haproxy or args.haproxy:
+        if settings.haproxy:
             log.msg('Haproxy plugin')
             HaproxyPlugin()
 
@@ -143,11 +138,8 @@ def entry_point():
         log.msg('Listen dns on ip %s:53' % settings.dns_ip)
         listen_dns(settings.dns_search_suffix, settings.dns_ip, settings.dns_port)
 
-
-        if settings.web:
-        #     log.msg('Start internal web server')
-        #     reactor.listenTCP(8080, Site(mcloud_web()), interface=dns_server_ip)
-            listen_web(settings)
+        # if settings.web:
+        #     listen_web(settings)
 
         log.msg('Listen metrics')
         MetricsPlugin()

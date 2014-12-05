@@ -51,7 +51,12 @@ function McloudIO(host, port) {
     me.requests = {};
     me.online = false;
 
-    me.api = new ReconnectingWebSocket('ws://' + host + ':' + (port || 7080));
+    if (window.location.protocol != "https:") {
+        me.api = new ReconnectingWebSocket('ws://' + host + ':' + (port || 7080) + '/ws/');
+    } else {
+        me.api = new ReconnectingWebSocket('wss://' + host + ':' + (port || 7080) + '/ws/');
+    }
+
 
     me.api.onopen = function() {
         me.emit('connect');
