@@ -96,6 +96,8 @@ def main(argv):
                     label = type(e)
                     if isinstance(e, ValueError):
                         label = 'error'
+                    else:
+                        label = str(label)
 
                     print '\n  %s: %s\n' % (
                         color_text(label, color='cyan'),
