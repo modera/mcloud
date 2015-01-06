@@ -345,7 +345,6 @@ class TaskService(object):
 
     def follow_logs(self, service, ticket_id):
         def on_log(log):
-            log = log[8:]
             self.task_log(ticket_id, log)
 
         def done(result):
