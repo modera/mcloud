@@ -179,7 +179,9 @@ class TaskService(object):
         """
 
         def on_log(log):
-            log = log[8:]
+            if len(log) == 8 and log[7] != 0x0a:
+                return
+
             self.task_log(ticket_id, log)
 
         try:
@@ -344,7 +346,12 @@ class TaskService(object):
 
 
     def follow_logs(self, service, ticket_id):
+
+
         def on_log(log):
+            if len(log) == 8 and log[7] != 0x0a:
+                return
+
             self.task_log(ticket_id, log)
 
         def done(result):
