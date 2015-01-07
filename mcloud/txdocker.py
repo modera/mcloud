@@ -163,7 +163,7 @@ class DockerTwistedClient(object):
         r = self._get('containers/%s/logs' % bytes(container_id), response_handler=None, data={
             'follow': follow,
             'tail': tail,
-            'timestamps': 0,
+            # 'timestamps': 0,
             'stdout': True,
             'stderr': True
         })

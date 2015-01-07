@@ -161,8 +161,10 @@ class ApiRpcClient(object):
 
 
     def print_progress(self, message):
+
         try:
             data = json.loads(message)
+
             if 'status' in data and 'progress' in data:
                 sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
 
@@ -178,7 +180,11 @@ class ApiRpcClient(object):
                     print pprintpp.pformat(data)
 
         except ValueError:
-            print(message)
+            # print ":".join("{:02x}".format(ord(c)) for c in message)
+            if message[-1] == chr(0x0a):
+                sys.stdout.write(message)
+            else:
+                print(message)
 
 
     @inlineCallbacks
