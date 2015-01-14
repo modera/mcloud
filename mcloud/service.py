@@ -194,6 +194,7 @@ class Service(object):
     def start(self, ticket_id):
         id_ = yield self.client.find_container_by_name(self.name)
 
+
         self.task_log(ticket_id, '[%s][%s] Starting service' % (ticket_id, self.name))
         self.task_log(ticket_id, '[%s][%s] Service resolve by name result: %s' % (ticket_id, self.name, id_))
 
@@ -246,6 +247,11 @@ class Service(object):
         config = {
             "Image": image_name,
         }
+
+        inspect_data = yield self.client.inspect_image(image_name)
+        print '-' * 40
+        print inspect_data['Config']['Volumes']
+        print '-' * 40
 
         vlist = yield self.redis.hgetall('vars')
 
