@@ -24,10 +24,10 @@ def test_ref_app_in_args(client):
     assert result == ('foo', 'boo')
 
 
-def test_ref_empty(client):
-    result = client.parse_app_ref('', {})
-
-    assert result == ('mcloud', None)   # mcloud is current dir
+# def test_ref_empty(client):
+#     result = client.parse_app_ref('', {})
+#
+#     assert result == ('mcloud', None)   # mcloud is current dir
 
 def test_ref_require_app(client):
 
