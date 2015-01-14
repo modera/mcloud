@@ -249,6 +249,9 @@ class ApiRpcClient(object):
                 if 'public_urls' in app and app['public_urls']:
                     for target in app['public_urls']:
                         url_ = target['url'] + '/'
+                        if target['port']:
+                            url_ += ' -> :' + target['port']
+
                         if not url_.startswith('http://'):
                             url_ = 'http://' + url_
 
@@ -311,10 +314,11 @@ class ApiRpcClient(object):
                 if 'public_urls' in app and app['public_urls']:
                     for target in app['public_urls']:
                         url_ = target['url'] + '/'
+
                         if not url_.startswith('http://'):
                             url_ = 'http://' + url_
                         if 'service' in target and target['service']:
-                            web += '\n' + '%s -> [%s]' % (url_, target['service'])
+                            web += '\n' + '%s -> [%s:%s]' % (url_, target['service'], target['port'] or '')
                         else:
                             if web_service_:
                                 web += '\n' + '%s -> [%s]' % (url_, web_service_)
@@ -694,10 +698,11 @@ class ApiRpcClient(object):
     @cli('Publish an application', arguments=(
         arg('ref', help='Application name', default=None, nargs='?'),
         arg('domain', help='Domain to publish'),
+        arg('--port', help='Custom target port'),
         arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
     ))
     @inlineCallbacks
-    def publish(self, domain, ref, ssl=False, **kwargs):
+    def publish(self, domain, ref, ssl=False, port=None, **kwargs):
         app_name, service = self.parse_app_ref(ref, kwargs, require_app=True)
 
         app = yield self.get_app(app_name)
@@ -705,7 +710,7 @@ class ApiRpcClient(object):
         if not app:
             print 'App not found. Can\'t publish'
         else:
-            yield self._remote_exec('publish', self.format_domain(domain, ssl), app_name, service)
+            yield self._remote_exec('publish', self.format_domain(domain, ssl), app_name, service, port)
 
     @cli('Unpublish an application', arguments=(
         arg('domain', help='Domain to unpublish'),

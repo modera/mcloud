@@ -782,7 +782,7 @@ class TaskService(object):
     #     defer.returnValue(not app is None)
 
     @inlineCallbacks
-    def task_publish(self, ticket_id, deployment_name, app_name, service_name):
+    def task_publish(self, ticket_id, deployment_name, app_name, service_name, custom_port=None):
         """
         Publish application URL.
 
@@ -791,7 +791,7 @@ class TaskService(object):
         :param app_name:
         :return:
         """
-        yield self.deployment_controller.publish_app(deployment_name, app_name, service_name)
+        yield self.deployment_controller.publish_app(deployment_name, app_name, service_name, custom_port)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
