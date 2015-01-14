@@ -13,11 +13,12 @@ class Deployment(object):
 
     app_controller = inject.attr(ApplicationController)
 
-    def __init__(self, name=None, public_app=None, public_service=None):
+    def __init__(self, name=None, public_app=None, public_service=None, custom_port=None):
         super(Deployment, self).__init__()
 
         self.name = name
         self.public_app = public_app
+        self.custom_port = None
         self.public_service = public_service
 
     @property
@@ -25,6 +26,7 @@ class Deployment(object):
         return {
             'name': self.name,
             'public_app': self.public_app,
+            'custom_port': self.custom_port,
             'public_service': self.public_service,
         }
 
@@ -78,13 +80,14 @@ class DeploymentController(object):
         defer.returnValue([Deployment(**json.loads(config)) for name, config in config.items()])
 
     @inlineCallbacks
-    def publish_app(self, deployment_name, app_name, service_name):
+    def publish_app(self, deployment_name, app_name, service_name, custom_port=None):
         try:
             deployment = yield self.get(deployment_name)
         except DeploymentDoesNotExist:
             deployment = yield self.create(deployment_name)
 
         deployment.public_app = app_name
+        deployment.custom_port = custom_port
         deployment.public_service = service_name
 
         yield self._persist_dployment(deployment)
