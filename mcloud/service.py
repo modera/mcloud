@@ -1,10 +1,12 @@
 import logging
+import re
 import inject
 from mcloud.remote import ApiRpcServer
 from mcloud.txdocker import IDockerClient, DockerConnectionFailed
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks, returnValue
 import txredisapi
+import os
 
 logger = logging.getLogger('mcloud.application')
 
@@ -194,7 +196,6 @@ class Service(object):
     def start(self, ticket_id):
         id_ = yield self.client.find_container_by_name(self.name)
 
-
         self.task_log(ticket_id, '[%s][%s] Starting service' % (ticket_id, self.name))
         self.task_log(ticket_id, '[%s][%s] Service resolve by name result: %s' % (ticket_id, self.name, id_))
 
@@ -203,6 +204,10 @@ class Service(object):
             self.task_log(ticket_id, '[%s][%s] Service not created. Creating ...' % (ticket_id, self.name))
             yield self.create(ticket_id)
             id_ = yield self.client.find_container_by_name(self.name)
+
+        current_config = yield self.inspect()
+        image_id = current_config['Image']
+        image_info = yield self.client.inspect_image(image_id)
 
         self.task_log(ticket_id, '[%s][%s] Starting service...' % (ticket_id, self.name))
 
@@ -217,8 +222,21 @@ class Service(object):
         if self.ports:
             config['PortBindings'] = dict([(port, [{}]) for port in self.ports])
 
+        mounted_volumes = []
+        config['Binds'] = []
         if self.volumes and len(self.volumes):
-            config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
+            for x in self.volumes:
+                mounted_volumes.append(x['remote'])
+                config['Binds'].append(['%s:%s' % (x['local'], x['remote'])])
+
+        for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
+            if not vpath in mounted_volumes:
+                dir_ = os.path.expanduser('~/.mcloud/volumes/%s/%s' % (self.name, re.sub('[^a-z0-9]+', '_', vpath)))
+                if not os.path.exists(dir_):
+                    os.makedirs(dir_)
+
+                mounted_volumes.append(vpath)
+                config['Binds'].append(['%s:%s' % (dir_, vpath)])
 
         self.task_log(ticket_id, 'Startng container with config: %s' % config)
 
@@ -248,10 +266,7 @@ class Service(object):
             "Image": image_name,
         }
 
-        inspect_data = yield self.client.inspect_image(image_name)
-        print '-' * 40
-        print inspect_data['Config']['Volumes']
-        print '-' * 40
+        image_info = yield self.client.inspect_image(image_name)
 
         vlist = yield self.redis.hgetall('vars')
 
@@ -275,6 +290,9 @@ class Service(object):
                 config['Volumes'] = dict([
                     (x['remote'], {}) for x in self.volumes
                 ])
+
+            for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
+                config['Volumes'][vpath] = {}
 
         defer.returnValue(config)
 

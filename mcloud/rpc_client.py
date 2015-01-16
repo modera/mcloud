@@ -614,6 +614,7 @@ class ApiRpcClient(object):
 
     @cli('Destroy containers', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
     def destroy(self, ref, **kwargs):
@@ -637,6 +638,7 @@ class ApiRpcClient(object):
 
     @cli('Rebuild application', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
     def rebuild(self, ref, **kwargs):
