@@ -227,16 +227,19 @@ class Service(object):
         if self.volumes and len(self.volumes):
             for x in self.volumes:
                 mounted_volumes.append(x['remote'])
-                config['Binds'].append(['%s:%s' % (x['local'], x['remote'])])
+                config['Binds'].append('%s:%s' % (x['local'], x['remote']))
 
-        for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
-            if not vpath in mounted_volumes:
-                dir_ = os.path.expanduser('~/.mcloud/volumes/%s/%s' % (self.name, re.sub('[^a-z0-9]+', '_', vpath)))
-                if not os.path.exists(dir_):
-                    os.makedirs(dir_)
+        if image_info['ContainerConfig']['Volumes']:
+            for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
+                if not vpath in mounted_volumes:
+                    dir_ = os.path.expanduser('~/.mcloud/volumes/%s/%s' % (self.name, re.sub('[^a-z0-9]+', '_', vpath)))
+                    if not os.path.exists(dir_):
+                        os.makedirs(dir_)
 
-                mounted_volumes.append(vpath)
-                config['Binds'].append(['%s:%s' % (dir_, vpath)])
+                    mounted_volumes.append(vpath)
+                    config['Binds'].append('%s:%s' % (dir_, vpath))
+
+        print config
 
         self.task_log(ticket_id, 'Startng container with config: %s' % config)
 
@@ -291,8 +294,9 @@ class Service(object):
                     (x['remote'], {}) for x in self.volumes
                 ])
 
-            for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
-                config['Volumes'][vpath] = {}
+            if image_info['ContainerConfig']['Volumes']:
+                for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
+                    config['Volumes'][vpath] = {}
 
         defer.returnValue(config)
 

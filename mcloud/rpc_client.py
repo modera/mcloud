@@ -824,6 +824,16 @@ class ApiRpcClient(object):
         else:
             print('%s to %s is not supported' % (src_type, dst_type))
 
+    @cli('Backup application volumes', arguments=(
+        arg('source', help='source'),
+        arg('volume', help='Volume to backup', default=None),
+        arg('destination', help='Destination s3 bucket', default=None)
+    ))
+    @inlineCallbacks
+    def backup(self, source, volume, destination, **kwargs):
+        app_name, service = self.parse_app_ref(source, kwargs, require_app=True, require_service=True)
+        result = yield self._remote_exec('backup', app_name, service, volume, destination)
+
 
     ############################################################
     # Variables
