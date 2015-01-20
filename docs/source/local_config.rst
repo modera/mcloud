@@ -89,6 +89,14 @@ Containers:
 Depending on application complexity, container set may vary, but you get an idea.
 
 
+Config workflow
+==========================
+
+There is set of commands you may need to control you application's configuration::
+
+    mcloud config --diff  # show difference between current config and in-memory configuration.
+
+
 Selecting an image for each container
 ======================================
 
@@ -206,3 +214,5 @@ Example::
     env:
         MY_NICE_VAR: 123
         ANOTHER: just some text
+
+

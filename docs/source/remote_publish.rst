@@ -11,7 +11,7 @@ First make sure domain name is pointing to the correct ip address by pinging it:
 
 Then you can say mcloud to publish application::
 
-    $ mcloud -h <ip-here> publish flask-redis my-domain.com
+    $ mcloud -h  publish flask-redis@<ip-here> my-domain.com
 
 Then you will see your domain name in url list in *mcloud list* command.
 Load balancer is already reconfigured, so you can open your url in browser.
