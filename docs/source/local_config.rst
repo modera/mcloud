@@ -89,12 +89,27 @@ Containers:
 Depending on application complexity, container set may vary, but you get an idea.
 
 
-Config workflow
+In-memory config
 ==========================
 
-There is set of commands you may need to control you application's configuration::
+Mcloud stores it's config in redis to prevent problems in case of corrupted or missing
+configuration files. Initial configuration is copied into redis database.
 
-    mcloud config --diff  # show difference between current config and in-memory configuration.
+There is set of commands you may to update in-memory configuration::
+
+Show difference between file and memory configs::
+
+    $ mcloud config --diff
+
+Update in-memory configs with contents of file::
+
+    $ mcloud config --update
+
+When working with remote server, you should explicitly specify path to .yml file, otherwise
+mcloud will show error like "mcloud.yml file not found"::
+
+    $ mcloud -h some.remote.server.com config --diff --config mcloud.yml
+    $ mcloud -h some.remote.server.com config --update --config mcloud.yml
 
 
 Selecting an image for each container

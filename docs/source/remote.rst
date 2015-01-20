@@ -29,6 +29,8 @@ After you have a remote servers dig into one of this topics:
 .. toctree::
     :maxdepth: 1
 
+    remote_syntax.rst
+    remote_backup.rst
     remote_ssl.rst
     remote_start.rst
     remote_publish.rst

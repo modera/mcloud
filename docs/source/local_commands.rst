@@ -80,7 +80,13 @@ Removes an application::
 
     $ mcloud remove
 
-Command will destroy all containers and remove applicaModeraCloudoderaCloudCloud listings.
+Command will destroy all containers and remove application from app-list.
+
+.. note:: This command still will not remove any application volumes (ex. /var/lib/mysql for mysql container).
+
+To remove application data completely, specify --purge flag::
+
+    $ mcloud remove --purge
 
 
 Application lifecycle
@@ -138,7 +144,6 @@ Destroy
 ----------
 
 Remove application containers. Triggers *stop* for running containers beforehand.
-
 
 Rebuild
 ----------
