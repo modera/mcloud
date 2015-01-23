@@ -1,3 +1,8 @@
+mcloud (0.8.33-1) trusty; urgency=medium
+
+
+ -- Alex Rudakov <ribozz@gmail.com>  Fri, 23 Jan 2015 10:10:14 +0000
+
 mcloud (0.8.3-3) trusty; urgency=medium
 
   * fixes
