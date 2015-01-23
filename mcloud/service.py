@@ -269,7 +269,10 @@ class Service(object):
             "Image": image_name,
         }
 
-        image_info = yield self.client.inspect_image(image_name)
+        image_info = None
+        # TODO: improve tests
+        if hasattr(self.client, 'inspect_image'):
+            image_info = yield self.client.inspect_image(image_name)
 
         vlist = yield self.redis.hgetall('vars')
 
@@ -294,7 +297,7 @@ class Service(object):
                     (x['remote'], {}) for x in self.volumes
                 ])
 
-            if image_info['ContainerConfig']['Volumes']:
+            if image_info and image_info['ContainerConfig']['Volumes']:
                 for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
                     config['Volumes'][vpath] = {}
 
