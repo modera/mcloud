@@ -614,6 +614,7 @@ class ApiRpcClient(object):
 
     @cli('Destroy containers', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
     def destroy(self, ref, **kwargs):
@@ -637,6 +638,7 @@ class ApiRpcClient(object):
 
     @cli('Rebuild application', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
     def rebuild(self, ref, **kwargs):
@@ -821,6 +823,28 @@ class ApiRpcClient(object):
 
         else:
             print('%s to %s is not supported' % (src_type, dst_type))
+
+    @cli('Backup application volumes', arguments=(
+        arg('source', help='source'),
+        arg('volume', help='Volume to backup', default=None),
+        arg('destination', help='Destination s3 bucket', default=None)
+    ))
+    @inlineCallbacks
+    def backup(self, source, volume, destination, **kwargs):
+        app_name, service = self.parse_app_ref(source, kwargs, require_app=True, require_service=True)
+        result = yield self._remote_exec('backup', app_name, service, volume, destination)
+        print result
+
+    @cli('Restore application volumes', arguments=(
+        arg('source', help='source'),
+        arg('volume', help='Volume to backup', default=None),
+        arg('destination', help='Destination s3 bucket', default=None)
+    ))
+    @inlineCallbacks
+    def restore(self, source, volume, destination, **kwargs):
+        app_name, service = self.parse_app_ref(source, kwargs, require_app=True, require_service=True)
+        result = yield self._remote_exec('backup', app_name, service, volume, destination, True)
+        print result
 
 
     ############################################################

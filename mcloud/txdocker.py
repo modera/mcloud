@@ -253,6 +253,13 @@ class DockerTwistedClient(object):
         defer.returnValue(r)
 
     @inlineCallbacks
+    def inspect_image(self, id):
+        assert not id is None
+        r = yield self._get('images/%s/json' % bytes(id))
+        r = yield self.collect_json_or_none(r)
+        defer.returnValue(r)
+
+    @inlineCallbacks
     def resize(self, container_id, width, height):
         assert not id is None
         r = yield self._post(str("containers/%s/resize" % container_id), params={'h': height, 'w': width})
