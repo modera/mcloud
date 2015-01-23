@@ -833,6 +833,18 @@ class ApiRpcClient(object):
     def backup(self, source, volume, destination, **kwargs):
         app_name, service = self.parse_app_ref(source, kwargs, require_app=True, require_service=True)
         result = yield self._remote_exec('backup', app_name, service, volume, destination)
+        print result
+
+    @cli('Restore application volumes', arguments=(
+        arg('source', help='source'),
+        arg('volume', help='Volume to backup', default=None),
+        arg('destination', help='Destination s3 bucket', default=None)
+    ))
+    @inlineCallbacks
+    def restore(self, source, volume, destination, **kwargs):
+        app_name, service = self.parse_app_ref(source, kwargs, require_app=True, require_service=True)
+        result = yield self._remote_exec('backup', app_name, service, volume, destination, True)
+        print result
 
 
     ############################################################

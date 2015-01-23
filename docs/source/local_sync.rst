@@ -3,7 +3,8 @@
 Synchronizing files
 ======================
 
-Mcloud is armed with sync command that is super-useful for volumes syncronization.
+mcloud sync command allows to copy files between local and remote deployments.
+
 
 local dir to remote volume
 ------------------------------

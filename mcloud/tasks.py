@@ -482,7 +482,7 @@ class TaskService(object):
 
 
     @inlineCallbacks
-    def task_backup(self, ticket_id, app_name, service_name, volume, destination):
+    def task_backup(self, ticket_id, app_name, service_name, volume, destination, restore=False):
 
         app = yield self.app_controller.get(app_name)
 
@@ -509,9 +509,14 @@ class TaskService(object):
         else:
             volume_path = app.config['path']
 
-        yield TicketScopeProcess(ticket_id, self).call_sync(
-            'aws', ['aws', 's3', 'sync', volume_path, destination]
-        )
+        if not restore:
+            yield TicketScopeProcess(ticket_id, self).call_sync(
+                'aws', ['aws', 's3', 'sync', volume_path, destination]
+            )
+        else:
+            yield TicketScopeProcess(ticket_id, self).call_sync(
+                'aws', ['aws', 's3', 'sync', destination, volume_path]
+            )
 
         defer.returnValue({
             'status': 'ok',
