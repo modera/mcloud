@@ -1,6 +1,5 @@
 jinja2
 texttable
-twisted
 txredisapi
 inject
 voluptuous
