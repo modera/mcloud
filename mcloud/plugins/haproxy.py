@@ -134,9 +134,6 @@ class HaproxyConfig(object):
             if app['public_urls']:
                 for target in app['public_urls']:
 
-
-
-
                     if not target['service']:
                         if 'web_ip' in app and app['web_ip']:
                             if target['url'].startswith('https://'):
@@ -154,7 +151,7 @@ class HaproxyConfig(object):
 
                                 print target
 
-                                if target['port']:
+                                if 'port' in target and target['port']:
                                     service['ip'] = service['ip'] + ':' + target['port']
 
 
