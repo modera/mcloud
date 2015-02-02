@@ -19,3 +19,4 @@ scandir
 readline
 bashutils
 cronex
+Twisted==14.0.2
