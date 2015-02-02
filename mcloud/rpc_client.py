@@ -249,7 +249,7 @@ class ApiRpcClient(object):
                 if 'public_urls' in app and app['public_urls']:
                     for target in app['public_urls']:
                         url_ = target['url'] + '/'
-                        if target['port']:
+                        if 'port' in target and target['port']:
                             url_ += ' -> :' + target['port']
 
                         if not url_.startswith('http://'):
@@ -318,7 +318,7 @@ class ApiRpcClient(object):
                         if not url_.startswith('http://'):
                             url_ = 'http://' + url_
                         if 'service' in target and target['service']:
-                            web += '\n' + '%s -> [%s:%s]' % (url_, target['service'], target['port'] or '')
+                            web += '\n' + '%s -> [%s:%s]' % (url_, target['service'], target['port'] if 'port' in target else '')
                         else:
                             if web_service_:
                                 web += '\n' + '%s -> [%s]' % (url_, web_service_)

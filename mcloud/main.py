@@ -1,6 +1,7 @@
 import logging
 import sys
 import signal
+import traceback
 
 from bashutils.colors import color_text
 import inject
