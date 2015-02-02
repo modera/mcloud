@@ -109,6 +109,7 @@ class ClientProcessInterruptHandler(object):
 
         self.client = client
 
+
     @inlineCallbacks
     def interrupt(self, last=None):
         if self.client.current_client:
@@ -161,8 +162,10 @@ class ApiRpcClient(object):
 
 
     def print_progress(self, message):
+
         try:
             data = json.loads(message)
+
             if 'status' in data and 'progress' in data:
                 sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
 
@@ -178,7 +181,11 @@ class ApiRpcClient(object):
                     print pprintpp.pformat(data)
 
         except ValueError:
-            print(message)
+            # print ":".join("{:02x}".format(ord(c)) for c in message)
+            if message[-1] == chr(0x0a):
+                sys.stdout.write(message)
+            else:
+                print(message)
 
 
     @inlineCallbacks
@@ -242,6 +249,9 @@ class ApiRpcClient(object):
                 if 'public_urls' in app and app['public_urls']:
                     for target in app['public_urls']:
                         url_ = target['url'] + '/'
+                        if 'port' in target and target['port']:
+                            url_ += ' -> :' + target['port']
+
                         if not url_.startswith('http://'):
                             url_ = 'http://' + url_
 
@@ -304,10 +314,11 @@ class ApiRpcClient(object):
                 if 'public_urls' in app and app['public_urls']:
                     for target in app['public_urls']:
                         url_ = target['url'] + '/'
+
                         if not url_.startswith('http://'):
                             url_ = 'http://' + url_
                         if 'service' in target and target['service']:
-                            web += '\n' + '%s -> [%s]' % (url_, target['service'])
+                            web += '\n' + '%s -> [%s:%s]' % (url_, target['service'], target['port'] if 'port' in target else '')
                         else:
                             if web_service_:
                                 web += '\n' + '%s -> [%s]' % (url_, web_service_)
@@ -331,10 +342,14 @@ class ApiRpcClient(object):
             domain = 'https://%s' % domain
         return domain
 
-    def parse_app_ref(self, ref, args, require_service=False, app_only=False, require_app=True):
+    ip_regex = r'(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
+    host_regex = r'(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])'
+
+    def parse_app_ref(self, ref, args, require_service=False, app_only=False, require_app=True, require_host=False):
 
         app = None
         service = None
+        host = None
 
         if 'app' in args:
             app = args['app']
@@ -343,13 +358,21 @@ class ApiRpcClient(object):
             ref = ref.strip()
 
             if ref != '':
-                match = re.match('^((%s)\.)?(%s)?$' % (Application.SERVICE_REGEXP, Application.APP_REGEXP), ref)
+                match = re.match('^((%s)\.)?(%s)?(@(%s|%s))?$' % (
+                    Application.SERVICE_REGEXP,
+                    Application.APP_REGEXP,
+                    self.ip_regex,
+                    self.host_regex
+                ), ref)
                 if match:
                     if match.group(2):
                         service = match.group(2)
 
                     if match.group(3):
                         app = match.group(3)
+
+                    if match.group(5):
+                        host = match.group(5)
                 else:
                     raise ValueError('Can not parse application/service name')
 
@@ -364,7 +387,13 @@ class ApiRpcClient(object):
         if not service and require_service:
             raise ValueError('Command requires to specify a service name')
 
-        return app, service
+        if not host:
+            host = self.host
+
+        if require_host:
+            return host, app, service
+        else:
+            return app, service
 
 
     @inlineCallbacks
@@ -585,6 +614,7 @@ class ApiRpcClient(object):
 
     @cli('Destroy containers', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
     def destroy(self, ref, **kwargs):
@@ -608,6 +638,7 @@ class ApiRpcClient(object):
 
     @cli('Rebuild application', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
+        arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
     def rebuild(self, ref, **kwargs):
@@ -669,10 +700,11 @@ class ApiRpcClient(object):
     @cli('Publish an application', arguments=(
         arg('ref', help='Application name', default=None, nargs='?'),
         arg('domain', help='Domain to publish'),
+        arg('--port', help='Custom target port'),
         arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
     ))
     @inlineCallbacks
-    def publish(self, domain, ref, ssl=False, **kwargs):
+    def publish(self, domain, ref, ssl=False, port=None, **kwargs):
         app_name, service = self.parse_app_ref(ref, kwargs, require_app=True)
 
         app = yield self.get_app(app_name)
@@ -680,7 +712,7 @@ class ApiRpcClient(object):
         if not app:
             print 'App not found. Can\'t publish'
         else:
-            yield self._remote_exec('publish', self.format_domain(domain, ssl), app_name, service)
+            yield self._remote_exec('publish', self.format_domain(domain, ssl), app_name, service, port)
 
     @cli('Unpublish an application', arguments=(
         arg('domain', help='Domain to unpublish'),
@@ -701,11 +733,13 @@ class ApiRpcClient(object):
         arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
     ))
     def run(self, ref, command, no_tty=False, **kwargs):
-        app, service = self.parse_app_ref(ref, kwargs, require_service=True)
-        if no_tty:
-            return self._remote_exec('run', self.format_app_srv(app, service), command)
-        else:
-            return self._exec_remote_with_pty('run', self.format_app_srv(app, service), command)
+        host, app, service = self.parse_app_ref(ref, kwargs, require_service=True, require_host=True)
+
+        with self.override_host(host):
+            if no_tty:
+                return self._remote_exec('run', self.format_app_srv(app, service), command)
+            else:
+                return self._exec_remote_with_pty('run', self.format_app_srv(app, service), command)
 
     ############################################################
 
@@ -789,6 +823,28 @@ class ApiRpcClient(object):
 
         else:
             print('%s to %s is not supported' % (src_type, dst_type))
+
+    @cli('Backup application volumes', arguments=(
+        arg('source', help='source'),
+        arg('volume', help='Volume to backup', default=None),
+        arg('destination', help='Destination s3 bucket', default=None)
+    ))
+    @inlineCallbacks
+    def backup(self, source, volume, destination, **kwargs):
+        app_name, service = self.parse_app_ref(source, kwargs, require_app=True, require_service=True)
+        result = yield self._remote_exec('backup', app_name, service, volume, destination)
+        print result
+
+    @cli('Restore application volumes', arguments=(
+        arg('source', help='source'),
+        arg('volume', help='Volume to backup', default=None),
+        arg('destination', help='Destination s3 bucket', default=None)
+    ))
+    @inlineCallbacks
+    def restore(self, source, volume, destination, **kwargs):
+        app_name, service = self.parse_app_ref(source, kwargs, require_app=True, require_service=True)
+        result = yield self._remote_exec('backup', app_name, service, volume, destination, True)
+        print result
 
 
     ############################################################

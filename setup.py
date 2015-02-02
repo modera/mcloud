@@ -87,7 +87,9 @@ setup(
         'confire',
         'scandir',
         'readline',
-        'bashutils'
+        'bashutils',
+        'cronex',
+        'Twisted==14.0.2'
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
     tests_require=[

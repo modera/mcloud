@@ -207,14 +207,17 @@ class ApplicationController(object):
                     if not dep['public_app'] in pub_apps:
                         pub_apps[dep['public_app']] = []
 
+                    if not 'custom_port' in dep:
+                        dep['custom_port'] = None
+
                     pub_apps[dep['public_app']].append({
                         'url': dep['name'],
+                        'port': dep['custom_port'],
                         'service': dep['public_service'] if 'public_service' in dep else None
                     })
 
             except ValueError:
                 pass
-
 
         # collect application data
         config = yield self.redis.hgetall('mcloud-apps')

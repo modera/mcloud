@@ -30,17 +30,24 @@ class ShellCancelInterruptHandler(object):
 
 
 @inlineCallbacks
-def mcloud_shell():
+def mcloud_shell(host_ref=None):
 
     settings = inject.instance('settings')
     interrupt_manager = inject.instance('interrupt_manager')
 
     readline.parse_and_bind('tab: complete')
 
-    state = {
-        'app': None,
-        'host': 'me',
-    }
+    if host_ref:
+        app, host = host_ref.split('@')
+        state = {
+            'app': app,
+            'host': host,
+        }
+    else:
+        state = {
+            'app': None,
+            'host': 'me',
+        }
 
     def use(name, **kwargs):
         if '@' in name:

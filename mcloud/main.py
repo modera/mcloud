@@ -1,6 +1,7 @@
 import logging
 import sys
 import signal
+import traceback
 
 from bashutils.colors import color_text
 import inject
@@ -64,12 +65,12 @@ def main(argv):
 
     # client = ApiRpcClient(host=args.host, settings=settings)
 
-    if len(argv) < 2:
+    if len(argv) < 2 or (len(argv) == 2 and '@' in argv[1]):
         # Use the tab key for completion
 
         # log.startLogging(open('twisted.log', 'w'))
 
-        mcloud_shell()
+        mcloud_shell(argv[1] if len(argv) == 2 else None)
         reactor.run()
     else:
 
@@ -96,6 +97,8 @@ def main(argv):
                     label = type(e)
                     if isinstance(e, ValueError):
                         label = 'error'
+                    else:
+                        label = str(label)
 
                     print '\n  %s: %s\n' % (
                         color_text(label, color='cyan'),

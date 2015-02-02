@@ -163,7 +163,7 @@ class DockerTwistedClient(object):
         r = self._get('containers/%s/logs' % bytes(container_id), response_handler=None, data={
             'follow': follow,
             'tail': tail,
-            'timestamps': 0,
+            # 'timestamps': 0,
             'stdout': True,
             'stderr': True
         })
@@ -249,6 +249,13 @@ class DockerTwistedClient(object):
     def inspect(self, id):
         assert not id is None
         r = yield self._get('containers/%s/json' % bytes(id))
+        r = yield self.collect_json_or_none(r)
+        defer.returnValue(r)
+
+    @inlineCallbacks
+    def inspect_image(self, id):
+        assert not id is None
+        r = yield self._get('images/%s/json' % bytes(id))
         r = yield self.collect_json_or_none(r)
         defer.returnValue(r)
 

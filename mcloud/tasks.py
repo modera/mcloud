@@ -19,6 +19,40 @@ from mcloud.deployment import DeploymentController
 from mcloud.events import EventBus
 from mcloud.remote import ApiRpcServer
 
+from twisted.internet import protocol
+
+class TicketScopeProcess(protocol.ProcessProtocol):
+
+    def __init__(self, ticket_id, client):
+        self.ticket_id = ticket_id
+        self.client = client
+        self.d = None
+
+    def call_sync(self, *args, **kwargs):
+        self.log('Executing process with args: %s' % str(args))
+        self.d = defer.Deferred()
+        reactor.spawnProcess(self, *args, **kwargs)
+
+        return self.d
+
+    def log(self, data):
+        self.client.task_log(self.ticket_id, data)
+
+    def connectionMade(self):
+        self.transport.closeStdin()
+
+    def outReceived(self, data):
+        self.log(data)
+
+    def errReceived(self, data):
+        self.log(data)
+
+    def processExited(self, reason):
+        self.log("processExited, status %d" % (reason.value.exitCode,))
+
+    def processEnded(self, reason):
+        self.log("processEnded, status %d" % (reason.value.exitCode,))
+        self.d.callback(True)
 
 class TaskService(object):
 
@@ -179,7 +213,9 @@ class TaskService(object):
         """
 
         def on_log(log):
-            log = log[8:]
+            if len(log) == 8 and log[7] != 0x0a:
+                return
+
             self.task_log(ticket_id, log)
 
         try:
@@ -344,8 +380,12 @@ class TaskService(object):
 
 
     def follow_logs(self, service, ticket_id):
+
+
         def on_log(log):
-            log = log[8:]
+            if len(log) == 8 and log[7] != 0x0a:
+                return
+
             self.task_log(ticket_id, log)
 
         def done(result):
@@ -440,6 +480,48 @@ class TaskService(object):
             'ticket_id': ticket_id
         })
 
+
+    @inlineCallbacks
+    def task_backup(self, ticket_id, app_name, service_name, volume, destination, restore=False):
+
+        app = yield self.app_controller.get(app_name)
+
+        config = yield app.load()
+
+        if service_name:
+
+            if not volume:
+                raise VolumeNotFound('In case of service name is provided, volume name is mandatory!')
+
+            services = config.get_services()
+
+            service_full_name = '%s.%s' % (service_name, app_name)
+            try:
+                service = services[service_full_name]
+
+                all_volumes = service.list_volumes()
+
+                volume_path = all_volumes[volume]
+
+            except KeyError:
+                raise VolumeNotFound('Service with name %s was not found!' % service_name)
+
+        else:
+            volume_path = app.config['path']
+
+        if not restore:
+            yield TicketScopeProcess(ticket_id, self).call_sync(
+                'aws', ['aws', 's3', 'sync', volume_path, destination]
+            )
+        else:
+            yield TicketScopeProcess(ticket_id, self).call_sync(
+                'aws', ['aws', 's3', 'sync', destination, volume_path]
+            )
+
+        defer.returnValue({
+            'status': 'ok',
+            'path': volume_path
+        })
 
 
     @inlineCallbacks
@@ -776,7 +858,7 @@ class TaskService(object):
     #     defer.returnValue(not app is None)
 
     @inlineCallbacks
-    def task_publish(self, ticket_id, deployment_name, app_name, service_name):
+    def task_publish(self, ticket_id, deployment_name, app_name, service_name, custom_port=None):
         """
         Publish application URL.
 
@@ -785,7 +867,7 @@ class TaskService(object):
         :param app_name:
         :return:
         """
-        yield self.deployment_controller.publish_app(deployment_name, app_name, service_name)
+        yield self.deployment_controller.publish_app(deployment_name, app_name, service_name, custom_port)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)

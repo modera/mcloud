@@ -123,11 +123,13 @@ class HaproxyConfig(object):
         proxy_ssl_apps = []
 
         for app in apps_list:
-            if not 'web_ip' in app or not app['web_ip']:
-                continue
+            # if not 'web_ip' in app or not app['web_ip']:
+            #     continue
 
             plain_domains = {app['web_ip']: [app['fullname']]}
             ssl_domains = {}
+
+            print app['fullname']
 
             if app['public_urls']:
                 for target in app['public_urls']:
@@ -147,6 +149,12 @@ class HaproxyConfig(object):
                         for service in app['services']:
                             if service['shortname'] == target['service']:
 
+                                print target
+
+                                if 'port' in target and target['port']:
+                                    service['ip'] = service['ip'] + ':' + target['port']
+
+
                                 if target['url'].startswith('https://'):
                                     if not service['ip'] in ssl_domains:
                                         ssl_domains[service['ip']] = []
@@ -158,22 +166,31 @@ class HaproxyConfig(object):
 
             if ssl_domains:
                 for ip, domains in ssl_domains.items():
+                    port = 443
+                    if ':' in ip:
+                        ip, port = ip.split(':')
+
                     proxy_ssl_apps.append({
-                        'name': '%s_%s' % (app['fullname'], ip.replace('.', '_')),
+                        'name': '%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port),
                         'domains': domains,
-                        'backends': [{'name': 'backend_ssl_%s_%s' % (app['fullname'], ip.replace('.', '_')), 'ip': ip, 'port': 443}]
+                        'backends': [{'name': 'backend_ssl_%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port), 'ip': ip, 'port': port}]
                     })
 
             for ip, domains in plain_domains.items():
+                if ip is None:
+                    continue
+
+                port = 80
+                if ':' in ip:
+                    ip, port = ip.split(':')
+
                 proxy_apps.append({
-                    'name': '%s_%s' % (app['fullname'], ip.replace('.', '_')),
+                    'name': '%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port),
                     'domains': domains,
-                    'backends': [{'name': 'backend_%s_%s' % (app['fullname'], ip.replace('.', '_')), 'ip': ip, 'port': 80}]
+                    'backends': [{'name': 'backend_%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port), 'ip': ip, 'port': port}]
                 })
 
         log.msg('Writing haproxy config')
-
-        print proxy_apps
 
         with open('/etc/haproxy/haproxy.cfg', 'w') as f:
             f.write(template.render({'apps': proxy_apps, 'ssl_apps': proxy_ssl_apps}))

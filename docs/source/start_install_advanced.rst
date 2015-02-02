@@ -63,11 +63,7 @@ Replace content of */etc/dnsmasq.conf* file with following 3 lines::
 
     interface=lo
     interface=docker0
-    server=/mcloud.lh/172.17.42.1#7053
-
-Replace *172.17.42.1* with your docker interface IP. You can get it using *ifconfig*::
-
-    $ ifconfig docker0
+    server=/mcloud.lh/127.0.0.1#7053
 
 Start Dnsmasq server::
 

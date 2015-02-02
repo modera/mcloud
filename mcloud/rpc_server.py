@@ -74,8 +74,8 @@ def entry_point():
         settings.ssl.enabled = False
 
     if not settings.dns_ip:
-        settings.dns_ip = netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
-
+        settings.dns_ip = '127.0.0.1'
+        # netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
 
     @inlineCallbacks
     def run_server(redis):

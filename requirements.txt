@@ -1,6 +1,5 @@
 jinja2
 texttable
-twisted
 txredisapi
 inject
 voluptuous
@@ -18,3 +17,5 @@ confire
 scandir
 readline
 bashutils
+cronex
+Twisted==14.0.2
