@@ -3,11 +3,9 @@ import sys
 import netifaces
 
 import inject
-from mcloud.web import mcloud_web
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
-from twisted.web.server import Site
 import txredisapi
 from twisted.python import log
 from mcloud.plugins.internal_api import InternalApiPlugin
@@ -24,17 +22,33 @@ def get_argparser():
     import argparse
 
     parser = argparse.ArgumentParser(description='Mcloud rpc server')
-    parser.add_argument('--port', type=int, default=7080, help='port number')
-    parser.add_argument('--file-port', type=int, default=7081, help='File transfer port number')
-    parser.add_argument('--haproxy', default=False, action='store_true', help='Update haproxy config')
-    # parser.add_argument('--dns', type=bool, default=True, action='store_true', help='Start dns server')
-    # parser.add_argument('--events', type=bool, default=True, action='store_true', help='Start dns server')
-    parser.add_argument('--dns-server-ip', type=str, default=None, help='Dns server to use in containers')
-    parser.add_argument('--dns-search-suffix', type=str, default='mcloud.lh', help='Dns suffix to use')
-    parser.add_argument('--host-ip', type=str, default=None, help='Proxy destination for non-local traffic')
-    parser.add_argument('--interface', type=str, default='0.0.0.0', help='ip address')
-    #parser.add_argument('--zmq-bind', type=str, default='tcp://0.0.0.0:5555', help='ip address')
+    parser.add_argument('--config', default='/etc/mcloud/mcloud-server.yml', help='Config file path')
+    parser.add_argument('--no-ssl', default=False, action='store_true', help='Disable ssl')
+
     return parser
+
+
+from confire import Configuration
+
+class SslConfiguration(Configuration):
+    enabled = False
+    key = '/etc/mcloud/server.key'
+    cert = '/etc/mcloud/server.crt'
+    ca = '/etc/mcloud/ca.crt'
+
+class McloudConfiguration(Configuration):
+    haproxy = False
+    web = True
+
+    dns_ip = None
+    dns_port = 7053
+
+    websocket_ip = '0.0.0.0'
+    websocket_port = 7080
+
+    dns_search_suffix = 'mcloud.lh'
+
+    ssl = SslConfiguration()
 
 
 def entry_point():
@@ -49,42 +63,21 @@ def entry_point():
     log.msg('Logger initialized')
 
     parser = get_argparser()
-
     args = parser.parse_args()
 
-    rpc_interface = args.interface
-    rpc_port = args.port
-    file_port = args.file_port
+    class _McloudConfiguration(McloudConfiguration):
+        CONF_PATHS = [args.config]
 
-    if not args.dns_server_ip:
-        dns_server_ip = netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
-    else:
-        dns_server_ip = args.dns_server_ip
+    settings = _McloudConfiguration.load()
 
-    dns_prefix = args.dns_search_suffix
+    if args.no_ssl:
+        settings.ssl.enabled = False
 
-    from confire import Configuration
+    if not settings.dns_ip:
+        settings.dns_ip = '127.0.0.1'
+        # netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
 
-    class SslConfiguration(Configuration):
-        enabled = False
-        key = '/etc/mcloud/server.key'
-        cert = '/etc/mcloud/server.crt'
-        ca = '/etc/mcloud/ca.crt'
 
-    class MyAppConfiguration(Configuration):
-
-        CONF_PATHS = [
-            '/etc/mcloud/mcloud-server.yml',
-            # os.path.expanduser('~/.myapp.yaml'),
-            # os.path.abspath('conf/myapp.yaml')
-        ]
-
-        haproxy = False
-
-        ssl = SslConfiguration()
-
-    settings = MyAppConfiguration.load()
-    
     @inlineCallbacks
     def run_server(redis):
 
@@ -114,8 +107,8 @@ def entry_point():
             binder.bind(IDockerClient, DockerTwistedClient())
 
             binder.bind('settings', settings)
-            binder.bind('dns-server', dns_server_ip)
-            binder.bind('dns-search-suffix', dns_prefix)
+            binder.bind('dns-server', settings.dns_ip)
+            binder.bind('dns-search-suffix', settings.dns_search_suffix)
 
         # Configure a shared injector.
         inject.configure(my_config)
@@ -124,21 +117,13 @@ def entry_point():
         tasks = inject.instance(TaskService)
         api.tasks = tasks.collect_tasks()
 
-        log.msg('Starting rpc listener on port %d' % rpc_port)
-        server = Server(port=rpc_port)
+        log.msg('Starting rpc listener on port %d' % settings.websocket_port)
+        server = Server(port=settings.websocket_port)
         server.bind()
 
-        log.msg('Dumping resolv conf')
-
-        # dns
-        # dump_resolv_conf(dns_server_ip)
-
-        if settings.haproxy or args.haproxy:
+        if settings.haproxy:
             log.msg('Haproxy plugin')
             HaproxyPlugin()
-
-        # log.msg('Datadog plugin')
-        # DatadogPlugin()
 
         log.msg('Monitor plugin')
         DockerMonitorPlugin()
@@ -151,11 +136,11 @@ def entry_point():
 
         InternalApiPlugin()
 
-        log.msg('Listen dns on ip %s:53' % dns_server_ip)
-        listen_dns(dns_prefix, dns_server_ip, 7053)
+        log.msg('Listen dns on ip %s:53' % settings.dns_ip)
+        listen_dns(settings.dns_search_suffix, settings.dns_ip, settings.dns_port)
 
-        # log.msg('Start internal web server')
-        # reactor.listenTCP(8080, Site(mcloud_web()), interface=dns_server_ip)
+        # if settings.web:
+        #     listen_web(settings)
 
         log.msg('Listen metrics')
         MetricsPlugin()
