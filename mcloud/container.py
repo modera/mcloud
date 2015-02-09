@@ -1,6 +1,7 @@
 from StringIO import StringIO
 import logging
 import tarfile
+from tempfile import mkdtemp
 from abc import abstractmethod
 import inject
 from mcloud.txdocker import IDockerClient
@@ -88,6 +89,25 @@ class DockerfileImageBuilder(IImageBuilder):
         archive = yield self.create_archive()
         ret = yield self.client.build_image(archive, ticket_id=ticket_id)
         defer.returnValue(ret)
+
+
+class InlineDockerfileImageBuilder(DockerfileImageBuilder):
+    def __init__(self, source):
+        self.source = source
+
+        super(InlineDockerfileImageBuilder, self).__init__(None)
+
+        self.image_id = None
+
+    def build_image(self, ticket_id):
+
+        tdir = mkdtemp()
+        with open(tdir + '/Dockerfile', 'w+') as f:
+            f.write(self.source)
+
+        self.path = tdir
+
+        return super(InlineDockerfileImageBuilder, self).build_image(ticket_id)
 
 
 class ContainerBuider(IContainerBuilder):

@@ -4,7 +4,7 @@ import json
 import collections
 from abc import abstractmethod
 from shutil import copyfile
-from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
+from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder, InlineDockerfileImageBuilder
 from mcloud.util import Interface
 import os
 from os.path import dirname
@@ -308,6 +308,8 @@ class YamlConfig(IConfig):
                 raise ConfigParseError('Service %s image requested build container image using Dockerfile but, '
                                        'yaml config was uploaded separately without source files attached.' % service)
             service.image_builder = DockerfileImageBuilder(path=os.path.join(path, config['build']))
+        elif 'dockerfile' in config:
+            service.image_builder = InlineDockerfileImageBuilder(source=config['dockerfile'])
         else:
             raise ValueError('Specify image source for service %s: image or build' % service.name)
 

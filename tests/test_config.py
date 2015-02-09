@@ -2,7 +2,7 @@ from collections import OrderedDict
 import os
 from flexmock import flexmock
 from mcloud.config import YamlConfig, Service, UnknownServiceError, ConfigParseError
-from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
+from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder, InlineDockerfileImageBuilder
 import pytest
 
 
@@ -440,6 +440,15 @@ def test_build_image_dockerfile():
 
     assert isinstance(s.image_builder, DockerfileImageBuilder)
     assert s.image_builder.path == '/base/path/foo/bar'
+
+def test_build_inline_dockerfile():
+    s = Service()
+    c = YamlConfig()
+
+    c.process_image_build(s, {'dockerfile': 'FROM foo\nWORKDIR boo'}, '/base/path')
+
+    assert isinstance(s.image_builder, InlineDockerfileImageBuilder)
+    assert s.image_builder.source == 'FROM foo\nWORKDIR boo'
 
 
 def test_build_image_dockerfile_no_path():
