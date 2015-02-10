@@ -203,6 +203,8 @@ class YamlConfig(IConfig):
                     'wait': int,
                     'image': basestring,
                     'build': basestring,
+                    'entrypoint': basestring,
+                    'workdir': basestring,
 
                     'volumes': {
                         basestring: basestring
@@ -251,6 +253,14 @@ class YamlConfig(IConfig):
 
         if 'cmd' in config and config['cmd'] and  len(str(config['cmd']).strip()) > 0:
             service.command = str(config['cmd']).strip()
+
+    def process_other_settings_build(self, service, config, path):
+
+        if 'workdir' in config:
+            service.workdir = config['workdir']
+
+        if 'entrypoint' in config:
+            service.entrypoint = config['entrypoint']
 
     def process_volumes_build(self, service, config, path):
         service.volumes = []
@@ -347,6 +357,7 @@ class YamlConfig(IConfig):
             self.process_image_build(s, service, path)
             self.process_volumes_build(s, service, path)
             self.process_command_build(s, service, path)
+            self.process_other_settings_build(s, service, path)
             self.process_env_build(s, service, path)
 
             # expose mcloud api
