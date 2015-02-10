@@ -113,7 +113,7 @@ def load_commands(config):
 
         cmd_instance = LocalCommand(config, command)
 
-        cmd = subparsers.add_parser('%%%s' % name, help=command['help'])
+        cmd = subparsers.add_parser('*%s' % name, help=command['help'])
         cmd.add_argument('to', help='Host to use with command', default=None, choices=config.hosts, nargs='?')
         cmd.set_defaults(func=cmd_instance.call)
 
