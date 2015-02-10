@@ -43,6 +43,7 @@ def test_load_config_prepare():
         'cmd': 'other'
     }
 
+
 def test_filter_env_non_dict():
     """
     pass through non-dict elements
@@ -172,38 +173,6 @@ def test_load_config_not_valid(tmpdir):
             }
 
         },
-
-        '$volumes': {
-            'mysql': 'foo:/bar/baz',
-            'app': 'foo1:/bar/baz',
-        },
-
-        '$hosts': {
-            'prod': 'some@example.com',
-            'dev': 'another@example.com',
-        },
-
-        '$events': {
-            'foo': [
-                'bar',
-                'baz',
-            ],
-            'baz': [
-                'bar',
-                'baz',
-            ],
-        },
-
-        '$deploy': {
-            'foo': [
-                'bar',
-                'baz',
-            ],
-            'baz': [
-                'bar',
-                'baz',
-            ],
-        }
     }
 ])
 def test_validate_valid(config):
@@ -270,6 +239,40 @@ def test_process_with_app_name():
 
     assert isinstance(c.services['nginx.myapp'], Service)
     assert c.services['nginx.myapp'].name == 'nginx.myapp'
+
+
+def test_process_with_local_config():
+    c = YamlConfig(source='{"nginx": {"image": "bar"}, "---": {"commands": {"bar": ["foo"]}}}')
+
+    flexmock(c)
+
+    c.should_receive('process_local_config').once().with_args({"commands": {"bar": ["foo"]}})
+    c.load(process=False)
+
+def test_process_local_config_hosts():
+    c = YamlConfig()
+    c.process_local_config({'hosts': {'foo': 'bar'}})
+
+    assert c.hosts == {'foo': 'bar'}
+
+def test_process_local_config_commands():
+    c = YamlConfig()
+    c.process_local_config({'commands': {
+        'push (Upload code to remove server)': ['sync . {host} --path ticcet/'],
+        'pull': ['foo', 'bar']
+    }})
+
+    assert c.get_commands() == {
+        'push': {
+            'help': 'Upload code to remove server',
+            'commands':  ['sync . {host} --path ticcet/']
+        },
+        'pull': {
+            'help': 'pull command',
+            'commands':  ['foo', 'bar']
+        }
+    }
+
 
 
 def test_build_command_empty():
@@ -480,34 +483,15 @@ def test_get_service_no():
     with pytest.raises(UnknownServiceError):
         c.get_service('baz')
 
-def test_get_volumes():
+
+
+def test_hosts_config():
     c = YamlConfig()
-    c.config = {
-        '$volumes': [
-            {'foo': 'bar'}
-        ]
-    }
-    assert c.get_volumes() == [
-        {'foo': 'bar'}
-    ]
+    c.hosts = OrderedDict((
+        ('boo', 'app@somehost.com'),
+        ('foo', 'app@other.com')
+    ))
 
-def test_get_hosts():
-    c = YamlConfig()
-    c.config = {
-        '$hosts': [
-            {'foo': 'bar'}
-        ]
-    }
-    assert c.get_hosts() == [
-        {'foo': 'bar'}
-    ]
-
-
-
-
-
-
-
-
-
-
+    assert c.get_command_host() == 'app@somehost.com'
+    assert c.get_command_host('boo') == 'app@somehost.com'
+    assert c.get_command_host('foo') == 'app@other.com'

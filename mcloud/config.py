@@ -2,6 +2,7 @@ from collections import OrderedDict
 from copy import deepcopy
 import json
 import collections
+import re
 from abc import abstractmethod
 from shutil import copyfile
 from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder, InlineDockerfileImageBuilder
@@ -73,6 +74,8 @@ class YamlConfig(IConfig):
 
     def __init__(self, file=None, source=None, app_name=None, path=None, env=None):
 
+        self._file = None
+
         if not file is None:
             if not os.path.exists(str(file)):
                 raise ValueError('Bad config file given!')
@@ -88,7 +91,8 @@ class YamlConfig(IConfig):
         self.path = path
         self.services = OrderedDict()
 
-        self.config = None
+        self.commands = None
+        self.hosts = None
 
         self.env = env
 
@@ -107,14 +111,14 @@ class YamlConfig(IConfig):
         except KeyError:
             return {}
 
-    def get_hosts(self):
-        """
-        @rtype: dict[str, str]
-        """
-        try:
-            return self.config['$hosts']
-        except KeyError:
-            return {}
+    def get_command_host(self, name=None):
+        if name:
+            return self.hosts[name]
+        else:
+            return self.hosts.values()[0]
+
+    def get_commands(self):
+        return self.commands
 
     def get_service(self, name):
         """
@@ -138,6 +142,9 @@ class YamlConfig(IConfig):
             cfg = self.prepare(config=cfg)
 
             self.validate(config=cfg)
+
+            if '---' in cfg:
+                self.process_local_config(cfg['---'])
 
             if process:
                 self.process(config=cfg, path=path, app_name=self.app_name)
@@ -208,27 +215,22 @@ class YamlConfig(IConfig):
                     'cmd': basestring,
                 },
 
-                '$volumes': {
-                    basestring: basestring
-                },
-
-                '$hosts': {
-                    basestring: basestring
-                },
-
-                '$events': {
-                    basestring: [basestring]
-                },
-
-                '$deploy': {
-                    basestring: [basestring]
+                '---': {
+                    'hosts': {
+                        basestring: basestring
+                    },
+                    'commands': {
+                        basestring: [
+                            basestring
+                        ]
+                    },
                 },
 
             })(config)
 
             has_service = False
             for key, service in config.items():
-                if key[0] == '$':
+                if key == '---':
                     continue
                 if not 'image' in service and not 'build' in service:
                     raise ValueError('You should define "image" or "build" as a vay to build a container.')
@@ -313,10 +315,26 @@ class YamlConfig(IConfig):
         else:
             raise ValueError('Specify image source for service %s: image or build' % service.name)
 
+    def process_local_config(self, config):
+        if 'hosts' in config:
+            self.hosts = config['hosts']
+
+        if 'commands' in config:
+            all_commands = {}
+            for name, commands in config['commands'].items():
+                mts = re.match('^(\w+)(\s+\(([^\)]+)\))?$', name)
+
+                all_commands[mts.groups()[0]] = {
+                    'help': mts.groups()[2] or '%s command' % mts.groups()[0],
+                    'commands': commands
+                }
+
+            self.commands = all_commands
+
     def process(self, config, path, app_name=None):
 
         for name, service in config.items():
-            if name[0] == '$':
+            if name == '---':
                 continue
 
             if app_name:

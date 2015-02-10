@@ -11,7 +11,7 @@ from mcloud.remote import TaskFailure
 from mcloud.rpc_client import arg_parser, subparsers, ApiRpcClient, ClientProcessInterruptHandler
 from mcloud.shell import mcloud_shell
 from confire import Configuration
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log
 
@@ -110,10 +110,15 @@ def main(argv):
             call_command()
             reactor.run()
 
-
-
         else:
-            args.func(**vars(args))
+            ret = args.func(**vars(args))
+
+            if isinstance(ret, defer.Deferred):
+                def clb(*args):
+                    reactor.callFromThread(reactor.stop)
+                ret.addCallback(clb)
+
+                reactor.run()
 
 
 def entry_point():

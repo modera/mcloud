@@ -141,3 +141,4 @@ def mcloud_shell(host_ref=None):
             print '\n  %s\n' % color_text(e.message, color='yellow')
 
     reactor.callFromThread(reactor.stop)
+
