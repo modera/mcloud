@@ -52,10 +52,10 @@ arg_parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description=metadata.description,
     epilog=format_epilog(),
-    add_help=False
+    add_help=True
 )
 arg_parser.add_argument('-v', '--verbose', help='Show more logs', action='store_true', default=False)
-arg_parser.add_argument('-h', '--host', help='Host to use', default=None)
+# arg_parser.add_argument('-h', '--host', help='Host to use', default=None)
 arg_parser.add_argument(
     '-V', '--version',
     action='version',
@@ -443,6 +443,13 @@ class ApiRpcClient(object):
     # Overview
     ############################################################
 
+
+    @cli('Execute mcloud shell', arguments=(
+        arg('shell', help='Continuously run list command'),
+    ))
+    @inlineCallbacks
+    def shell(self, **kwargs):
+        pass  # handled without argparser
 
     @cli('List registered applications', arguments=(
         arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
