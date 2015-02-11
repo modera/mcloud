@@ -97,7 +97,7 @@ class Application(object):
 
         return {
             'name': self.name,
-            'hosts': app_config.get_hosts(),
+            'hosts': app_config.hosts,
             'volumes': app_config.get_volumes(),
             'fullname': '%s.%s' % (self.name, self.dns_search_suffix),
             'web_ip': web_ip,
