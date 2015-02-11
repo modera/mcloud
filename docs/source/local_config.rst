@@ -121,6 +121,8 @@ There are two options:
 1) Use "image:" to use one of prebuilt containers available in `https://registry.hub.docker.com/`
 2) Build your own image with "build:" directive, to specify directory, where
    Dockerfile is stored.
+3) Define dockerfile inline using "dockerfile:" directive which accepts yaml multiline literal
+   as dockerfile source.
 
 
 Attaching volumes

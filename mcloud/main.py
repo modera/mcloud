@@ -8,10 +8,10 @@ import inject
 from mcloud.interrupt import InterruptManager
 from mcloud.remote import TaskFailure
 
-from mcloud.rpc_client import arg_parser, ApiRpcClient, ClientProcessInterruptHandler
+from mcloud.rpc_client import arg_parser, subparsers, ApiRpcClient, ClientProcessInterruptHandler
 from mcloud.shell import mcloud_shell
 from confire import Configuration
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log
 
@@ -64,17 +64,17 @@ def main(argv):
     inject.configure(my_config)
 
     # client = ApiRpcClient(host=args.host, settings=settings)
+    # subparsers.add_parser('!booo', help='Deploy application')
 
-    if len(argv) < 2 or (len(argv) == 2 and '@' in argv[1]):
-        # Use the tab key for completion
-
-        # log.startLogging(open('twisted.log', 'w'))
-
-        mcloud_shell(argv[1] if len(argv) == 2 else None)
+    if len(argv) == 2 and ('shell' == argv[1] or '@' in argv[1]):
+        mcloud_shell(argv[1] if '@' in argv[1] else None)
         reactor.run()
+
+    elif len(argv) == 1:
+        arg_parser.print_help()
+        sys.exit(2)
+
     else:
-
-
         args = arg_parser.parse_args()
 
         if args.verbose:
@@ -110,10 +110,15 @@ def main(argv):
             call_command()
             reactor.run()
 
-
-
         else:
-            args.func(**vars(args))
+            ret = args.func(**vars(args))
+
+            if isinstance(ret, defer.Deferred):
+                def clb(*args):
+                    reactor.callFromThread(reactor.stop)
+                ret.addCallback(clb)
+
+                reactor.run()
 
 
 def entry_point():

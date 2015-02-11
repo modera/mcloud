@@ -30,6 +30,8 @@ class Service(object):
         self.image_builder = None
         self.name = None
         self.app_name = None
+        self.entrypoint = None
+        self.workdir = None
         self.volumes = []
         self.volumes_from = None
         self.ports = None
@@ -285,6 +287,12 @@ class Service(object):
         if self.ports:
             config['ExposedPorts'] = dict([(port, {}) for port in self.ports])
 
+
+        if self.entrypoint:
+            config['Entrypoint'] = self.entrypoint
+
+        if self.workdir:
+            config['WorkingDir'] = self.workdir
 
         if not for_run:
             config['Hostname'] = self.name

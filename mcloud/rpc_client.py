@@ -6,6 +6,7 @@ import argparse
 import subprocess
 from contextlib import contextmanager
 from bashutils.colors import color_text
+import inject
 from mcloud.application import Application
 from mcloud.attach import AttachStdinProtocol
 from mcloud.config import YamlConfig
@@ -23,7 +24,7 @@ from twisted.internet.defer import inlineCallbacks, CancelledError
 from twisted.internet.error import ConnectionRefusedError
 from mcloud import metadata
 import yaml
-
+from twisted.internet import reactor
 
 def format_epilog():
     """Program entry point.
@@ -52,10 +53,10 @@ arg_parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description=metadata.description,
     epilog=format_epilog(),
-    add_help=False
+    add_help=True
 )
 arg_parser.add_argument('-v', '--verbose', help='Show more logs', action='store_true', default=False)
-arg_parser.add_argument('-h', '--host', help='Host to use', default=None)
+arg_parser.add_argument('--host', help='Host to use', default=None)
 arg_parser.add_argument(
     '-V', '--version',
     action='version',
@@ -64,6 +65,66 @@ arg_parser.add_argument(
 subparsers = arg_parser.add_subparsers()
 
 command_settings = {}
+
+
+class LocalCommand(object):
+    def __init__(self, config, command):
+        self.config = config
+        self.command = command
+
+    @inlineCallbacks
+    def call(self, to=None, **kwargs):
+
+        try:
+            host = config.get_command_host(name=to)
+        except KeyError:
+            raise Exception('Host alias not found.')
+
+        settings = inject.instance('settings')
+
+        for line in self.command['commands']:
+
+            line = line.replace('{host}', host)
+
+            print(color_text(line, color='white', bcolor='blue'))
+
+            params = line.split(' ')
+            args = arg_parser.parse_args(params)
+
+            args.argv0 = sys.argv[0]
+
+            client = ApiRpcClient(host='127.0.0.1', settings=settings)
+
+            if isinstance(args.func, str):
+                yield getattr(client, args.func)(**vars(args))
+            else:
+                yield args.func(**vars(args))
+
+
+
+def load_commands(config):
+    """
+    :param config:
+    :type config: mcloud.config.YamlConfig
+    :return:
+    """
+
+    for name, command in config.get_commands().items():
+
+        cmd_instance = LocalCommand(config, command)
+
+        cmd = subparsers.add_parser('*%s' % name, help=command['help'])
+        cmd.add_argument('to', help='Host to use with command', default=None, choices=config.hosts, nargs='?')
+        cmd.set_defaults(func=cmd_instance.call)
+
+
+if os.path.exists('mcloud.yml'):
+    config = YamlConfig(file='mcloud.yml')
+    config.load(process=False)
+
+    load_commands(config)
+
+
 
 
 def cli(help_, arguments=None, by_ref=False, name=None):
@@ -119,6 +180,8 @@ class ClientProcessInterruptHandler(object):
             if self.client.current_task and self.client.current_task.wait:
                 self.client.current_task.wait.cancel()
                 yield sleep(0.05)
+
+
 
 
 class ApiRpcClient(object):
@@ -443,6 +506,13 @@ class ApiRpcClient(object):
     # Overview
     ############################################################
 
+
+    @cli('Execute mcloud shell', arguments=(
+        arg('shell', help='Continuously run list command'),
+    ))
+    @inlineCallbacks
+    def shell(self, **kwargs):
+        pass  # handled without argparser
 
     @cli('List registered applications', arguments=(
         arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),

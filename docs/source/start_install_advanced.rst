@@ -33,7 +33,7 @@ Add Haproxy repository::
     echo "deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main" >> /etc/apt/sources.list.d/haproxy.list
 ModeraCloudall ModeraCloud::
 
-    apt-get update && apt-get install mcloud
+    apt-get update && apt-get install mcloud haproxy
 
 
 Installing required dependencies
@@ -64,6 +64,8 @@ Replace content of */etc/dnsmasq.conf* file with following 3 lines::
     interface=lo
     interface=docker0
     server=/mcloud.lh/127.0.0.1#7053
+
+.. note:: *NB!* For versions of mcloud older than 0.9 use docker's ip instead of 127.0.0.1
 
 Start Dnsmasq server::
 
