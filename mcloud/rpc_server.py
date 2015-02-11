@@ -1,6 +1,5 @@
 import logging
 import sys
-import netifaces
 
 import inject
 from twisted.internet import reactor
@@ -139,6 +138,8 @@ def entry_point():
         listen_dns(settings.dns_search_suffix, settings.dns_ip, settings.dns_port)
 
         # if settings.web:
+        #     log.msg('Start internal web server')
+        #     reactor.listenTCP(8080, Site(mcloud_web()), interface=dns_server_ip)
         #     listen_web(settings)
 
         log.msg('Listen metrics')

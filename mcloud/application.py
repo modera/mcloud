@@ -66,7 +66,14 @@ class Application(object):
         status = 'RUNNING'
 
         web_ip = None
+        web_port = None
+        web_target = None
         web_service = None
+
+        ssl_ip = None
+        ssl_port = None
+        ssl_target = None
+        ssl_service = None
 
         services = []
         for service in app_config.get_services().values():
@@ -89,7 +96,15 @@ class Application(object):
 
             if service.is_web():
                 web_ip = service.ip()
+                web_port = service.get_web_port()
+                web_target = '%s:%s' % (service.ip(), service.get_web_port())
                 web_service = service.name
+
+            if service.is_ssl():
+                ssl_ip = service.ip()
+                ssl_port = service.get_ssl_port()
+                ssl_target = '%s:%s' % (service.ip(), service.get_ssl_port())
+                ssl_service = service.name
 
             if not service.is_running():
                 is_running = False
@@ -101,7 +116,13 @@ class Application(object):
             'volumes': app_config.get_volumes(),
             'fullname': '%s.%s' % (self.name, self.dns_search_suffix),
             'web_ip': web_ip,
+            'web_port': web_port,
+            'web_target': web_target,
             'web_service': web_service,
+            'ssl_ip': ssl_ip,
+            'ssl_port': ssl_port,
+            'ssl_target': ssl_target,
+            'ssl_service': ssl_service,
             'public_urls': self.public_urls,
             'config': self.config,
             'services': services,

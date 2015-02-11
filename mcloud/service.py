@@ -35,6 +35,8 @@ class Service(object):
         self.volumes = []
         self.volumes_from = None
         self.ports = None
+        self.web_port = None
+        self.ssl_port = None
         self.command = None
         self.env = None
         self.config = None
@@ -141,14 +143,16 @@ class Service(object):
         return self._inspect_data['State']['StartedAt']
 
     def is_web(self):
-        if not self.is_running():
-            return None
+        return not self.web_port is None
 
-        if not 'NetworkSettings' in self._inspect_data or not 'Ports' in self._inspect_data['NetworkSettings'] or \
-            not self._inspect_data['NetworkSettings']['Ports']:
-            return False
+    def get_web_port(self):
+        return self.web_port
 
-        return u'80/tcp' in self._inspect_data['NetworkSettings']['Ports']
+    def is_ssl(self):
+        return not self.ssl_port is None
+
+    def get_ssl_port(self):
+        return self.ssl_port
 
     def is_created(self):
         if not self.is_inspected():

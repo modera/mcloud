@@ -1,5 +1,6 @@
 import json
 from autobahn.twisted.resource import WSGIRootResource, WebSocketResource
+
 from mcloud.ssl import listen_ssl
 import os
 import sys
@@ -278,8 +279,6 @@ class Server(object):
             rootResource = WSGIRootResource(web_resource, {'ws': WebSocketResource(factory)})
 
             if not self.no_ssl and self.settings and self.settings.ssl.enabled:
-
-
                 print '*' * 60
                 print 'Running in secure mode'
                 print 'Ssl key:         %s' % self.settings.ssl.key
@@ -287,8 +286,6 @@ class Server(object):
                 print '*' * 60
 
                 listen_ssl(self.port, Site(rootResource), interface=self.settings.websocket_ip)
-
-
 
             else:
                 print '*' * 60
