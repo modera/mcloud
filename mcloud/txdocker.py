@@ -112,7 +112,7 @@ class DockerTwistedClient(object):
                 if match:
                     result['image_id'] = match.group(1)
 
-        response = yield self._post('build?t=mcloud_image_%s' % ticket_id, data=dockerfile, headers=headers, response_handler=None)
+        response = yield self._post('build', data=dockerfile, headers=headers, response_handler=None)
         yield txhttp.collect(response, on_content)
         defer.returnValue(result['image_id'])
 
