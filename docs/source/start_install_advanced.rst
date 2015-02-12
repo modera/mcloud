@@ -14,7 +14,9 @@ Follow `Docker website <https://docs.docker.com/installation/>`_ to get it insta
 
 Make sure it's working::
 
-    sudo docker run -i -t ubuntu echo -e "OKModeraCloudCloud installation
+    sudo docker run -i -t ubuntu echo -e "Ok"
+
+ModeraCloud installation
 ==========================
 
 .. note::
@@ -61,11 +63,7 @@ Install Dnsmasq::
 
 Replace content of */etc/dnsmasq.conf* file with following 3 lines::
 
-    interface=lo
-    interface=docker0
     server=/mcloud.lh/127.0.0.1#7053
-
-.. note:: *NB!* For versions of mcloud older than 0.9 use docker's ip instead of 127.0.0.1
 
 Start Dnsmasq server::
 
@@ -73,9 +71,11 @@ Start Dnsmasq server::
 
 
 Verify installation
-=====================================ModeraCloudst start ModeraCloud shell::
+=====================================
 
-    $ mcloud
+Start ModeraCloud shell::
+
+    $ mcloud shell
 
     mcloud: ~@me>
 

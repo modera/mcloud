@@ -1,7 +1,4 @@
 #!/bin/bash
 
-echo "interface=lo" > /etc/dnsmasq.conf
-echo "interface=docker0" >> /etc/dnsmasq.conf
-echo "server=/mcloud.lh/`/sbin/ifconfig docker0 | grep 'inet addr:' | cut -d: -f2| cut -d' ' -f1`#7053" >> /etc/dnsmasq.conf
-
+echo "server=/mcloud.lh/127.0.0.1#7053" >> /etc/dnsmasq.conf
 echo "ENABLED=1" > /etc/default/haproxy

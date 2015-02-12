@@ -15,15 +15,16 @@ What will be installed?
 install.sh:
 
 - installs mcloud && haproxy ppa keys
+- installs docker
 - install mcloud-full package
 
-mcloud-full packageModeraCloudCloud
-- Docker
-- Redis
-- HapModeraCloudNB! ModeraCloud overrides /haproxy on first start)
-ModeraCloudasq (NB! ModeraCloud overrides /etc/dnsmasq.conf on post-install)
+mcloud-full package:
 
-If you need to override anything mentioned above please follow :ref:`manual_install` to have in-depth coModeraCloudover setup.
+- Redis
+- Haproxy
+- Dnsmasq
+
+If you need to override anything mentioned above please follow :ref:`manual_install`.
 
 
 ModeraCloud installation
