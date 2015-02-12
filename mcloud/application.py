@@ -94,19 +94,21 @@ class Application(object):
                 'memory': service.memory_usage,
             })
 
-            if service.is_web():
-                web_ip = service.ip()
-                web_port = service.get_web_port()
-                web_target = '%s:%s' % (service.ip(), service.get_web_port())
-                web_service = service.name
+            if service.is_running():
 
-            if service.is_ssl():
-                ssl_ip = service.ip()
-                ssl_port = service.get_ssl_port()
-                ssl_target = '%s:%s' % (service.ip(), service.get_ssl_port())
-                ssl_service = service.name
+                if service.is_web():
+                    web_ip = service.ip()
+                    web_port = service.get_web_port()
+                    web_target = '%s:%s' % (service.ip(), service.get_web_port())
+                    web_service = service.name
 
-            if not service.is_running():
+                if service.is_ssl():
+                    ssl_ip = service.ip()
+                    ssl_port = service.get_ssl_port()
+                    ssl_target = '%s:%s' % (service.ip(), service.get_ssl_port())
+                    ssl_service = service.name
+
+            else:
                 is_running = False
                 status = 'STOPPED'
 

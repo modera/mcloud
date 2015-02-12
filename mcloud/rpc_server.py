@@ -1,5 +1,6 @@
 import logging
 import sys
+import netifaces
 
 import inject
 from twisted.internet import reactor
@@ -105,7 +106,7 @@ def entry_point():
             binder.bind(IDockerClient, DockerTwistedClient())
 
             binder.bind('settings', settings)
-            binder.bind('dns-server', settings.dns_ip)
+            binder.bind('dns-server', netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr'])
             binder.bind('dns-search-suffix', settings.dns_search_suffix)
 
         # Configure a shared injector.
