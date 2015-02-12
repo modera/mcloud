@@ -118,7 +118,7 @@ class YamlConfig(IConfig):
             return self.hosts.values()[0]
 
     def get_commands(self):
-        return self.commands
+        return self.commands or {}
 
     def get_service(self, name):
         """
@@ -201,6 +201,9 @@ class YamlConfig(IConfig):
             Schema({
                 basestring: {
                     'wait': int,
+                    'web': int,
+                    'ssl': int,
+                    'dockerfile': basestring,
                     'image': basestring,
                     'build': basestring,
                     'entrypoint': basestring,
@@ -215,7 +218,7 @@ class YamlConfig(IConfig):
                     },
 
                     'cmd': basestring,
-                },
+                    },
 
                 '---': {
                     'hosts': {
@@ -226,15 +229,15 @@ class YamlConfig(IConfig):
                             basestring
                         ]
                     },
-                },
+                    },
 
-            })(config)
+                })(config)
 
             has_service = False
             for key, service in config.items():
                 if key == '---':
                     continue
-                if not 'image' in service and not 'build' in service:
+                if not 'image' in service and not 'build' in service and not 'dockerfile' in service:
                     raise ValueError('You should define "image" or "build" as a vay to build a container.')
 
                 has_service = True
@@ -261,6 +264,12 @@ class YamlConfig(IConfig):
 
         if 'entrypoint' in config:
             service.entrypoint = config['entrypoint']
+
+        if 'web' in config:
+            service.web_port = config['web']
+
+        if 'ssl' in config:
+            service.ssl_port = config['ssl']
 
     def process_volumes_build(self, service, config, path):
         service.volumes = []

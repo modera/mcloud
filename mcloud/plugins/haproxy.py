@@ -123,10 +123,10 @@ class HaproxyConfig(object):
         proxy_ssl_apps = []
 
         for app in apps_list:
-            # if not 'web_ip' in app or not app['web_ip']:
+            # if not 'web_target' in app or not app['web_target']:
             #     continue
 
-            plain_domains = {app['web_ip']: [app['fullname']]}
+            plain_domains = {app['web_target']: [app['fullname']]}
             ssl_domains = {}
 
             print app['fullname']
@@ -135,15 +135,15 @@ class HaproxyConfig(object):
                 for target in app['public_urls']:
 
                     if not target['service']:
-                        if 'web_ip' in app and app['web_ip']:
-                            if target['url'].startswith('https://'):
-                                if not app['web_ip'] in ssl_domains:
-                                    ssl_domains[app['web_ip']] = []
-                                ssl_domains[app['web_ip']].append(target['url'][8:])
-                            else:
-                                if not app['web_ip'] in plain_domains:
-                                    plain_domains[app['web_ip']] = []
-                                plain_domains[app['web_ip']].append(target['url'])
+                        if 'ssl_target' in app and app['ssl_target'] and target['url'].startswith('https://'):
+                            if not app['ssl_target'] in ssl_domains:
+                                ssl_domains[app['ssl_target']] = []
+                            ssl_domains[app['ssl_target']].append(target['url'][8:])
+
+                        if 'web_target' in app and app['web_target'] and not target['url'].startswith('https://'):
+                            if not app['web_target'] in plain_domains:
+                                plain_domains[app['web_target']] = []
+                            plain_domains[app['web_target']].append(target['url'])
 
                     else:
                         for service in app['services']:

@@ -106,7 +106,7 @@ def entry_point():
             binder.bind(IDockerClient, DockerTwistedClient())
 
             binder.bind('settings', settings)
-            binder.bind('dns-server', settings.dns_ip)
+            binder.bind('dns-server', netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr'])
             binder.bind('dns-search-suffix', settings.dns_search_suffix)
 
         # Configure a shared injector.
@@ -139,6 +139,8 @@ def entry_point():
         listen_dns(settings.dns_search_suffix, settings.dns_ip, settings.dns_port)
 
         # if settings.web:
+        #     log.msg('Start internal web server')
+        #     reactor.listenTCP(8080, Site(mcloud_web()), interface=dns_server_ip)
         #     listen_web(settings)
 
         log.msg('Listen metrics')

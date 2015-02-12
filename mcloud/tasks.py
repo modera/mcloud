@@ -294,7 +294,7 @@ class TaskService(object):
             'path': app.config['path'],
             'env': app.get_env(),
             'source': app.config['source'] if 'source' in app.config else {},
-            'hosts': config.get_hosts() if hasattr(config, 'get_hosts') else {},
+            'hosts': config.hosts,
             'volumes': config.get_volumes() if hasattr(config, 'get_volumes') else {},
         })
 
