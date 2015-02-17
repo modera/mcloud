@@ -1,3 +1,9 @@
+mcloud-full (0.6.3-5ubuntu1) trusty; urgency=medium
+
+  * Update dnsmasq config. Remove docker from deps
+
+ -- Alex Rudakov <ribozz@gmail.com>  Thu, 12 Feb 2015 11:12:33 +0200
+
 mcloud-full (0.6.2-5) trusty; urgency=medium
 
   * Do not update mcloud init script
