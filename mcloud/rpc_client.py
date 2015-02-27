@@ -82,9 +82,12 @@ class LocalCommand(object):
 
         settings = inject.instance('settings')
 
+        uuid_ = uuid.uuid1()
+
         for line in self.command['commands']:
 
             line = line.replace('{host}', host)
+            line = line.replace('{uuid}', uuid_)
 
             print(color_text(line, color='white', bcolor='blue'))
 
@@ -572,6 +575,17 @@ class ApiRpcClient(object):
         else:
             yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export())
 
+    def represent_ordereddict(self, dumper, data):
+        value = []
+
+        for item_key, item_value in data.items():
+            node_key = dumper.represent_data(item_key)
+            node_value = dumper.represent_data(item_value)
+
+            value.append((node_key, node_value))
+
+        return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
+
     @cli('Application configuration', arguments=(
         arg('ref', help='Application and service name', default=None, nargs='?'),
         arg('--set-env', help='Set application environment'),
@@ -591,9 +605,14 @@ class ApiRpcClient(object):
             old_config = YamlConfig(source=unicode(app_config['source']), app_name=app, env=parser_env)
             old_config.load(process=False)
             from collections import OrderedDict
+
             yaml.add_representer(unicode, yaml.representer.SafeRepresenter.represent_unicode)
-            yaml.add_representer(OrderedDict, yaml.representer.SafeRepresenter.represent_dict)
+            yaml.add_representer(OrderedDict, self.represent_ordereddict)
             olds = yaml.dump(old_config.config, default_flow_style=False)
+
+            print old_config.config
+            print '---'
+            print olds
 
         if not update and not diff and not set_env:
             x = PrettyTable(["Name", "Value"], hrules=ALL, align='l', header=False)
@@ -613,6 +632,8 @@ class ApiRpcClient(object):
             new_config.load(process=False)
 
             if diff:
+                yaml.add_representer(unicode, yaml.representer.SafeRepresenter.represent_unicode)
+                yaml.add_representer(OrderedDict, self.represent_ordereddict)
                 news = yaml.dump(new_config.config, default_flow_style=False)
 
                 if olds == news:

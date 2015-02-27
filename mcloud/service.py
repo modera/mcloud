@@ -21,6 +21,7 @@ class Service(object):
     client = inject.attr(IDockerClient)
 
     dns_server = inject.attr('dns-server')
+    settings = inject.attr('settings')
     dns_search_suffix = inject.attr('dns-search-suffix')
     redis = inject.attr(txredisapi.Connection)
 
@@ -235,12 +236,25 @@ class Service(object):
                 mounted_volumes.append(x['remote'])
                 config['Binds'].append('%s:%s' % (x['local'], x['remote']))
 
+
         if image_info['ContainerConfig']['Volumes']:
             for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
+
+                print '-' * 40
+                print self.settings.btrfs
+                print '-' * 40
+
                 if not vpath in mounted_volumes:
-                    dir_ = os.path.expanduser('~/.mcloud/volumes/%s/%s' % (self.name, re.sub('[^a-z0-9]+', '_', vpath)))
+                    dir_ = os.path.expanduser('%s/volumes/%s/%s' % (self.settings.home_dir, self.name, re.sub('[^a-z0-9]+', '_', vpath)))
+
+                    if self.settings.btrfs:
+                        dir_ += '_btrfs'
+
                     if not os.path.exists(dir_):
-                        os.makedirs(dir_)
+                        if self.settings.btrfs:
+                            os.system('btrfs subvolume create %s' % dir_)
+                        else:
+                            os.makedirs(dir_)
 
                     mounted_volumes.append(vpath)
                     config['Binds'].append('%s:%s' % (dir_, vpath))
@@ -265,6 +279,17 @@ class Service(object):
         id = yield self.client.find_container_by_name(self.name)
 
         yield self.client.stop_container(id, ticket_id=ticket_id)
+
+        ret = yield self.inspect()
+        defer.returnValue(ret)
+
+
+    @inlineCallbacks
+    def pause(self, ticket_id):
+
+        id = yield self.client.find_container_by_name(self.name)
+
+        yield self.client.pause_container(id, ticket_id=ticket_id)
 
         ret = yield self.inspect()
         defer.returnValue(ret)
