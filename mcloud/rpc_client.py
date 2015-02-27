@@ -82,9 +82,12 @@ class LocalCommand(object):
 
         settings = inject.instance('settings')
 
+        uuid_ = uuid.uuid1()
+
         for line in self.command['commands']:
 
             line = line.replace('{host}', host)
+            line = line.replace('{uuid}', uuid_)
 
             print(color_text(line, color='white', bcolor='blue'))
 
