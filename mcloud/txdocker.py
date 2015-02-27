@@ -299,8 +299,13 @@ class DockerTwistedClient(object):
         defer.returnValue(result.code == 204)
 
     @inlineCallbacks
-    def stop_container(self, id, ticket_id):
+    def pause_container(self, id, ticket_id):
         result = yield self._post('containers/%s/pause' % bytes(id))
+        defer.returnValue(result.code == 204)
+
+    @inlineCallbacks
+    def pause_container(self, id, ticket_id):
+        result = yield self._post('containers/%s/unpause' % bytes(id))
         defer.returnValue(result.code == 204)
 
     @inlineCallbacks

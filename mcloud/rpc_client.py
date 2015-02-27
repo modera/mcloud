@@ -88,6 +88,7 @@ class LocalCommand(object):
 
             line = line.replace('{host}', host)
             line = line.replace('{uuid}', uuid_)
+            print line
 
             print(color_text(line, color='white', bcolor='blue'))
 
@@ -610,10 +611,6 @@ class ApiRpcClient(object):
             yaml.add_representer(OrderedDict, self.represent_ordereddict)
             olds = yaml.dump(old_config.config, default_flow_style=False)
 
-            print old_config.config
-            print '---'
-            print olds
-
         if not update and not diff and not set_env:
             x = PrettyTable(["Name", "Value"], hrules=ALL, align='l', header=False)
             x.align = "l"
@@ -889,7 +886,6 @@ class ApiRpcClient(object):
     def push(self, volume, host, **kwargs):
         app, service = self.parse_app_ref(None, kwargs, app_only=True)
         config = yield self._remote_exec('config', app)
-        print config
 
 
     @cli('Syncronize application volumes', arguments=(

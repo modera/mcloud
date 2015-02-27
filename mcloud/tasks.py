@@ -539,7 +539,7 @@ class TaskService(object):
             )
 
             if not self.settings.btrfs:
-                service.start()
+                service.unpause()
             else:
                 yield TicketScopeProcess(ticket_id, self).call_sync(
                     '/sbin/btrfs', ['btrfs', 'subvolume', 'delete', volume_path]
