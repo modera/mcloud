@@ -50,6 +50,9 @@ class McloudConfiguration(Configuration):
 
     ssl = SslConfiguration()
 
+    home_dir = '/root/.mcloud'
+    btrfs = False
+
 
 def entry_point():
 

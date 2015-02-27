@@ -299,6 +299,11 @@ class DockerTwistedClient(object):
         defer.returnValue(result.code == 204)
 
     @inlineCallbacks
+    def stop_container(self, id, ticket_id):
+        result = yield self._post('containers/%s/pause' % bytes(id))
+        defer.returnValue(result.code == 204)
+
+    @inlineCallbacks
     def find_container_by_name(self, name):
         result = yield self._get('containers/%s/json' % str(name))
 

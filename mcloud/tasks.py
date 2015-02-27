@@ -1,6 +1,7 @@
 import inspect
 import random
 import string
+import uuid
 from mcloud.container import PrebuiltImageBuilder
 from mcloud.service import Service
 from mcloud.sync import VolumeNotFound
@@ -65,6 +66,8 @@ class TaskService(object):
     rpc_server = inject.attr(ApiRpcServer)
     event_bus = inject.attr(EventBus)
     """ @type: EventBus """
+
+    settings = inject.attr('settings')
 
     dns_server = inject.attr('dns-server')
     dns_search_suffix = inject.attr('dns-search-suffix')
@@ -488,6 +491,8 @@ class TaskService(object):
 
         config = yield app.load()
 
+        service = None
+
         if service_name:
 
             if not volume:
@@ -510,9 +515,36 @@ class TaskService(object):
             volume_path = app.config['path']
 
         if not restore:
+
+            if self.settings.btrfs:
+                uuid_ = uuid.uuid1()
+
+                snapshot_path = '%s/snapshots_%s' % (self.settings.home_dir, uuid_)
+
+                self.task_log(ticket_id, snapshot_path)
+
+                yield TicketScopeProcess(ticket_id, self).call_sync(
+                    '/sbin/btrfs', ['btrfs', 'subvolume', 'snapshot', '-r', volume_path, snapshot_path]
+                )
+                self.task_log(ticket_id, '-----------------')
+
+                volume_path = snapshot_path
+
+            else:
+                if service:
+                    service.pause()
+
             yield TicketScopeProcess(ticket_id, self).call_sync(
                 'aws', ['aws', 's3', 'sync', volume_path, destination]
             )
+
+            if not self.settings.btrfs:
+                service.start()
+            else:
+                yield TicketScopeProcess(ticket_id, self).call_sync(
+                    '/sbin/btrfs', ['btrfs', 'subvolume', 'delete', volume_path]
+                )
+
         else:
             yield TicketScopeProcess(ticket_id, self).call_sync(
                 'aws', ['aws', 's3', 'sync', destination, volume_path]
