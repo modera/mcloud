@@ -100,7 +100,7 @@ def entry_point():
 
         log.msg('Configuring injector.')
 
-
+        plugins = [HaproxyPlugin]
 
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
@@ -111,6 +111,7 @@ def entry_point():
             binder.bind('settings', settings)
             binder.bind('dns-server', netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr'])
             binder.bind('dns-search-suffix', settings.dns_search_suffix)
+            binder.bind('plugins', plugins)
 
         # Configure a shared injector.
         inject.configure(my_config)
@@ -123,20 +124,31 @@ def entry_point():
         server = Server(port=settings.websocket_port)
         server.bind()
 
-        if settings.haproxy:
-            log.msg('Haproxy plugin')
-            HaproxyPlugin()
+        # load plugins
+        for plugin_class in plugins:
+            log.msg('=' * 80)
+            log.msg('Loading plugin %s' % plugin_class)
+            log.msg('-' * 80)
+
+            plugin = plugin_class()
+            yield plugin.setup()
+
+            log.msg('=' * 80)
+
+        log.msg('-' * 80)
+        log.msg('All plugins loaded.')
+        log.msg('=' * 80)
+
 
         log.msg('Monitor plugin')
         DockerMonitorPlugin()
-
 
         log.msg('Dns plugin')
         DnsPlugin()
 
         # HostsPlugin()
 
-        InternalApiPlugin()
+        # InternalApiPlugin()
 
         log.msg('Listen dns on ip %s:53' % settings.dns_ip)
         listen_dns(settings.dns_search_suffix, settings.dns_ip, settings.dns_port)

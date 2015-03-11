@@ -25,7 +25,7 @@ class DockerMonitorPlugin(Plugin):
 
     def on_event(self, event):
         log.msg('New docker event: %s' % event)
-        self.event_bus.fire_event('containers.updated')
+        self.event_bus.fire_event('containers.updated', event)
 
     def attach_to_events(self, *args):
         logger.info('Start monitoring docker events')

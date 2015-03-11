@@ -55,7 +55,10 @@ class Service(object):
 
 
     def task_log(self, ticket_id, message):
-        self.rpc_server.task_progress(message, ticket_id)
+        if not ticket_id:
+            print(message)
+        else:
+            self.rpc_server.task_progress(message, ticket_id)
 
     def build_docker_config(self):
         pass
@@ -83,6 +86,13 @@ class Service(object):
             return self.is_created() and self._inspect_data['State']['Running']
         except KeyError:
             return False
+
+    @property
+    def id(self):
+        if not self.is_created():
+            return None
+
+        return self._inspect_data['Id']
 
     @property
     def shortname(self):
@@ -200,7 +210,7 @@ class Service(object):
             yield self.client.attach(name, ticket_id, skip_terminal=True)
 
     @inlineCallbacks
-    def start(self, ticket_id):
+    def start(self, ticket_id=None):
         id_ = yield self.client.find_container_by_name(self.name)
 
         self.task_log(ticket_id, '[%s][%s] Starting service' % (ticket_id, self.name))
@@ -268,7 +278,12 @@ class Service(object):
 
 
     @inlineCallbacks
-    def stop(self, ticket_id):
+    def restart(self, ticket_id=None):
+        yield self.stop(ticket_id)
+        yield self.start(ticket_id)
+
+    @inlineCallbacks
+    def stop(self, ticket_id=None):
 
         id = yield self.client.find_container_by_name(self.name)
 
@@ -279,7 +294,7 @@ class Service(object):
 
 
     @inlineCallbacks
-    def pause(self, ticket_id):
+    def pause(self, ticket_id=None):
 
         id = yield self.client.find_container_by_name(self.name)
 
@@ -290,7 +305,7 @@ class Service(object):
 
 
     @inlineCallbacks
-    def unpause(self, ticket_id):
+    def unpause(self, ticket_id=None):
 
         id = yield self.client.find_container_by_name(self.name)
 
@@ -298,6 +313,13 @@ class Service(object):
 
         ret = yield self.inspect()
         defer.returnValue(ret)
+
+
+    @inlineCallbacks
+    def last_logs(self, on_log):
+        id = yield self.client.find_container_by_name(self.name)
+
+        yield self.client.logs(self, id, on_log, tail=100, follow=False)
 
     @inlineCallbacks
     def _generate_config(self, image_name, for_run=False):
