@@ -384,8 +384,11 @@ class TaskService(object):
 
     def follow_logs(self, service, ticket_id):
 
-
         def on_log(log):
+            if log.startsith('@mcloud ready in '):
+                parts = log.split(' ')
+                self.eb.fire_event('api.%s.%s' % (service.name, 'ready'), my_args=parts[2:])
+
             if len(log) == 8 and log[7] != 0x0a:
                 return
 

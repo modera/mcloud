@@ -196,7 +196,7 @@ class Service(object):
         run_config['VolumesFrom'] = self.name
 
         if self.ports:
-            run_config['PortBindings'] = dict([(port, [{}]) for port in self.ports])
+            config['PortBindings'] = self.prepare_ports()
 
         if self.volumes and len(self.volumes):
             run_config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
@@ -208,6 +208,24 @@ class Service(object):
             yield self.client.attach(name, ticket_id)
         else:
             yield self.client.attach(name, ticket_id, skip_terminal=True)
+
+    def prepare_ports(self):
+        all_ports = {}
+        for port in self.ports:
+            if ':' in port:
+                local, host = port.split(':')
+                if '_' in host:
+                    ip, rport = host.split('_')
+                else:
+                    rport = host
+                    ip = None
+
+                all_ports[local] = [{"HostPort": rport, "HostIp": ip}]
+            else:
+                all_ports[port] = [{}]
+
+        print all_ports
+        return all_ports
 
     @inlineCallbacks
     def start(self, ticket_id=None):
@@ -237,7 +255,7 @@ class Service(object):
             config['VolumesFrom'] = self.volumes_from
 
         if self.ports:
-            config['PortBindings'] = dict([(port, [{}]) for port in self.ports])
+            config['PortBindings'] = self.prepare_ports()
 
         mounted_volumes = []
         config['Binds'] = []
@@ -341,7 +359,14 @@ class Service(object):
             config['Env'] = ['%s=%s' % x for x in vlist.items()]
 
         if self.ports:
-            config['ExposedPorts'] = dict([(port, {}) for port in self.ports])
+            all_ports = {}
+            for port in self.ports:
+                if ':' in port:
+                    all_ports[port.split(':')[0]] = {}
+                else:
+                    all_ports[port] = {}
+
+            config['ExposedPorts'] = all_ports
 
 
         if self.entrypoint:

@@ -77,8 +77,7 @@ def entry_point():
         settings.ssl.enabled = False
 
     if not settings.dns_ip:
-        settings.dns_ip = '127.0.0.1'
-        # netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
+        settings.dns_ip = netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
 
     @inlineCallbacks
     def run_server(redis):
@@ -100,7 +99,7 @@ def entry_point():
 
         log.msg('Configuring injector.')
 
-        plugins = [HaproxyPlugin]
+        plugins = [DnsPlugin, HaproxyPlugin]
 
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
@@ -109,6 +108,7 @@ def entry_point():
             binder.bind(IDockerClient, DockerTwistedClient())
 
             binder.bind('settings', settings)
+
             binder.bind('dns-server', netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr'])
             binder.bind('dns-search-suffix', settings.dns_search_suffix)
             binder.bind('plugins', plugins)
@@ -142,9 +142,6 @@ def entry_point():
 
         log.msg('Monitor plugin')
         DockerMonitorPlugin()
-
-        log.msg('Dns plugin')
-        DnsPlugin()
 
         # HostsPlugin()
 

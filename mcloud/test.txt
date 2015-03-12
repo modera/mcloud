@@ -1,0 +1,117 @@
+[{
+    "AppArmorProfile": "",
+    "Args": [
+        "-k",
+        "--server=/mcloud.lh/172.17.42.1#7053",
+        "-u",
+        "root"
+    ],
+    "Config": {
+        "AttachStderr": true,
+        "AttachStdin": true,
+        "AttachStdout": true,
+        "Cmd": [
+            "dnsmasq",
+            "-k",
+            "--server=/mcloud.lh/172.17.42.1#7053",
+            "-u",
+            "root"
+        ],
+        "CpuShares": 0,
+        "Cpuset": "",
+        "Domainname": "",
+        "Entrypoint": null,
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        ],
+        "ExposedPorts": {
+            "53/udp": {}
+        },
+        "Hostname": "e96e7ba2c753",
+        "Image": "be94bb6b4db9e6eaaa99409dda217b4bbac02fb25a8770f2605ed0f0c0e7bf21",
+        "MacAddress": "",
+        "Memory": 0,
+        "MemorySwap": 0,
+        "NetworkDisabled": false,
+        "OnBuild": null,
+        "OpenStdin": true,
+        "PortSpecs": null,
+        "StdinOnce": true,
+        "Tty": true,
+        "User": "",
+        "Volumes": null,
+        "WorkingDir": ""
+    },
+    "Created": "2015-03-12T11:09:02.565550079Z",
+    "Driver": "btrfs",
+    "ExecDriver": "native-0.2",
+    "HostConfig": {
+        "Binds": null,
+        "CapAdd": null,
+        "CapDrop": null,
+        "ContainerIDFile": "",
+        "Devices": [],
+        "Dns": null,
+        "DnsSearch": null,
+        "ExtraHosts": null,
+        "IpcMode": "",
+        "Links": null,
+        "LxcConf": [],
+        "NetworkMode": "bridge",
+        "PortBindings": {
+            "53/udp": [
+                {
+                    "HostIp": "172.17.42.1",
+                    "HostPort": "53"
+                }
+            ]
+        },
+        "Privileged": false,
+        "PublishAllPorts": false,
+        "RestartPolicy": {
+            "MaximumRetryCount": 0,
+            "Name": ""
+        },
+        "SecurityOpt": null,
+        "VolumesFrom": null
+    },
+    "HostnamePath": "/var/lib/docker-btrfs/containers/e96e7ba2c7537e8b97d9b57edc6832687d49a626ddbd11f093f2f2f9d87bd301/hostname",
+    "HostsPath": "/var/lib/docker-btrfs/containers/e96e7ba2c7537e8b97d9b57edc6832687d49a626ddbd11f093f2f2f9d87bd301/hosts",
+    "Id": "e96e7ba2c7537e8b97d9b57edc6832687d49a626ddbd11f093f2f2f9d87bd301",
+    "Image": "be94bb6b4db9e6eaaa99409dda217b4bbac02fb25a8770f2605ed0f0c0e7bf21",
+    "MountLabel": "",
+    "Name": "/prickly_perlman",
+    "NetworkSettings": {
+        "Bridge": "docker0",
+        "Gateway": "172.17.42.1",
+        "IPAddress": "172.17.0.138",
+        "IPPrefixLen": 16,
+        "MacAddress": "02:42:ac:11:00:8a",
+        "PortMapping": null,
+        "Ports": {
+            "53/udp": [
+                {
+                    "HostIp": "172.17.42.1",
+                    "HostPort": "53"
+                }
+            ]
+        }
+    },
+    "Path": "dnsmasq",
+    "ProcessLabel": "",
+    "ResolvConfPath": "/var/lib/docker-btrfs/containers/e96e7ba2c7537e8b97d9b57edc6832687d49a626ddbd11f093f2f2f9d87bd301/resolv.conf",
+    "State": {
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 32434,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2015-03-12T11:09:02.775189221Z"
+    },
+    "Volumes": {},
+    "VolumesRW": {}
+}
+]
