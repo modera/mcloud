@@ -1,5 +1,4 @@
 import json
-from decorator import contextmanager
 
 from twisted.internet import reactor, defer
 import txredisapi as redis
