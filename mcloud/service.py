@@ -55,7 +55,10 @@ class Service(object):
 
 
     def task_log(self, ticket_id, message):
-        self.rpc_server.task_progress(message, ticket_id)
+        if not ticket_id:
+            print(message)
+        else:
+            self.rpc_server.task_progress(message, ticket_id)
 
     def build_docker_config(self):
         pass
@@ -83,6 +86,13 @@ class Service(object):
             return self.is_created() and self._inspect_data['State']['Running']
         except KeyError:
             return False
+
+    @property
+    def id(self):
+        if not self.is_created():
+            return None
+
+        return self._inspect_data['Id']
 
     @property
     def shortname(self):
@@ -186,7 +196,7 @@ class Service(object):
         run_config['VolumesFrom'] = self.name
 
         if self.ports:
-            run_config['PortBindings'] = dict([(port, [{}]) for port in self.ports])
+            config['PortBindings'] = self.prepare_ports()
 
         if self.volumes and len(self.volumes):
             run_config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
@@ -199,8 +209,26 @@ class Service(object):
         else:
             yield self.client.attach(name, ticket_id, skip_terminal=True)
 
+    def prepare_ports(self):
+        all_ports = {}
+        for port in self.ports:
+            if ':' in port:
+                local, host = port.split(':')
+                if '_' in host:
+                    ip, rport = host.split('_')
+                else:
+                    rport = host
+                    ip = None
+
+                all_ports[local] = [{"HostPort": rport, "HostIp": ip}]
+            else:
+                all_ports[port] = [{}]
+
+        print all_ports
+        return all_ports
+
     @inlineCallbacks
-    def start(self, ticket_id):
+    def start(self, ticket_id=None):
         id_ = yield self.client.find_container_by_name(self.name)
 
         self.task_log(ticket_id, '[%s][%s] Starting service' % (ticket_id, self.name))
@@ -227,7 +255,7 @@ class Service(object):
             config['VolumesFrom'] = self.volumes_from
 
         if self.ports:
-            config['PortBindings'] = dict([(port, [{}]) for port in self.ports])
+            config['PortBindings'] = self.prepare_ports()
 
         mounted_volumes = []
         config['Binds'] = []
@@ -268,7 +296,12 @@ class Service(object):
 
 
     @inlineCallbacks
-    def stop(self, ticket_id):
+    def restart(self, ticket_id=None):
+        yield self.stop(ticket_id)
+        yield self.start(ticket_id)
+
+    @inlineCallbacks
+    def stop(self, ticket_id=None):
 
         id = yield self.client.find_container_by_name(self.name)
 
@@ -279,7 +312,7 @@ class Service(object):
 
 
     @inlineCallbacks
-    def pause(self, ticket_id):
+    def pause(self, ticket_id=None):
 
         id = yield self.client.find_container_by_name(self.name)
 
@@ -290,7 +323,7 @@ class Service(object):
 
 
     @inlineCallbacks
-    def unpause(self, ticket_id):
+    def unpause(self, ticket_id=None):
 
         id = yield self.client.find_container_by_name(self.name)
 
@@ -298,6 +331,13 @@ class Service(object):
 
         ret = yield self.inspect()
         defer.returnValue(ret)
+
+
+    @inlineCallbacks
+    def last_logs(self, on_log):
+        id = yield self.client.find_container_by_name(self.name)
+
+        yield self.client.logs(self, id, on_log, tail=100, follow=False)
 
     @inlineCallbacks
     def _generate_config(self, image_name, for_run=False):
@@ -319,7 +359,14 @@ class Service(object):
             config['Env'] = ['%s=%s' % x for x in vlist.items()]
 
         if self.ports:
-            config['ExposedPorts'] = dict([(port, {}) for port in self.ports])
+            all_ports = {}
+            for port in self.ports:
+                if ':' in port:
+                    all_ports[port.split(':')[0]] = {}
+                else:
+                    all_ports[port] = {}
+
+            config['ExposedPorts'] = all_ports
 
 
         if self.entrypoint:

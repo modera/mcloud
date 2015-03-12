@@ -1,20 +1,24 @@
 import logging
+import datetime
+from autobahn.twisted.util import sleep
 import inject
 from mcloud.application import ApplicationController
+from mcloud.container import PrebuiltImageBuilder, InlineDockerfileImageBuilder
 from mcloud.events import EventBus
-from mcloud.plugins import Plugin
+from mcloud.plugins import Plugin, PluginInitError
+from mcloud.service import Service
 import os
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log
 
 HAPROXY_TPL = """
 global
-        log /dev/log    local0
-        log /dev/log    local1 notice
+        log 127.0.0.1 local0
+        log 127.0.0.1 local1 notice
         chroot /var/lib/haproxy
         user haproxy
         group haproxy
-        daemon
 
 defaults
         log     global
@@ -22,14 +26,6 @@ defaults
         timeout connect 5000
         timeout client 50000
         timeout server 50000
-
-        errorfile 400 /etc/haproxy/errors/400.http
-        errorfile 403 /etc/haproxy/errors/403.http
-        errorfile 408 /etc/haproxy/errors/408.http
-        errorfile 500 /etc/haproxy/errors/500.http
-        errorfile 502 /etc/haproxy/errors/502.http
-        errorfile 503 /etc/haproxy/errors/503.http
-        errorfile 504 /etc/haproxy/errors/504.http
 
 
 {% if ssl_apps %}
@@ -192,28 +188,88 @@ class HaproxyConfig(object):
 
         log.msg('Writing haproxy config')
 
-        with open('/etc/haproxy/haproxy.cfg', 'w') as f:
+        with open(self.path, 'w') as f:
             f.write(template.render({'apps': proxy_apps, 'ssl_apps': proxy_ssl_apps}))
-
-        os.system('service haproxy reload')
 
 
 class HaproxyPlugin(Plugin):
     eb = inject.attr(EventBus)
+    settings = inject.attr('settings')
     app_controller = inject.attr(ApplicationController)
 
-    def __init__(self):
-        super(HaproxyPlugin, self).__init__()
+    last_reboot = None
 
+    @inlineCallbacks
+    def setup(self):
+
+        haproxy_path = os.path.expanduser('%s/haproxy' % self.settings.home_dir)
+        if not os.path.exists(haproxy_path):
+            os.makedirs(haproxy_path)
+
+        template_path = os.path.join(haproxy_path, 'haproxy.tpl')
+        haproxy_config_path = os.path.join(haproxy_path, 'haproxy.cfg')
+
+        if not os.path.exists(template_path):
+            with open(template_path, 'w+') as f:
+                f.write(HAPROXY_TPL)
+
+        with open(template_path) as f:
+            self.proxy_config = HaproxyConfig(path=haproxy_config_path, template=Template(f.read()))
+
+        self.haproxy = Service()
+        self.haproxy.name = 'mcloud_haproxy'
+        self.haproxy.image_builder = InlineDockerfileImageBuilder(source="""
+
+        FROM ubuntu
+
+        RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1C61B9CD
+        RUN echo "deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main" >> /etc/apt/sources.list.d/haproxy.list
+
+        RUN apt-get update && apt-get install -y haproxy
+        RUN sed -i 's/^ENABLED=.*/ENABLED=1/' /etc/default/haproxy && \
+          rm -rf /var/lib/apt/lists/*
+
+        WORKDIR /etc/haproxy
+
+        # Define default command.
+        CMD ["haproxy", "-f", "/etc/haproxy/haproxy.cfg"]
+
+        # Expose ports.
+        EXPOSE 80
+        EXPOSE 443
+
+        """)
+        self.haproxy.ports = ['80/tcp:80', '443/tcp:443']
+        self.haproxy.volumes = [{
+            'local': haproxy_path,
+            'remote': '/etc/haproxy'
+        }]
+
+        yield self.containers_updated()
+
+        # subscribe to container events
         self.eb.on('containers.updated', self.containers_updated)
-        self.proxy_config = HaproxyConfig(path='/etc/haproxy/haproxy.cfg')
 
         logger.info('Haproxy plugin started')
 
-        self.containers_updated()
+    def can_reboot(self):
+        if not self.last_reboot:
+            self.last_reboot = datetime.datetime.now()
+            return True
+
+        now = datetime.datetime.now()
+        if (now - self.last_reboot).seconds < 5:
+            return False
+        self.last_reboot = datetime.datetime.now()
+        return True
 
     @inlineCallbacks
     def containers_updated(self, *args, **kwargs):
+        if not self.can_reboot():
+            return
+
         logger.info('Containers updated: dumping haproxy config.')
         data = yield self.app_controller.list()
         self.proxy_config.dump(data)
+
+        yield self.haproxy.restart()

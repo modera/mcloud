@@ -1,4 +1,5 @@
 import json
+from decorator import contextmanager
 
 from twisted.internet import reactor, defer
 import txredisapi as redis
@@ -71,6 +72,7 @@ class EventBus(object):
             return txtimeout(d, timeout, lambda: d.callback(None))
         else:
             return d
+
 
 
 class EventBusProtocol(redis.SubscriberProtocol):

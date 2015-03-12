@@ -47,10 +47,16 @@ class DockerTwistedClient(object):
     eb = inject.attr(EventBus)
 
     def task_log(self, ticket_id, message):
-        self.rpc_server.task_progress(message, ticket_id)
+        if ticket_id:
+            self.rpc_server.task_progress(message, ticket_id)
+        else:
+            print message
 
     def task_stdout(self, ticket_id, data):
-        self.rpc_server.task_stdout(data, ticket_id)
+        if ticket_id:
+            self.rpc_server.task_stdout(data, ticket_id)
+        else:
+            print data
 
     def __init__(self, url=None):
         super(DockerTwistedClient, self).__init__()
