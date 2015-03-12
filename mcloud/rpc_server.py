@@ -145,7 +145,7 @@ def entry_point():
 
         # HostsPlugin()
 
-        # InternalApiPlugin()
+        InternalApiPlugin()
 
         log.msg('Listen dns on ip %s:53' % settings.dns_ip)
         listen_dns(settings.dns_search_suffix, settings.dns_ip, settings.dns_port)
