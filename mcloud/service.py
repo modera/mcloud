@@ -126,7 +126,7 @@ class Service(object):
         volumes_ = self._inspect_data['Volumes']
 
         internal_volumes = (
-            '/var/run/mcloud',
+            # '/var/run/mcloud',
             '/usr/bin/@me'
         )
         for iv in internal_volumes:
