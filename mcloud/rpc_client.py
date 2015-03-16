@@ -88,7 +88,6 @@ class LocalCommand(object):
 
             line = line.replace('{host}', host)
             line = line.replace('{uuid}', uuid_)
-            print line
 
             print(color_text(line, color='white', bcolor='blue'))
 
