@@ -369,20 +369,19 @@ class YamlConfig(IConfig):
             self.process_other_settings_build(s, service, path)
             self.process_env_build(s, service, path)
 
-            # expose mcloud api
-            s.volumes.append({'local': '/var/run/mcloud', 'remote': '/var/run/mcloud'})
-
             # prevents monting paths with versions inside
             # like "/usr/share/python/mcloud/lib/python2.7/site-packages/mcloud-0.7.11-py2.7.egg/mcloud/api.py"
             if os.path.exists('/var/mcloud_api.py') or os.access('/var/', os.W_OK):
 
                 try:
                     # copy to some constant location
-                    copyfile(dirname(__file__) + '/api.py', '/var/mcloud_api.py')
-                    # prevents write by others
-                    os.chmod('/var/mcloud_api.py', 0755)
+                    file_ = '/var/mcloud_api2.py'
+                    if not os.path.exists(file_):
+                        copyfile(dirname(__file__) + '/api.py', file_)
+                        # prevents write by others
+                        os.chmod(file_, 0755)
                     # then mount
-                    s.volumes.append({'local': '/var/mcloud_api.py', 'remote': '/usr/bin/@me'})
+                    s.volumes.append({'local': file_, 'remote': '/usr/bin/@me'})
                 except IOError:
                     s.volumes.append({'local': dirname(__file__) + '/api.py', 'remote': '/usr/bin/@me'})
             else:

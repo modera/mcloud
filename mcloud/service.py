@@ -171,6 +171,15 @@ class Service(object):
 
         return not self._inspect_data is None
 
+    def is_internal_volume(self, x):
+        return x == '/usr/bin/@me'
+
+    def is_read_only(self, x):
+        print '---' * 20
+        print x
+        print '---' * 20
+        return self.is_internal_volume(x)
+
     @inlineCallbacks
     def run(self, ticket_id, command, size=None):
 
@@ -199,7 +208,9 @@ class Service(object):
             config['PortBindings'] = self.prepare_ports()
 
         if self.volumes and len(self.volumes):
-            run_config['Binds'] = ['%s:%s' % (x['local'], x['remote']) for x in self.volumes]
+            run_config['Binds'] = ['%s:%s' % (x['local'], x['remote'] + (':ro' if self.is_read_only(x['remote']) else '')) for x in self.volumes]
+
+        print run_config
 
         yield self.client.start_container(name, ticket_id=ticket_id, config=run_config)
 
@@ -212,7 +223,7 @@ class Service(object):
     def prepare_ports(self):
         all_ports = {}
         for port in self.ports:
-            if ':' in port:
+            if isinstance(port, basestring) and ':' in port:
                 local, host = port.split(':')
                 if '_' in host:
                     ip, rport = host.split('_')
@@ -224,7 +235,6 @@ class Service(object):
             else:
                 all_ports[port] = [{}]
 
-        print all_ports
         return all_ports
 
     @inlineCallbacks
@@ -262,7 +272,7 @@ class Service(object):
         if self.volumes and len(self.volumes):
             for x in self.volumes:
                 mounted_volumes.append(x['remote'])
-                config['Binds'].append('%s:%s' % (x['local'], x['remote']))
+                config['Binds'].append('%s:%s' % (x['local'], x['remote'] + (':ro' if self.is_read_only(x['remote']) else '')))
 
 
         if image_info['ContainerConfig']['Volumes']:
@@ -361,7 +371,7 @@ class Service(object):
         if self.ports:
             all_ports = {}
             for port in self.ports:
-                if ':' in port:
+                if isinstance(port, basestring) and ':' in port:
                     all_ports[port.split(':')[0]] = {}
                 else:
                     all_ports[port] = {}

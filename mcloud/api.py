@@ -5,6 +5,6 @@
 
 import sys
 
-print "\n@mcloud %s\n" % sys.argv[2:].join(' ')
+print "\n@mcloud %s\n" % ' '.join(sys.argv[1:])
 
 sys.exit(0)

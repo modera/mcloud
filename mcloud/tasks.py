@@ -73,7 +73,6 @@ class TaskService(object):
     dns_search_suffix = inject.attr('dns-search-suffix')
 
     def task_log(self, ticket_id, message):
-
         self.rpc_server.task_progress(message, ticket_id)
 
     def task_help(self, ticket_id):
@@ -216,6 +215,7 @@ class TaskService(object):
         """
 
         def on_log(log):
+
             if len(log) == 8 and log[7] != 0x0a:
                 return
 
@@ -385,9 +385,11 @@ class TaskService(object):
     def follow_logs(self, service, ticket_id):
 
         def on_log(log):
-            if log.startsith('@mcloud ready in '):
+
+            if log.startswith('@mcloud ready in '):
                 parts = log.split(' ')
-                self.eb.fire_event('api.%s.%s' % (service.name, 'ready'), my_args=parts[2:])
+                self.event_bus.fire_event('api.%s.%s' % (service.name, 'ready'), my_args=parts[2:])
+                return
 
             if len(log) == 8 and log[7] != 0x0a:
                 return
@@ -395,10 +397,10 @@ class TaskService(object):
             self.task_log(ticket_id, log)
 
         def done(result):
-           pass
+            pass
 
         def on_err(failure):
-           pass
+            print failure
 
         client = inject.instance(IDockerClient)
 
@@ -641,6 +643,7 @@ class TaskService(object):
                             self.task_log(ticket_id, 'Container still up. Continue execution.')
                     else:
                         sleep_time = 0.5
+                        print event
                         if 'my_args' in event and len(event['my_args']) == 2:
                             if event['my_args'][0] == 'in':
                                 match = re.match('^([0-9]+)s$', event['my_args'][1])
