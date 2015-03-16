@@ -71,6 +71,9 @@ class DnsPlugin(Plugin):
             '53/udp:%s_53' % self.settings.dns_ip,
         ]
 
+        yield self.dnsmasq.create()
+        self.app_controller.mark_internal(self.dnsmasq.id)
+
         yield self.dnsmasq.restart()
 
         with open('/etc/resolv.conf', 'w+') as f:

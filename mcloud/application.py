@@ -141,6 +141,20 @@ class ApplicationController(object):
 
     redis = inject.attr(txredisapi.Connection)
 
+    def __init__(self):
+        super(ApplicationController, self).__init__()
+
+        self.internal_containers = []
+
+    def mark_internal(self, container_id):
+        if not container_id in self.internal_containers:
+            self.internal_containers.append(container_id)
+
+    def is_internal(self, container_id):
+        return container_id in self.internal_containers
+
+
+
     @defer.inlineCallbacks
     def create(self, name, config, skip_validation=False):
 

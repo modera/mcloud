@@ -197,8 +197,6 @@ class HaproxyPlugin(Plugin):
     settings = inject.attr('settings')
     app_controller = inject.attr(ApplicationController)
 
-    last_reboot = None
-
     @inlineCallbacks
     def setup(self):
 
@@ -245,6 +243,9 @@ class HaproxyPlugin(Plugin):
             'remote': '/etc/haproxy'
         }]
 
+        yield self.haproxy.create()
+        self.app_controller.mark_internal(self.haproxy.id)
+
         yield self.containers_updated()
 
         # subscribe to container events
@@ -252,22 +253,8 @@ class HaproxyPlugin(Plugin):
 
         logger.info('Haproxy plugin started')
 
-    def can_reboot(self):
-        if not self.last_reboot:
-            self.last_reboot = datetime.datetime.now()
-            return True
-
-        now = datetime.datetime.now()
-        if (now - self.last_reboot).seconds < 5:
-            return False
-        self.last_reboot = datetime.datetime.now()
-        return True
-
     @inlineCallbacks
     def containers_updated(self, *args, **kwargs):
-        if not self.can_reboot():
-            return
-
         logger.info('Containers updated: dumping haproxy config.')
         data = yield self.app_controller.list()
         self.proxy_config.dump(data)
