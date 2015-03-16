@@ -51,6 +51,18 @@ def test_app_load():
         assert service.is_inspected()
 
 
+def test_internal_containers():
+
+    ac = ApplicationController()
+
+    ac.mark_internal('123')
+
+    assert ac.is_internal('123')
+
+    assert ac.is_internal('124') is False
+    assert ac.is_internal(None) is False
+
+
 @pytest.inlineCallbacks
 def test_app_controller():
 

@@ -214,7 +214,11 @@ class DockerTwistedClient(object):
 
     def events(self, on_event):
         r = self._get('events', response_handler=None)
-        r.addCallback(txhttp.collect, on_event)
+
+        def event_parser(event):
+            on_event(json.loads(event))
+
+        r.addCallback(txhttp.collect, event_parser)
         return r
 
     @inlineCallbacks

@@ -99,7 +99,7 @@ def entry_point():
 
         log.msg('Configuring injector.')
 
-        plugins = [DnsPlugin, HaproxyPlugin]
+        plugins = [DockerMonitorPlugin, DnsPlugin, HaproxyPlugin]
 
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
@@ -130,8 +130,12 @@ def entry_point():
             log.msg('Loading plugin %s' % plugin_class)
             log.msg('-' * 80)
 
-            plugin = plugin_class()
-            yield plugin.setup()
+            try:
+                plugin = plugin_class()
+                yield plugin.setup()
+            except Exception as e:
+                print e
+                reactor.stop()
 
             log.msg('=' * 80)
 
@@ -139,9 +143,6 @@ def entry_point():
         log.msg('All plugins loaded.')
         log.msg('=' * 80)
 
-
-        log.msg('Monitor plugin')
-        DockerMonitorPlugin()
 
         # HostsPlugin()
 

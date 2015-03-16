@@ -175,9 +175,6 @@ class Service(object):
         return x == '/usr/bin/@me'
 
     def is_read_only(self, x):
-        print '---' * 20
-        print x
-        print '---' * 20
         return self.is_internal_volume(x)
 
     @inlineCallbacks
@@ -404,8 +401,7 @@ class Service(object):
 
 
     @inlineCallbacks
-    def create(self, ticket_id):
-
+    def create(self, ticket_id=None):
         image_name = yield self.image_builder.build_image(ticket_id=ticket_id)
 
         config = yield self._generate_config(image_name)
@@ -415,7 +411,7 @@ class Service(object):
         defer.returnValue(ret)
 
     @inlineCallbacks
-    def destroy(self, ticket_id):
+    def destroy(self, ticket_id=None):
         id_ = yield self.client.find_container_by_name(self.name)
         yield self.client.remove_container(id_, ticket_id=ticket_id)
 

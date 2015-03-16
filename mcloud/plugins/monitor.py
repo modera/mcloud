@@ -4,12 +4,10 @@ import inject
 from mcloud.application import ApplicationController
 from mcloud.events import EventBus
 from mcloud.plugins import Plugin
-from mcloud.txdocker import IDockerClient, NotFound
-from twisted.internet import reactor, defer
+from mcloud.txdocker import IDockerClient
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log
-
-logger = logging.getLogger('mcloud.monitor')
 
 
 class DockerMonitorPlugin(Plugin):
@@ -17,34 +15,22 @@ class DockerMonitorPlugin(Plugin):
     event_bus = inject.attr(EventBus)
     app_controller = inject.attr(ApplicationController)
 
-    def __init__(self):
-        super(DockerMonitorPlugin, self).__init__()
-        logger.info('Docker monitoring plugin started')
+    # @inlineCallbacks
+    def setup(self):
 
-        reactor.callLater(0, self.start)
+
+
+        reactor.callLater(0, self.attach_to_events)
 
     def on_event(self, event):
-        log.msg('New docker event: %s' % event)
-        self.event_bus.fire_event('containers.updated', event)
+        if not self.app_controller.is_internal(event['id']):
+            log.msg('New docker event: %s' % event)
+            self.event_bus.fire_event('containers.updated', event)
 
     def attach_to_events(self, *args):
-        logger.info('Start monitoring docker events')
+        log.msg('Start monitoring docker events')
         return self.client.events(self.on_event)
 
-    @inlineCallbacks
-    def start(self):
-        logger.info('Checking docker ..')
-
-        info = yield self.client.version()
-
-        v = tuple(map(int, (info['Version'].split("."))))
-
-        if v < (0, 11, 1):
-            reactor.stop()
-            print('Please update docker, to version above 0.11.1. Current version: %s' % info['Version'])
-
-        else:
-            yield self.attach_to_events()
 
 
  #def __init__(self):
