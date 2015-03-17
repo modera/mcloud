@@ -88,7 +88,7 @@ def mcloud_shell(host_ref=None):
 
             yield sleep(0.05)
 
-            line = raw_input(color_text(prompt, color='white', bcolor='blue') + ' ')
+            line = raw_input(color_text(prompt, color='white', bcolor='blue') + ' ').strip()
 
             if line.startswith('!'):
                 os.system(line[1:])
