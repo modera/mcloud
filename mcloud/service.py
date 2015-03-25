@@ -255,7 +255,9 @@ class Service(object):
 
         config = {
             "Dns": [self.dns_server],
-            "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
+            "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix),
+            "Privileged": True,
+            "CapAdd": ["NET_ADMIN"],
         }
 
         if self.volumes_from:
