@@ -156,8 +156,8 @@ def entry_point():
         #     reactor.listenTCP(8080, Site(mcloud_web()), interface=dns_server_ip)
         #     listen_web(settings)
 
-        log.msg('Listen metrics')
-        MetricsPlugin()
+        # log.msg('Listen metrics')
+        # MetricsPlugin()
 
         log.msg('Started.')
 
