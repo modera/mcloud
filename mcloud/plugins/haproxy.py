@@ -243,7 +243,7 @@ class HaproxyPlugin(Plugin):
             'remote': '/etc/haproxy'
         }]
 
-        yield self.haproxy.create()
+        yield self.haproxy.rebuild()
         self.app_controller.mark_internal(self.haproxy.id)
 
         yield self.containers_updated()
