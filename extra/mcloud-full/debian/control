@@ -8,5 +8,5 @@ Standards-Version: 3.9.5
 Package: mcloud-full
 Architecture: any
 Pre-Depends: dpkg (>= 1.16.1)
-Depends: mcloud, dnsmasq, redis-server, haproxy
+Depends: mcloud, redis-server
 Description: Superpackage that will install mcloud and other services reuired

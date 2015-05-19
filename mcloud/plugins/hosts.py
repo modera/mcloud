@@ -13,6 +13,18 @@ class HostsPlugin(Plugin):
     app_controller = inject.attr(ApplicationController)
     redis = inject.attr(txredisapi.Connection)
 
+
+    @inlineCallbacks
+    def configure_container_on_start(self, service, config):
+        if service.app_name:
+            from mcloud.application import ApplicationController
+            app_controller = inject.instance(ApplicationController)
+
+            ip_list = yield app_controller.ip_list()
+
+            if service.app_name in ip_list and len(ip_list[service.app_name]) > 0:
+                config['ExtraHosts'] = ['%s:%s' % x for x in ip_list[service.app_name].items()]
+
     #@inlineCallbacks
     def dump(self, apps_list):
         for app in apps_list:
@@ -44,13 +56,16 @@ class HostsPlugin(Plugin):
 
                     log.msg('*********** Hosts for %s: %s' % (service['name'], str(containers)))
 
-    def __init__(self):
-        super(HostsPlugin, self).__init__()
+
+
+
+    @inlineCallbacks
+    def setup(self):
         self.eb.on('containers.updated', self.containers_updated)
 
         log.msg('Hosts plugin started')
 
-        self.containers_updated()
+        yield self.containers_updated()
 
     @inlineCallbacks
     def containers_updated(self, *args, **kwargs):

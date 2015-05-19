@@ -1,4 +1,0 @@
-#!/bin/bash
-
-echo "server=/mcloud.lh/127.0.0.1#7053" >> /etc/dnsmasq.conf
-echo "ENABLED=1" > /etc/default/haproxy

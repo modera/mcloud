@@ -231,6 +231,25 @@ class ApplicationController(object):
         defer.returnValue(result)
 
     @defer.inlineCallbacks
+    def ip_list(self, *args):
+
+        config = yield self.redis.hgetall('mcloud-apps')
+
+        result = {}
+
+        for name, app_config in config.items():
+            app = Application(json.loads(app_config), name=name)
+            app = yield app.load(need_details=False)
+
+            result[name] = {}
+
+            for service in app.services.values():
+                if service.is_created():
+                    result[name][service.shortname] = service.ip()
+
+        defer.returnValue(result)
+
+    @defer.inlineCallbacks
     def list(self, *args):
 
         deps = yield self.redis.hgetall('mcloud-deployments')

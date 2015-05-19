@@ -143,6 +143,8 @@ class HaproxyConfig(object):
 
                     else:
                         for service in app['services']:
+                            if not service['ip']:
+                                continue
                             if service['shortname'] == target['service']:
 
                                 print target
