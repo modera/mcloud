@@ -133,7 +133,7 @@ if os.path.exists('mcloud.yml'):
 def cli(help_, arguments=None, by_ref=False, name=None):
     def cmd_decorator(func):
 
-        cmd = subparsers.add_parser(name or func.__name__, help=help_)
+        cmd = subparsers.add_parser(name or func.__name__.replace('_', '-'), help=help_)
 
         command_settings[func.__name__] = {
             'need_app': False
@@ -344,7 +344,7 @@ class ApiRpcClient(object):
 
     def print_app_list(self, data):
 
-        x = PrettyTable(["Application name", "status", "cpu %", "memory", "Web", "Path"], hrules=ALL)
+        x = PrettyTable(["Application name", "deployment", "status", "cpu %", "memory", "Web", "Path"], hrules=ALL)
         x.align = 'l'
         for app in data:
 
@@ -389,7 +389,7 @@ class ApiRpcClient(object):
                             if web_service_:
                                 web += '\n' + '%s -> [%s]' % (url_, web_service_)
 
-            x.add_row([app['name'], app_status, services_cpu_list, services_memory_list, web, app['config']['path']])
+            x.add_row([app['name'], app['config']['deployment'], app_status, services_cpu_list, services_memory_list, web, app['config']['path']])
 
         return '\n' + str(x) + '\n'
 
@@ -663,6 +663,17 @@ class ApiRpcClient(object):
         data = yield self._remote_exec('remove', self.format_app_srv(app, service))
         print 'result: %s' % pprintpp.pformat(data)
 
+    @cli('Set app deployment', arguments=(
+        arg('ref', help='Application name', default=None, nargs='?'),
+        arg('deployment', help='Deployment name', default=None, nargs='?'),
+    ))
+    @inlineCallbacks
+    def set_deployment(self, ref, deployment, **kwargs):
+        app, service = self.parse_app_ref(ref, kwargs, app_only=True)
+        yield self._remote_exec('set_deployment', app, deployment)
+
+        yield self.list()
+
     ############################################################
 
     @cli('Start containers', arguments=(
@@ -784,14 +795,105 @@ class ApiRpcClient(object):
 
     ############################################################
 
+
+    ############################################################
+    # Deployment life-cycle
+    ############################################################
+
+    @cli('List deployments')
+    @inlineCallbacks
+    def deployments(self, **kwargs):
+        data = yield self._remote_exec('deployments')
+
+        x = PrettyTable(["Deployment name", "Default", "host", "tls", "keys (ca|cert|key)"], hrules=ALL)
+        x.align = 'l'
+        for line in data:
+            certs = '|'.join(['x' if line[k] else 'o' for k in ('ca', 'cert', 'key')])
+            default = '*' if line['default'] else ''
+            x.add_row([line['name'], default, line['host'], line['tls'], certs])
+        print str(x)
+
+
+    @cli('Create deployment', arguments=(
+        arg('deployment', help='Deployment name'),
+        arg('uri', help='Deployment docker uri', default=None, nargs='?'),
+        arg('--tls', default=False, action='store_true', help='Use tls protocol'),
+    ))
+    @inlineCallbacks
+    def deployment_create(self, deployment, uri=None, tls=None, **kwargs):
+        data = yield self._remote_exec('deployment_create', name=deployment, host=uri, tls=tls)
+
+        yield self.deployments()
+
+    @cli('update deployment', arguments=(
+        arg('deployment', help='Deployment name'),
+        arg('host', help='Deployment docker uri', default=None, nargs='?'),
+        arg('--tls', default=None, action='store_true', help='Use tls protocol'),
+    ))
+    @inlineCallbacks
+    def deployment_update(self, deployment, host, **kwargs):
+        data = yield self._remote_exec('deployment_update', name=deployment, **kwargs)
+
+        yield self.deployments()
+
+    @cli('make deployment default', arguments=(
+        arg('deployment', help='Deployment name'),
+    ))
+    @inlineCallbacks
+    def deployment_set_default(self, deployment, host, **kwargs):
+        yield self._remote_exec('deployment_set_default', name=deployment)
+
+        yield self.deployments()
+
+    @cli('upload key file to deployment', arguments=(
+        arg('deployment', help='Deployment name'),
+        arg('--ca', default=False, action='store_true', help='Upload ca'),
+        arg('--cert', default=False, action='store_true', help='Upload cert'),
+        arg('--key', default=False, action='store_true', help='Upload key'),
+        arg('--remove', default=False, action='store_true', help='Remove key'),
+        arg('infile', type=argparse.FileType('r'), default=sys.stdin, nargs='?'),
+    ))
+    @inlineCallbacks
+    def deployment_set(self, deployment, ca=False, cert=False, key=False, infile=None, remove=None, **kwargs):
+        if remove:
+            file_data = False
+        else:
+            file_data = infile.read()
+
+        data = {}
+
+        if ca:
+            data['ca'] = file_data
+
+        if cert:
+            data['cert'] = file_data
+
+        if key:
+            data['key'] = file_data
+
+        yield self._remote_exec('deployment_update', name=deployment, **data)
+
+        yield self.deployments()
+
+    @cli('remove deployment', arguments=(
+        arg('deployment', help='Deployment name'),
+    ))
+    @inlineCallbacks
+    def deployment_remove(self, deployment, **kwargs):
+        data = yield self._remote_exec('deployment_remove', name=deployment)
+        print 'result: %s' % pprintpp.pformat(data)
+
+        yield self.deployments()
+
     @cli('Publish an application', arguments=(
-        arg('ref', help='Application name', default=None, nargs='?'),
+        arg('deployment', help='Deployment name'),
         arg('domain', help='Domain to publish'),
+        arg('ref', help='Application name'),
         arg('--port', help='Custom target port'),
         arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
     ))
     @inlineCallbacks
-    def publish(self, domain, ref, ssl=False, port=None, **kwargs):
+    def publish(self, deployment, domain, ref, ssl=False, port=None, **kwargs):
         app_name, service = self.parse_app_ref(ref, kwargs, require_app=True)
 
         app = yield self.get_app(app_name)
@@ -799,15 +901,17 @@ class ApiRpcClient(object):
         if not app:
             print 'App not found. Can\'t publish'
         else:
-            yield self._remote_exec('publish', self.format_domain(domain, ssl), app_name, service, port)
+            yield self._remote_exec('publish', name=deployment, domain_name=self.format_domain(domain, ssl),
+                                    app_name=app_name, service_name=service, custom_port=port)
 
     @cli('Unpublish an application', arguments=(
+        arg('deployment', help='Deployment name'),
         arg('domain', help='Domain to unpublish'),
         arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
     ))
     @inlineCallbacks
-    def unpublish(self, domain, ssl=False, **kwargs):
-        data = yield self._remote_exec('unpublish', self.format_domain(domain, ssl))
+    def unpublish(self, deployment, domain, ssl=False, **kwargs):
+        data = yield self._remote_exec('unpublish', name=deployment, domain_name=self.format_domain(domain, ssl))
         print 'result: %s' % pprintpp.pformat(data)
 
     ############################################################

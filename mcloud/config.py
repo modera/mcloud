@@ -72,7 +72,7 @@ class OrderedDictYAMLLoader(yaml.Loader):
 
 class YamlConfig(IConfig):
 
-    def __init__(self, file=None, source=None, app_name=None, path=None, env=None):
+    def __init__(self, file=None, source=None, app_name=None, path=None, env=None, deployment=None):
 
         self._file = None
 
@@ -129,7 +129,7 @@ class YamlConfig(IConfig):
 
         return self.services[name]
 
-    def load(self, process=True):
+    def load(self, process=True, client=None):
 
         try:
             if not self._file is None:
@@ -147,7 +147,7 @@ class YamlConfig(IConfig):
                 self.process_local_config(cfg['---'])
 
             if process:
-                self.process(config=cfg, path=path, app_name=self.app_name)
+                self.process(config=cfg, path=path, app_name=self.app_name, client=client)
 
             self.config = cfg
 
@@ -350,7 +350,7 @@ class YamlConfig(IConfig):
 
             self.commands = all_commands
 
-    def process(self, config, path, app_name=None):
+    def process(self, config, path, app_name=None, client=None):
 
         for name, service in config.items():
             if name == '---':
@@ -359,7 +359,7 @@ class YamlConfig(IConfig):
             if app_name:
                 name = '%s.%s' % (name, app_name)
 
-            s = Service()
+            s = Service(client=client)
             s.app_name = self.app_name
             s.name = name
 

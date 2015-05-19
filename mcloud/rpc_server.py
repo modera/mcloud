@@ -102,7 +102,7 @@ def entry_point():
             binder.bind(txredisapi.Connection, redis)
             binder.bind(EventBus, eb)
             #binder.bind(IDockerClient, DockerTwistedClient(url='http://127.0.0.1:4243'))
-            binder.bind(IDockerClient, DockerTwistedClient())
+            # binder.bind(IDockerClient, DockerTwistedClient())
 
             binder.bind('settings', settings)
 

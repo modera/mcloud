@@ -22,8 +22,8 @@ from mcloud.remote import ApiRpcServer
 
 from twisted.internet import protocol
 
-class TicketScopeProcess(protocol.ProcessProtocol):
 
+class TicketScopeProcess(protocol.ProcessProtocol):
     def __init__(self, ticket_id, client):
         self.ticket_id = ticket_id
         self.client = client
@@ -55,8 +55,8 @@ class TicketScopeProcess(protocol.ProcessProtocol):
         self.log("processEnded, status %d" % (reason.value.exitCode,))
         self.d.callback(True)
 
-class TaskService(object):
 
+class TaskService(object):
     app_controller = inject.attr(ApplicationController)
     """
     @type app_controller: ApplicationController
@@ -198,6 +198,20 @@ class TaskService(object):
         yield self.app_controller.remove(name)
 
         # ret = yield self.app_controller.list()
+        ret = 'Done.'
+        defer.returnValue(ret)
+
+    @inlineCallbacks
+    def task_set_deployment(self, ticket_id, app, deployment):
+        """
+        Remove application
+
+        :param ticket_id:
+        :param name:
+        :return:
+        """
+        yield self.app_controller.update(app, {'deployment': deployment})
+
         ret = 'Done.'
         defer.returnValue(ret)
 
@@ -437,7 +451,6 @@ class TaskService(object):
 
         config = yield app.load()
 
-
         s = Service()
         s.app_name = app_name
         s.name = '%s_%s_%s' % (app_name, '_rsync_', ticket_id)
@@ -467,14 +480,15 @@ class TaskService(object):
 
         else:
             s.volumes = [{
-                'local': app.config['path'],
-                'remote': '/volume'
-            }]
+                             'local': app.config['path'],
+                             'remote': '/volume'
+                         }]
             volume_name = '/volume'
 
         s.env = {
             'USERNAME': ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(32)),
-            'PASSWORD': ''.join(random.choice(string.ascii_lowercase + string.punctuation + string.digits) for _ in range(32)),
+            'PASSWORD': ''.join(
+                random.choice(string.ascii_lowercase + string.punctuation + string.digits) for _ in range(32)),
             'ALLOW': '*'
         }
 
@@ -636,7 +650,8 @@ class TaskService(object):
                         yield service.inspect()
 
                         if not service.is_running():
-                            self.task_log(ticket_id, 'FATAL: Service is not running after timeout. Stopping application execution.')
+                            self.task_log(ticket_id,
+                                          'FATAL: Service is not running after timeout. Stopping application execution.')
                             log_process.cancel()
                             defer.returnValue(False)
                         else:
@@ -650,11 +665,13 @@ class TaskService(object):
                                 if match:
                                     sleep_time = float(match.group(1))
 
-                        self.task_log(ticket_id, 'Container is waiting %ss to make sure container is started.' % sleep_time)
+                        self.task_log(ticket_id,
+                                      'Container is waiting %ss to make sure container is started.' % sleep_time)
                         yield sleep(sleep_time)
 
                         if not service.is_running():
-                            self.task_log(ticket_id, 'FATAL: Service is not running after ready report. Stopping application execution.')
+                            self.task_log(ticket_id,
+                                          'FATAL: Service is not running after ready report. Stopping application execution.')
                             log_process.cancel()
                             defer.returnValue(False)
                         else:
@@ -879,24 +896,27 @@ class TaskService(object):
         ret = yield defer.gatherResults(deployment_list, consumeErrors=True)
         defer.returnValue(ret)
 
-    #
-    # @inlineCallbacks
-    # def task_deployment_create(self, ticket_id, public_domain):
-    # deployment = yield self.deployment_controller.create(public_domain)
-    #     defer.returnValue(not deployment is None)
-    #
-    # @inlineCallbacks
-    # def task_deployment_new_app_zip(self, ticket_id, deployment_name, name, path):
-    #     app = yield self.deployment_controller.new_app(deployment_name, name, {'path': path})
-    #     defer.returnValue(not app is None)
-    #
-    # @inlineCallbacks
-    # def task_deployment_new_app_source(self, ticket_id, deployment_name, name, source):
-    #     app = yield self.deployment_controller.new_app(deployment_name, name, {'source': source})
-    #     defer.returnValue(not app is None)
+    @inlineCallbacks
+    def task_deployment_create(self, ticket_id, **kwargs):
+        deployment = yield self.deployment_controller.create(**kwargs)
+        defer.returnValue(not deployment is None)
 
     @inlineCallbacks
-    def task_publish(self, ticket_id, deployment_name, app_name, service_name, custom_port=None):
+    def task_deployment_set_default(self, ticket_id, name):
+        yield self.deployment_controller.set_default(name)
+
+    @inlineCallbacks
+    def task_deployment_update(self, ticket_id, **kwargs):
+        deployment = yield self.deployment_controller.update(**kwargs)
+        defer.returnValue(not deployment is None)
+
+    @inlineCallbacks
+    def task_deployment_remove(self, ticket_id, name):
+        deployment = yield self.deployment_controller.remove(name)
+        defer.returnValue(deployment is None)
+
+    @inlineCallbacks
+    def task_publish(self, ticket_id, deployment_name, domain_name, app_name, service_name, custom_port=None):
         """
         Publish application URL.
 
@@ -905,7 +925,7 @@ class TaskService(object):
         :param app_name:
         :return:
         """
-        yield self.deployment_controller.publish_app(deployment_name, app_name, service_name, custom_port)
+        yield self.deployment_controller.publish_app(deployment_name, domain_name, app_name, service_name, custom_port)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)

@@ -32,8 +32,6 @@ class Service(object):
 
     NotInspectedYet = NotInspectedYet
 
-    client = inject.attr(IDockerClient)
-
     dns_server = inject.attr('dns-server')
     settings = inject.attr('settings')
     dns_search_suffix = inject.attr('dns-search-suffix')
@@ -43,7 +41,13 @@ class Service(object):
 
     plugins = inject.attr('plugins')
 
-    def __init__(self, **kwargs):
+    def __init__(self, client=None, **kwargs):
+
+        self.client = client
+        """
+        @type client: DockerTwistedClient
+        """
+
         self.image_builder = None
         self.name = None
         self.app_name = None

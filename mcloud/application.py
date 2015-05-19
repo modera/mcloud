@@ -1,16 +1,18 @@
-from collections import defaultdict
 import json
-import logging
+
+from mcloud.deployment import DeploymentController
+from mcloud.txdocker import DockerTwistedClient, DockerConnectionFailed
 import re
 import inject
 from mcloud.config import YamlConfig, ConfigParseError
 import os
-from twisted.internet import defer, reactor
+from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
-from twisted.python import log
+
 
 class Application(object):
+    deployment_controller = inject.attr(DeploymentController)
 
     APP_REGEXP = '[a-z0-9\-_]+'
     SERVICE_REGEXP = '[a-z0-9\-_]+'
@@ -24,6 +26,7 @@ class Application(object):
         self.config = config
         self.name = name
         self.public_urls = public_urls or []
+        self.client = None
 
     def get_env(self):
         if 'env' in self.config and self.config['env']:
@@ -31,6 +34,27 @@ class Application(object):
         else:
             env = 'dev'
         return env
+
+    def get_deployment(self):
+        if 'deployment' in self.config and self.config['deployment']:
+            deployment = self.config['deployment']
+        else:
+            deployment = None
+        return deployment
+
+    @defer.inlineCallbacks
+    def get_docker_client(self):
+        if self.client:
+            defer.returnValue(self.client)
+
+        deployment = yield self.deployment_controller.get(self.get_deployment())
+        if not deployment:
+            raise ConfigParseError('Can not find deployment.')
+
+        self.client = DockerTwistedClient(url=deployment.host.encode())
+
+        defer.returnValue(self.client)
+
 
     @defer.inlineCallbacks
     def load(self, need_details=False):
@@ -43,8 +67,11 @@ class Application(object):
             else:
                 raise ConfigParseError('Can not load config.')
 
-            yaml_config.load()
-
+            try:
+                client = yield self.get_docker_client()
+                yaml_config.load(client=client)
+            except DockerConnectionFailed as e:
+                raise ConfigParseError('Can not connect to docker: %s' % e)
             
 
             yield defer.gatherResults([service.inspect() for service in yaml_config.get_services().values()])
@@ -156,7 +183,7 @@ class ApplicationController(object):
 
 
     @defer.inlineCallbacks
-    def create(self, name, config, skip_validation=False):
+    def create(self, name, config, skip_validation=False, deployment=None):
 
         if not re.match('^%s$' % Application.APP_REGEXP, name):
             raise ValueError('Invalid name of application. Should be %s' % Application.APP_REGEXP)
@@ -191,7 +218,7 @@ class ApplicationController(object):
     def update(self, name, config):
 
         data = yield self.redis.hget('mcloud-apps', name)
-
+        data = json.loads(data)
         data.update(config)
         ret = yield self.redis.hset('mcloud-apps', name, json.dumps(data))
 
@@ -203,6 +230,14 @@ class ApplicationController(object):
         defer.returnValue(ret)
 
     @defer.inlineCallbacks
+    def load_app_config(self, config):
+        cfg = json.loads(config)
+        if not 'deployment' in cfg:
+            cfg['deployment'] = yield self.redis.get('mcloud-deployment-default')
+
+        defer.returnValue(cfg)
+
+    @defer.inlineCallbacks
     def get(self, name):
         """
         Return application instance by it's name
@@ -212,7 +247,9 @@ class ApplicationController(object):
         if not config:
             raise AppDoesNotExist('Application with name "%s" do not exist' % name)
         else:
-            defer.returnValue(Application(json.loads(config), name=name))
+            cfg = yield self.load_app_config(config)
+
+            defer.returnValue(Application(cfg, name=name))
 
     @defer.inlineCallbacks
     def volume_list(self, *args):
@@ -258,19 +295,21 @@ class ApplicationController(object):
         pub_apps = {}
         for name, config_raw in deps.items():
             try:
-                dep = json.loads(config_raw)
-                if 'public_app' in dep and dep['public_app']:
-                    if not dep['public_app'] in pub_apps:
-                        pub_apps[dep['public_app']] = []
+                dep_dta = json.loads(config_raw)
+                if 'exports' in dep_dta:
+                    for dep in dep_dta['exports']:
+                        if 'public_app' in dep and dep['public_app']:
+                            if not dep['public_app'] in pub_apps:
+                                pub_apps[dep['public_app']] = []
 
-                    if not 'custom_port' in dep:
-                        dep['custom_port'] = None
+                            if not 'custom_port' in dep:
+                                dep['custom_port'] = None
 
-                    pub_apps[dep['public_app']].append({
-                        'url': dep['name'],
-                        'port': dep['custom_port'],
-                        'service': dep['public_service'] if 'public_service' in dep else None
-                    })
+                            pub_apps[dep['public_app']].append({
+                                'url': dep['name'],
+                                'port': dep['custom_port'],
+                                'service': dep['public_service'] if 'public_service' in dep else None
+                            })
 
             except ValueError:
                 pass
@@ -285,7 +324,8 @@ class ApplicationController(object):
             except KeyError:
                 public_urls = None
 
-            app = Application(json.loads(app_config), name=name, public_urls=public_urls)
+            cfg = yield self.load_app_config(app_config)
+            app = Application(cfg, name=name, public_urls=public_urls)
             all_apps.append(app.load(need_details=True))
 
         results = yield defer.gatherResults(all_apps, consumeErrors=True)

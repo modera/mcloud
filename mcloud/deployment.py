@@ -1,9 +1,7 @@
 import json
+
 import inject
-from mcloud.application import ApplicationController, AppDoesNotExist
-from mcloud.config import ConfigParseError
 from mcloud.events import EventBus
-from mcloud.util import ValidationError
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
@@ -11,23 +9,50 @@ import txredisapi
 
 class Deployment(object):
 
-    app_controller = inject.attr(ApplicationController)
-
-    def __init__(self, name=None, public_app=None, public_service=None, custom_port=None):
+    def __init__(self, name=None, exports=None, host=None, tls=False, ca=None, cert=None, key=None, default=None):
         super(Deployment, self).__init__()
 
+        # "default" is ignored
+
         self.name = name
-        self.public_app = public_app
-        self.custom_port = None
-        self.public_service = public_service
+        self.exports = exports or {}
+        self.host = host or 'unix://var/run/docker.sock/'
+        self.tls = tls
+        self.ca = ca
+        self.cert = cert
+        self.default = None
+        self.key = key
+
+    def update(self, exports=None, host=None, tls=False, ca=None, cert=None, key=None):
+        if exports:
+            self.exports = exports
+
+        if host:
+            self.host = host or 'unix://var/run/docker.sock/'
+
+        if tls is not None:
+            self.tls = tls
+
+        if ca is not None:
+            self.ca = ca or None
+
+        if cert is not None:
+            self.cert = cert or None
+
+        if key is not None:
+            self.key = key or None
 
     @property
     def config(self):
         return {
             'name': self.name,
-            'public_app': self.public_app,
-            'custom_port': self.custom_port,
-            'public_service': self.public_service,
+            'default': self.default,
+            'exports': self.exports,
+            'host': self.host,
+            'tls': self.tls,
+            'ca': self.ca,
+            'key': self.key,
+            'cert': self.cert
         }
 
     def load_data(self, *args, **kwargs):
@@ -41,7 +66,6 @@ class DeploymentDoesNotExist(Exception):
 class DeploymentController(object):
 
     redis = inject.attr(txredisapi.Connection)
-    app_controller = inject.attr(ApplicationController)
     eb = inject.attr(EventBus)
 
     """
@@ -50,8 +74,24 @@ class DeploymentController(object):
 
 
     @inlineCallbacks
-    def create(self, name):
-        deployment = Deployment(name=name)
+    def create(self, name, **kwargs):
+        deployment = Deployment(name=name, **kwargs)
+
+        yield self._persist_dployment(deployment)
+        data = yield deployment.load_data()
+
+        self.eb.fire_event('new-deployment', **data)
+        defer.returnValue(deployment)
+
+    @inlineCallbacks
+    def set_default(self, name):
+        yield self.redis.set('mcloud-deployment-default', name)
+
+    @inlineCallbacks
+    def update(self, name, **kwargs):
+        deployment = yield self.get(name)
+
+        deployment.update(**kwargs)
 
         yield self._persist_dployment(deployment)
         data = yield deployment.load_data()
@@ -77,31 +117,40 @@ class DeploymentController(object):
     @inlineCallbacks
     def list(self):
         config = yield self.redis.hgetall('mcloud-deployments')
-        defer.returnValue([Deployment(**json.loads(config)) for name, config in config.items()])
+        default = yield self.redis.get('mcloud-deployment-default')
+
+        deployments = [Deployment(**json.loads(config)) for name, config in config.items()]
+
+        for dpl in deployments:
+            dpl.default = dpl.name == default
+
+        defer.returnValue(deployments)
 
     @inlineCallbacks
-    def publish_app(self, deployment_name, app_name, service_name, custom_port=None):
-        try:
-            deployment = yield self.get(deployment_name)
-        except DeploymentDoesNotExist:
-            deployment = yield self.create(deployment_name)
+    def set_default(self, name):
+        yield self.redis.set('mcloud-deployment-default', name)
 
-        deployment.public_app = app_name
-        deployment.custom_port = custom_port
-        deployment.public_service = service_name
+    @inlineCallbacks
+    def publish_app(self, name, domain, app_name, service_name, custom_port=None):
+        deployment = yield self.get(name)
+
+        deployment.exports[domain] = {
+            'public_app': app_name,
+            'public_service': service_name,
+            'custom_port': custom_port
+        }
 
         yield self._persist_dployment(deployment)
 
-        app_data = yield self.app_controller.list()
-        self.eb.fire_event('containers.updated', apps=app_data)
-
 
     @inlineCallbacks
-    def unpublish_app(self, deployment_name):
-        yield self.remove(deployment_name)
+    def unpublish_app(self, name, domain):
+        deployment = yield self.get(name)
 
-        app_data = yield self.app_controller.list()
-        self.eb.fire_event('containers.updated', apps=app_data)
+        if domain in deployment.exports:
+            del deployment.exports[domain]
+
+        yield self._persist_dployment(deployment)
 
     def _persist_dployment(self, deployment):
         return self.redis.hset('mcloud-deployments', deployment.name, json.dumps(deployment.config))

@@ -21,7 +21,8 @@ class DockerMonitorPlugin(Plugin):
     app_controller = inject.attr(ApplicationController)
 
     def setup(self):
-        reactor.callLater(0, self.attach_to_events)
+        # reactor.callLater(0, self.attach_to_events)
+        pass
 
     def on_event(self, event):
         if not self.app_controller.is_internal(event['id']):

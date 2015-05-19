@@ -203,7 +203,7 @@ class HaproxyPlugin(Plugin):
     settings = inject.attr('settings')
     app_controller = inject.attr(ApplicationController)
 
-    @inlineCallbacks
+    # @inlineCallbacks
     def setup(self):
 
         haproxy_path = os.path.expanduser('%s/haproxy' % self.settings.home_dir)
@@ -249,10 +249,10 @@ class HaproxyPlugin(Plugin):
             'remote': '/etc/haproxy'
         }]
 
-        yield self.haproxy.create()
-        self.app_controller.mark_internal(self.haproxy.id)
-
-        yield self.containers_updated()
+        # yield self.haproxy.create()
+        # self.app_controller.mark_internal(self.haproxy.id)
+        #
+        # yield self.containers_updated()
 
         # subscribe to container events
         self.eb.on('containers.updated', self.containers_updated)
