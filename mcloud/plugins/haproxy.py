@@ -5,12 +5,14 @@ import inject
 from mcloud.application import ApplicationController
 from mcloud.container import PrebuiltImageBuilder, InlineDockerfileImageBuilder
 from mcloud.events import EventBus
+from mcloud.plugin import IMcloudPlugin
 from mcloud.plugins import Plugin, PluginInitError
 from mcloud.service import Service
 import os
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log
+from zope.interface import implements
 
 HAPROXY_TPL = """
 global
@@ -195,6 +197,8 @@ class HaproxyConfig(object):
 
 
 class HaproxyPlugin(Plugin):
+    implements(IMcloudPlugin)
+
     eb = inject.attr(EventBus)
     settings = inject.attr('settings')
     app_controller = inject.attr(ApplicationController)

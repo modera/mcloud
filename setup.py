@@ -89,6 +89,7 @@ setup(
         'readline',
         'bashutils',
         'cronex',
+        'zope.interface',
         'Twisted==14.0.2'
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
@@ -105,9 +106,10 @@ setup(
         ],
 
         'mcloud_plugins': [
+            'hosts = mcloud.plugins.hosts:HostsPlugin',
             'haproxy = mcloud.plugins.haproxy:HaproxyPlugin',
             'monitor = mcloud.plugins.monitor:DockerMonitorPlugin',
-            'hosts = mcloud.plugins.hosts:HostsPlugin',
+
         ]
 
         # if you have a gui, use this

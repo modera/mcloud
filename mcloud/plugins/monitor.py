@@ -3,23 +3,24 @@ import logging
 import inject
 from mcloud.application import ApplicationController
 from mcloud.events import EventBus
+from mcloud.plugin import IMcloudPlugin
 from mcloud.plugins import Plugin
 from mcloud.txdocker import IDockerClient
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log
+from zope.interface import implements
 
 
 class DockerMonitorPlugin(Plugin):
+    implements(IMcloudPlugin)
+
     client = inject.attr(IDockerClient)
     event_bus = inject.attr(EventBus)
     app_controller = inject.attr(ApplicationController)
 
     # @inlineCallbacks
     def setup(self):
-
-
-
         reactor.callLater(0, self.attach_to_events)
 
     def on_event(self, event):

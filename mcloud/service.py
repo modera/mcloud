@@ -1,4 +1,5 @@
 import logging
+from mcloud.plugin import enumerate_plugins
 import re
 import inject
 from mcloud.remote import ApiRpcServer
@@ -7,12 +8,25 @@ from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks, returnValue
 import txredisapi
 import os
+from zope.interface import Interface
+from zope.interface.verify import verifyObject
 
 logger = logging.getLogger('mcloud.application')
+
 
 class NotInspectedYet(Exception):
     pass
 
+
+class IServiceBuilder(Interface):
+    """
+    Allow plugins to participate in container build process.
+    """
+
+    def configure_container_on_start(service, config):
+        """
+        introspect service state and make changes on config dictionary that is passed to Docker
+        """
 
 class Service(object):
 
@@ -260,9 +274,8 @@ class Service(object):
             # "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
         }
 
-        for plugin in self.plugins:
-            if hasattr(plugin, 'configure_container_on_start'):
-                yield plugin.configure_container_on_start(self, config)
+        for plugin in enumerate_plugins(IServiceBuilder):
+            yield plugin.configure_container_on_start(self, config)
 
 
         if self.volumes_from:
@@ -357,6 +370,7 @@ class Service(object):
     def _generate_config(self, image_name, for_run=False):
         config = {
             "Image": image_name,
+            # "RestartPolicy": "always"
         }
 
         image_info = None

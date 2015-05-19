@@ -2,13 +2,18 @@ import logging
 import inject
 from mcloud.application import ApplicationController
 from mcloud.events import EventBus
+from mcloud.plugin import IMcloudPlugin
 from mcloud.plugins import Plugin
+from mcloud.service import IServiceBuilder
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
 from twisted.python import log
+from zope.interface import implements
 
 
 class HostsPlugin(Plugin):
+    implements(IMcloudPlugin, IServiceBuilder)
+
     eb = inject.attr(EventBus)
     app_controller = inject.attr(ApplicationController)
     redis = inject.attr(txredisapi.Connection)

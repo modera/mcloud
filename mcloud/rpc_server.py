@@ -3,16 +3,15 @@ import sys
 import netifaces
 
 import inject
-from mcloud.plugins.hosts import HostsPlugin
+from mcloud.plugin import IMcloudPlugin
 import pkg_resources
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
 import txredisapi
 from twisted.python import log
-from mcloud.plugins.internal_api import InternalApiPlugin
-from mcloud.plugins.metrics import MetricsPlugin
 from mcloud.util import txtimeout
+from zope.interface.verify import verifyClass
 
 
 log.startLogging(sys.stdout)
@@ -84,11 +83,7 @@ def entry_point():
     @inlineCallbacks
     def run_server(redis):
 
-        from mcloud.dns_resolver import listen_dns
         from mcloud.events import EventBus
-        from mcloud.plugins.dns import DnsPlugin
-        from mcloud.plugins.haproxy import HaproxyPlugin
-        from mcloud.plugins.monitor import DockerMonitorPlugin
         from mcloud.txdocker import IDockerClient, DockerTwistedClient
         from mcloud.remote import ApiRpcServer, Server
         from mcloud.tasks import TaskService
@@ -135,10 +130,17 @@ def entry_point():
             log.msg('-' * 80)
 
             try:
+                yield verifyClass(IMcloudPlugin, plugin_class)
+
                 plugin = plugin_class()
+
                 yield plugin.setup()
                 plugins_loaded.append(plugin)
+
+                print "Loaded %s - OK" % plugin_class
+
             except Exception as e:
+                print e.__class__.__name__
                 print e
                 reactor.stop()
 
