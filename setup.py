@@ -103,6 +103,13 @@ setup(
             'mcloud = mcloud.main:entry_point',
             'mcloud-server = mcloud.rpc_server:entry_point'
         ],
+
+        'mcloud_plugins': [
+            'haproxy = mcloud.plugins.haproxy:HaproxyPlugin',
+            'monitor = mcloud.plugins.monitor:DockerMonitorPlugin',
+            'hosts = mcloud.plugins.hosts:HostsPlugin',
+        ]
+
         # if you have a gui, use this
         # 'gui_scripts': [
         #     'mcloud_gui = mcloud.gui:entry_point'

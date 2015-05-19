@@ -3,6 +3,8 @@ import sys
 import netifaces
 
 import inject
+from mcloud.plugins.hosts import HostsPlugin
+import pkg_resources
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
@@ -99,7 +101,7 @@ def entry_point():
 
         log.msg('Configuring injector.')
 
-        plugins = [DockerMonitorPlugin, DnsPlugin, HaproxyPlugin]
+        plugins_loaded = []
 
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
@@ -111,7 +113,7 @@ def entry_point():
 
             binder.bind('dns-server', netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr'])
             binder.bind('dns-search-suffix', settings.dns_search_suffix)
-            binder.bind('plugins', plugins)
+            binder.bind('plugins', plugins_loaded)
 
         # Configure a shared injector.
         inject.configure(my_config)
@@ -125,7 +127,9 @@ def entry_point():
         server.bind()
 
         # load plugins
-        for plugin_class in plugins:
+        for ep in pkg_resources.iter_entry_points(group='mcloud_plugins'):
+            plugin_class = ep.load()
+
             log.msg('=' * 80)
             log.msg('Loading plugin %s' % plugin_class)
             log.msg('-' * 80)
@@ -133,6 +137,7 @@ def entry_point():
             try:
                 plugin = plugin_class()
                 yield plugin.setup()
+                plugins_loaded.append(plugin)
             except Exception as e:
                 print e
                 reactor.stop()
@@ -148,8 +153,8 @@ def entry_point():
 
         # InternalApiPlugin()
 
-        log.msg('Listen dns on ip %s:53' % settings.dns_ip)
-        listen_dns(settings.dns_search_suffix, settings.dns_ip, settings.dns_port)
+        # log.msg('Listen dns on ip %s:53' % settings.dns_ip)
+        # listen_dns(settings.dns_search_suffix, settings.dns_ip, settings.dns_port)
 
         # if settings.web:
         #     log.msg('Start internal web server')

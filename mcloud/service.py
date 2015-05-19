@@ -27,6 +27,8 @@ class Service(object):
 
     rpc_server = inject.attr(ApiRpcServer)
 
+    plugins = inject.attr('plugins')
+
     def __init__(self, **kwargs):
         self.image_builder = None
         self.name = None
@@ -254,9 +256,14 @@ class Service(object):
         self.task_log(ticket_id, '[%s][%s] Starting service...' % (ticket_id, self.name))
 
         config = {
-            "Dns": [self.dns_server],
-            "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
+            # "Dns": [self.dns_server],
+            # "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
         }
+
+        for plugin in self.plugins:
+            if hasattr(plugin, 'configure_container_on_start'):
+                yield plugin.configure_container_on_start(self, config)
+
 
         if self.volumes_from:
             config['VolumesFrom'] = self.volumes_from
