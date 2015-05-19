@@ -346,6 +346,10 @@ def test_service_api():
 
     yield s.inspect()
 
+    if s.is_created():
+        yield s.stop(ticket_id=123123)
+        yield s.destroy(ticket_id=123123)
+
     assert not s.is_created()
     assert not s.is_running()
 
