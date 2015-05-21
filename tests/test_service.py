@@ -1,4 +1,5 @@
 import sys
+import inject
 from mcloud.events import EventBus
 from mcloud.txdocker import IDockerClient, DockerTwistedClient
 from mcloud.util import injector
@@ -335,7 +336,8 @@ def test_service_api():
 
     s = Service(
         image_builder=DockerfileImageBuilder(os.path.join(os.path.dirname(__file__), '_files/ct_bash')),
-        name=name
+        name=name,
+        client=inject.instance(IDockerClient)
     )
 
     class Printer(object):

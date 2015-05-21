@@ -114,16 +114,16 @@ def test_load_config(tmpdir):
 
     flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once().and_return({'foo': 'bar1'})
     flexmock(config).should_receive('validate').with_args({'foo': 'bar1'}).once()
-    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar1')]), path=None, app_name='myapp').once()
-    config.load()
+    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar1')]), path=None, app_name='myapp', client='booo').once()
+    config.load(client='booo')
 
 def test_load_config_from_config():
     config = YamlConfig(source='{"foo": "bar"}', app_name='myapp')
 
     flexmock(config).should_receive('prepare').with_args({'foo': 'bar'}).once().and_return({'foo': 'bar1'})
     flexmock(config).should_receive('validate').with_args({'foo': 'bar1'}).once()
-    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar1')]), path=None, app_name='myapp').once()
-    config.load()
+    flexmock(config).should_receive('process').with_args(OrderedDict([('foo', 'bar1')]), path=None, app_name='myapp', client='booo').once()
+    config.load(client='booo')
 
 
 def test_load_config_not_valid(tmpdir):

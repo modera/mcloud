@@ -9,6 +9,7 @@ from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder, Inlin
 from mcloud.util import Interface
 import os
 from os.path import dirname
+from twisted.internet.defer import inlineCallbacks
 import yaml
 from .service import Service
 from voluptuous import Schema, MultipleInvalid
@@ -72,7 +73,7 @@ class OrderedDictYAMLLoader(yaml.Loader):
 
 class YamlConfig(IConfig):
 
-    def __init__(self, file=None, source=None, app_name=None, path=None, env=None, deployment=None):
+    def __init__(self, file=None, source=None, app_name=None, path=None, env=None):
 
         self._file = None
 
@@ -106,10 +107,13 @@ class YamlConfig(IConfig):
         """
         @rtype: dict[str, str]
         """
-        try:
-            return self.config['$volumes']
-        except KeyError:
-            return {}
+
+        return {}
+
+        # try:
+        #     return self.config['$volumes']
+        # except KeyError:
+        #     return {}
 
     def get_command_host(self, name=None):
         if name:

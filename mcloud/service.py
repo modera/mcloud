@@ -3,7 +3,7 @@ from mcloud.plugin import enumerate_plugins
 import re
 import inject
 from mcloud.remote import ApiRpcServer
-from mcloud.txdocker import IDockerClient, DockerConnectionFailed
+from mcloud.txdocker import IDockerClient, DockerConnectionFailed, DockerTwistedClient
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks, returnValue
 import txredisapi
@@ -40,6 +40,8 @@ class Service(object):
     rpc_server = inject.attr(ApiRpcServer)
 
     plugins = inject.attr('plugins')
+
+    error = False
 
     def __init__(self, client=None, **kwargs):
 
@@ -87,15 +89,14 @@ class Service(object):
     @inlineCallbacks
     def inspect(self):
         self._inspected = True
-        data = yield self.client.inspect(self.name)
-        self._inspect_data = data
 
         try:
-            metrics = yield self.redis.hget('metrics', self.name)
-            if metrics:
-                self.memory_usage, self.cpu_usage = metrics.split(';')
-        except inject.InjectorException:
-            pass
+            data = yield self.client.inspect(self.name)
+            self._inspect_data = data
+
+        except DockerConnectionFailed as e:
+            self.error = 'Can not connect to docker: %s. %s' % (self.client.url, e)
+            self._inspect_data = None
 
         defer.returnValue(self._inspect_data)
 
@@ -182,6 +183,9 @@ class Service(object):
     def is_ssl(self):
         return not self.ssl_port is None
 
+    def error_msg(self):
+        return self.error
+
     def get_ssl_port(self):
         return self.ssl_port
 
@@ -214,10 +218,10 @@ class Service(object):
 
         yield self.client.create_container(config, name, ticket_id=ticket_id)
 
-        run_config = {
-            "Dns": [self.dns_server],
-            "DnsSearch": '%s.%s' % (self.app_name, self.dns_search_suffix)
-        }
+        run_config = {}
+
+        for plugin in enumerate_plugins(IServiceBuilder):
+            yield plugin.configure_container_on_start(self, run_config)
 
         run_config['VolumesFrom'] = self.name
 

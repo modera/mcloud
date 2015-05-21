@@ -2,6 +2,7 @@ import json
 
 import inject
 from mcloud.events import EventBus
+from mcloud.txdocker import DockerTwistedClient
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
@@ -23,6 +24,8 @@ class Deployment(object):
         self.default = None
         self.key = key
 
+        self.client = None
+
     def update(self, exports=None, host=None, tls=False, ca=None, cert=None, key=None):
         if exports:
             self.exports = exports
@@ -41,6 +44,15 @@ class Deployment(object):
 
         if key is not None:
             self.key = key or None
+
+
+    def get_client(self):
+        if self.client:
+            return self.client
+
+        self.client = DockerTwistedClient(url=self.host.encode())
+        return self.client
+
 
     @property
     def config(self):
@@ -113,6 +125,23 @@ class DeploymentController(object):
             raise DeploymentDoesNotExist('Deployment with name "%s" do not exist' % name)
         else:
             defer.returnValue(Deployment(**json.loads(config)))
+
+
+    @inlineCallbacks
+    def get_default(self):
+        config = yield self.redis.hgetall('mcloud-deployments')
+        default = yield self.redis.get('mcloud-deployment-default')
+
+        deployments = [Deployment(**json.loads(config)) for name, config in config.items()]
+
+        for dpl in deployments:
+            if dpl.name == default:
+                defer.returnValue(dpl)
+
+        if len(deployments) > 0:
+            defer.returnValue(deployments[0])
+
+        defer.returnValue(None)
 
     @inlineCallbacks
     def list(self):

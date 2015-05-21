@@ -1,6 +1,7 @@
 import logging
 import sys
 import netifaces
+from traceback import print_tb
 
 import inject
 from mcloud.plugin import IMcloudPlugin
@@ -102,7 +103,7 @@ def entry_point():
             binder.bind(txredisapi.Connection, redis)
             binder.bind(EventBus, eb)
             #binder.bind(IDockerClient, DockerTwistedClient(url='http://127.0.0.1:4243'))
-            # binder.bind(IDockerClient, DockerTwistedClient())
+            binder.bind(IDockerClient, DockerTwistedClient())
 
             binder.bind('settings', settings)
 
@@ -140,8 +141,12 @@ def entry_point():
                 print "Loaded %s - OK" % plugin_class
 
             except Exception as e:
+                print '!-' * 40
+                print "Exception during load of plugin: %s:" % plugin_class
                 print e.__class__.__name__
                 print e
+                print print_tb(sys.exc_traceback)
+                print '!-' * 40
                 reactor.stop()
 
             log.msg('=' * 80)

@@ -1,6 +1,6 @@
 import json
 
-from mcloud.deployment import DeploymentController
+from mcloud.deployment import DeploymentController, Deployment
 from mcloud.txdocker import DockerTwistedClient, DockerConnectionFailed
 import re
 import inject
@@ -28,6 +28,10 @@ class Application(object):
         self.public_urls = public_urls or []
         self.client = None
 
+        self.error = None
+
+        self.deployment = None
+
     def get_env(self):
         if 'env' in self.config and self.config['env']:
             env = self.config['env']
@@ -35,25 +39,22 @@ class Application(object):
             env = 'dev'
         return env
 
-    def get_deployment(self):
-        if 'deployment' in self.config and self.config['deployment']:
-            deployment = self.config['deployment']
-        else:
-            deployment = None
-        return deployment
-
     @defer.inlineCallbacks
-    def get_docker_client(self):
-        if self.client:
-            defer.returnValue(self.client)
+    def get_deployment(self):
+        if self.deployment:
+            defer.returnValue(self.deployment)
 
-        deployment = yield self.deployment_controller.get(self.get_deployment())
-        if not deployment:
-            raise ConfigParseError('Can not find deployment.')
+        if 'deployment' in self.config and self.config['deployment']:
+            deployment_name = self.config['deployment']
+            self.deployment = yield self.deployment_controller.get(deployment_name)
+        else:
+            self.deployment = yield self.deployment_controller.get_default()
 
-        self.client = DockerTwistedClient(url=deployment.host.encode())
+        # no deployments at all
+        if not self.deployment:
+            self.deployment = Deployment(name='local')
 
-        defer.returnValue(self.client)
+        defer.returnValue(self.deployment)
 
 
     @defer.inlineCallbacks
@@ -65,16 +66,25 @@ class Application(object):
             elif 'path' in self.config:
                 yaml_config = YamlConfig(file=os.path.join(self.config['path'], 'mcloud.yml'), app_name=self.name, path=self.config['path'])
             else:
-                raise ConfigParseError('Can not load config.')
+                self.error = {
+                    'msg': 'Can not parse config'
+                }
+                defer.returnValue(None)
 
-            try:
-                client = yield self.get_docker_client()
-                yaml_config.load(client=client)
-            except DockerConnectionFailed as e:
-                raise ConfigParseError('Can not connect to docker: %s' % e)
+            deployment = yield self.get_deployment()
+            if not deployment:
+                self.error = {
+                    'msg': 'No deployment found'
+                }
+
+            client = deployment.get_client()
+
+            yield yaml_config.load(client=client)
+
+
             
-
             yield defer.gatherResults([service.inspect() for service in yaml_config.get_services().values()])
+
 
             if need_details:
                 defer.returnValue(self._details(yaml_config))
@@ -91,6 +101,7 @@ class Application(object):
     def _details(self, app_config):
         is_running = True
         status = 'RUNNING'
+        errors = []
 
         web_ip = None
         web_port = None
@@ -109,6 +120,7 @@ class Application(object):
                 'shortname': service.shortname,
                 'name': service.name,
                 'ip': service.ip(),
+                'error': service.error,
                 'ports': service.public_ports(),
                 'hosts_path': service.hosts_path(),
                 'volumes': service.attached_volumes(),
@@ -137,7 +149,12 @@ class Application(object):
 
             else:
                 is_running = False
-                status = 'STOPPED'
+
+                if not service.error:
+                    status = 'STOPPED'
+                else:
+                    status = 'error'
+                    errors.append('%s: %s' % (service.name, service.error))
 
         return {
             'name': self.name,
@@ -156,7 +173,8 @@ class Application(object):
             'config': self.config,
             'services': services,
             'running': is_running,
-            'status': status
+            'status': status,
+            'errors': errors,
         }
 
 
