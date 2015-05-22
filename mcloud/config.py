@@ -77,7 +77,7 @@ class YamlConfig(IConfig):
 
         self._file = None
 
-        if not file is None:
+        if file is not None:
             if not os.path.exists(str(file)):
                 raise ValueError('Bad config file given!')
 
@@ -275,17 +275,27 @@ class YamlConfig(IConfig):
         if 'ssl' in config:
             service.ssl_port = config['ssl']
 
+    def sanitize_path(self, path):
+
+        if not path.startswith('/'):
+            path = '/' + path
+
+        path = os.path.normpath(path)[1:]
+
+        if path.startswith('~'):
+            path = path[1:]
+
+        if path.endswith('/'):
+            path = path[:-1]
+
+        return path
+
     def process_volumes_build(self, service, config, path):
         service.volumes = []
 
         if 'volumes' in config and len(config['volumes']):
 
-            if not os.path.exists(path):
-                # log.msg('Base volumes directory do not exist: %s' % path)
-                return
-                # raise ValueError()
-
-            path_real = os.path.realpath(path)
+            path_real = os.path.normpath(path)
             if not path_real.endswith('/'):
                 path_real += '/'
 
@@ -297,17 +307,12 @@ class YamlConfig(IConfig):
 
             for local_path, container_path in config['volumes'].items():
 
-                if local_path.startswith('~'):
-                    # log.msg('You can not mount directories outside of project directory: %s -> %s' % (path, local_path))
-                    # raise ValueError('')
-                    continue
+                local_path = self.sanitize_path(local_path)
 
-
-                path_join = os.path.realpath(os.path.join(path, local_path))
-
-                if local_path != '.' and not path_join.startswith(path_real):
-                    continue
-                    # log.msg('You can not mount directories outside of project directory: %s -> %s' % (path_join, path_real))
+                if local_path != '':
+                    path_join = os.path.join(path, local_path)
+                else:
+                    path_join = path
 
                 service.volumes.append({
                     'local': path_join,

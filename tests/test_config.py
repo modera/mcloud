@@ -373,22 +373,26 @@ def test_build_build_volumes_basepath(tmpdir):
 
 
 
-@pytest.mark.parametrize("path", [
-    '/root',
-    '../',
-    './././../',
-    '././some/crazy/something/../../../../',
-    '~/',
+@pytest.mark.parametrize("path,result", [
+    ('/root', '/foo/root'),
+    ('.', '/foo'),
+    ('../', '/foo'),
+    ('../bar/baz/../', '/foo/bar'),
+    ('./././../', '/foo'),
+    ('././some/crazy/something/../../..//../../../../../../../', '/foo'),
+    ('~/', '/foo')
 ])
-def test_build_build_volumes_hackish_paths(path):
+def test_build_build_volumes_hackish_paths(path, result):
     s = Service()
     c = YamlConfig()
 
     c.process_volumes_build(s, {'volumes': {
-        path: 'bar1',
-    }}, os.getcwd())
+        path: 'bar',
+    }}, '/foo')
 
-    assert s.volumes == []
+    assert s.volumes == [
+        {'local': result, 'remote': 'bar'},
+    ]
 
 
 def test_build_build_env_empty():
