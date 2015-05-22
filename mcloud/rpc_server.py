@@ -54,6 +54,7 @@ class McloudConfiguration(Configuration):
 
     home_dir = '/root/.mcloud'
     btrfs = False
+    demo_mode = False
 
 
 def entry_point():
@@ -79,9 +80,6 @@ def entry_point():
     if args.no_ssl:
         settings.ssl.enabled = False
 
-    if not settings.dns_ip:
-        settings.dns_ip = netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
-
     @inlineCallbacks
     def run_server(redis):
 
@@ -106,7 +104,7 @@ def entry_point():
 
             binder.bind('settings', settings)
 
-            binder.bind('dns-server', netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr'])
+            # binder.bind('dns-server', netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr'])
             binder.bind('dns-search-suffix', settings.dns_search_suffix)
             binder.bind('plugins', plugins_loaded)
 

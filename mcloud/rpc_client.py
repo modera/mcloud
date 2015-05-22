@@ -969,7 +969,7 @@ class ApiRpcClient(object):
     @inlineCallbacks
     def logs(self, ref, follow=False, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs, require_service=True)
-        ret = yield self._remote_exec('logs', app, service)
+        ret = yield self._remote_exec('logs', self.format_app_srv(app, service))
 
     ############################################################
 

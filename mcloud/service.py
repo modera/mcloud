@@ -28,11 +28,15 @@ class IServiceBuilder(Interface):
         introspect service state and make changes on config dictionary that is passed to Docker
         """
 
+    def configure_container_on_create(service, config):
+        """
+        introspect service state and make changes on config dictionary that is passed to Docker
+        """
+
 class Service(object):
 
     NotInspectedYet = NotInspectedYet
 
-    dns_server = inject.attr('dns-server')
     settings = inject.attr('settings')
     dns_search_suffix = inject.attr('dns-search-suffix')
     redis = inject.attr(txredisapi.Connection)
@@ -204,7 +208,7 @@ class Service(object):
     @inlineCallbacks
     def run(self, ticket_id, command, size=None):
 
-        image_name = yield self.image_builder.build_image(ticket_id=ticket_id)
+        image_name = yield self.image_builder.build_image(ticket_id=ticket_id, service=self)
 
         config = yield self._generate_config(image_name, for_run=True)
 
@@ -220,9 +224,6 @@ class Service(object):
 
         run_config = {}
 
-        for plugin in enumerate_plugins(IServiceBuilder):
-            yield plugin.configure_container_on_start(self, run_config)
-
         run_config['VolumesFrom'] = self.name
 
         if self.ports:
@@ -231,7 +232,10 @@ class Service(object):
         if self.volumes and len(self.volumes):
             run_config['Binds'] = ['%s:%s' % (x['local'], x['remote'] + (':ro' if self.is_read_only(x['remote']) else '')) for x in self.volumes]
 
-        print run_config
+
+
+        for plugin in enumerate_plugins(IServiceBuilder):
+            yield plugin.configure_container_on_start(self, run_config)
 
         yield self.client.start_container(name, ticket_id=ticket_id, config=run_config)
 
@@ -394,6 +398,7 @@ class Service(object):
         if len(vlist) > 0:
             config['Env'] = ['%s=%s' % x for x in vlist.items()]
 
+
         if self.ports:
             all_ports = {}
             for port in self.ports:
@@ -425,6 +430,9 @@ class Service(object):
             if image_info and image_info['ContainerConfig']['Volumes']:
                 for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
                     config['Volumes'][vpath] = {}
+
+        for plugin in enumerate_plugins(IServiceBuilder):
+            yield plugin.configure_container_on_create(self, config)
 
         defer.returnValue(config)
 

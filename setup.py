@@ -49,10 +49,10 @@ setup(
     # Find a list of classifiers here:
     # <http://pypi.python.org/pypi?%3Aaction=list_classifiers>
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
-	    'Intended Audience :: System Administrators',
+        'Intended Audience :: System Administrators',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
@@ -67,62 +67,55 @@ setup(
     ],
     packages=find_packages(exclude=(TESTS_DIRECTORY,)),
     install_requires=[
-        'jinja2',
-        'texttable',
         'klein',
-        'twisted',
         'txredisapi',
         'inject',
         'voluptuous',
-        'pprintpp',
-        'prettytable',
         'treq',
         'pyOpenSSL',
         'PyYAML',
-        # 'service-identity',
+        'service-identity',
         'netifaces',
+        # 'reqeuests',
+        # 'werkzeug',
         'autobahn==0.8.11',
         'pyasn1-modules',
         'characteristic',
+        'cryptography>=0.7',
         'confire',
-        'scandir',
-        'readline',
-        'bashutils',
-        'cronex',
         'zope.interface',
         'Twisted==14.0.2'
     ] + python_version_specific_requires,
+
     # Allow tests to be run with `python setup.py test'.
     tests_require=[
         'pytest==2.5.1',
         'mock==1.0.1',
         'flake8==2.1.0',
     ],
+
+    extras_require = {
+        'console': [
+            'readline',
+            'bashutils',
+            'texttable',
+            'pprintpp',
+            'prettytable',
+
+        ]
+    },
+
     zip_safe=False,  # don't use eggs
     entry_points={
         'console_scripts': [
-            'mcloud = mcloud.main:entry_point',
+            'mcloud = mcloud.main:entry_point [client]',
             'mcloud-server = mcloud.rpc_server:entry_point'
         ],
 
+        # core plugins
         'mcloud_plugins': [
             'hosts = mcloud.plugins.hosts:HostsPlugin',
-            'haproxy = mcloud.plugins.haproxy:HaproxyPlugin',
-            'monitor = mcloud.plugins.monitor:DockerMonitorPlugin',
-
         ]
-
-        # if you have a gui, use this
-        # 'gui_scripts': [
-        #     'mcloud_gui = mcloud.gui:entry_point'
-        # ]
     },
     include_package_data = True,
-
-    # extras
-    # 'Werkzeug'
-    # 'Flask',
-    # 'Flask-API',
-    # 'pyunpack',s
-
 )

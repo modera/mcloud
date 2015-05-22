@@ -74,9 +74,6 @@ class TaskService(object):
 
     settings = inject.attr('settings')
 
-    dns_server = inject.attr('dns-server')
-    dns_search_suffix = inject.attr('dns-search-suffix')
-
     def task_log(self, ticket_id, message):
         self.rpc_server.task_progress(message, ticket_id)
 
@@ -93,6 +90,9 @@ class TaskService(object):
         :param path: Path to the application
         :return:
         """
+
+        if not deployment:
+            Exception('Deployment name is required!')
 
         app = None
         try:
@@ -219,7 +219,7 @@ class TaskService(object):
 
 
     @inlineCallbacks
-    def task_logs(self, ticket_id, app, service):
+    def task_logs(self, ticket_id, ref):
         """
         Read logs.
 
@@ -229,6 +229,8 @@ class TaskService(object):
         :param name:
         :return:
         """
+
+        service, app = ref.split('.')
 
         # todo: fix to remote client
 
@@ -244,7 +246,7 @@ class TaskService(object):
 
             config = yield app.load()
 
-            service = config.get_service('%s.%s' % (service, app.name))
+            service = config.get_service(ref)
             yield service.client.logs(service.name, on_log, tail=100)
         except NotFound:
             self.task_log(ticket_id, 'Container not found by name.')

@@ -10,7 +10,7 @@ import txredisapi
 
 class Deployment(object):
 
-    def __init__(self, name=None, exports=None, host=None, local=True, port=None, tls=False, ca=None, cert=None, key=None, default=None):
+    def __init__(self, name=None, exports=None, host=None, local=True, port=None, tls=False, ca=None, cert=None, key=None, default=None, **kwargs):
         super(Deployment, self).__init__()
 
         # "default" is ignored

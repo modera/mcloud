@@ -288,11 +288,18 @@ class Server(object):
                 listen_ssl(self.port, Site(rootResource), interface=self.settings.websocket_ip)
 
             else:
-                print '*' * 60
-                print 'INSECURE MODE'
-                print 'Running on 127.0.0.1 only'
-                print '*' * 60
-                reactor.listenTCP(self.port, Site(rootResource), interface='127.0.0.1')
+                if self.settings.demo_mode:
+                    print '*' * 60
+                    print 'DEMO MODE'
+                    print 'Running on 0.0.0.0'
+                    print '*' * 60
+                    reactor.listenTCP(self.port, Site(rootResource), interface='0.0.0.0')
+                else:
+                    print '*' * 60
+                    print 'INSECURE MODE'
+                    print 'Running on 127.0.0.1 only'
+                    print '*' * 60
+                    reactor.listenTCP(self.port, Site(rootResource), interface='127.0.0.1')
         except:
             log.err()
 
