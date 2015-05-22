@@ -10,7 +10,7 @@ import txredisapi
 
 class Deployment(object):
 
-    def __init__(self, name=None, exports=None, host=None, tls=False, ca=None, cert=None, key=None, default=None):
+    def __init__(self, name=None, exports=None, host=None, local=True, port=None, tls=False, ca=None, cert=None, key=None, default=None):
         super(Deployment, self).__init__()
 
         # "default" is ignored
@@ -18,6 +18,8 @@ class Deployment(object):
         self.name = name
         self.exports = exports or {}
         self.host = host or 'unix://var/run/docker.sock/'
+        self.port = port
+        self.local = local
         self.tls = tls
         self.ca = ca
         self.cert = cert
@@ -26,12 +28,18 @@ class Deployment(object):
 
         self.client = None
 
-    def update(self, exports=None, host=None, tls=False, ca=None, cert=None, key=None):
+    def update(self, exports=None, host=None, local=None,  port=None, tls=False, ca=None, cert=None, key=None):
         if exports:
             self.exports = exports
 
         if host:
-            self.host = host or 'unix://var/run/docker.sock/'
+            self.host = host
+
+        if local is not None:
+            self.local = local
+
+        if port is not None:
+            self.port = port
 
         if tls is not None:
             self.tls = tls
@@ -50,7 +58,14 @@ class Deployment(object):
         if self.client:
             return self.client
 
-        self.client = DockerTwistedClient(url=self.host.encode())
+        if self.local:
+            url = self.host
+        else:
+            scheme = 'https' if self.tls else 'http'
+            port = self.port or '2375'
+            url = '%s://%s:%s' % (scheme, self.host, port)
+
+        self.client = DockerTwistedClient(url=url.encode())
         return self.client
 
 
@@ -61,7 +76,9 @@ class Deployment(object):
             'default': self.default,
             'exports': self.exports,
             'host': self.host,
+            'port': self.port,
             'tls': self.tls,
+            'local': self.local,
             'ca': self.ca,
             'key': self.key,
             'cert': self.cert

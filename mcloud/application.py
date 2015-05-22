@@ -56,6 +56,12 @@ class Application(object):
 
         defer.returnValue(self.deployment)
 
+    @defer.inlineCallbacks
+    def get_client(self):
+        deployment = yield self.get_deployment()
+        client = yield deployment.get_client()
+        defer.returnValue(client)
+
 
     @defer.inlineCallbacks
     def load(self, need_details=False):
@@ -201,7 +207,7 @@ class ApplicationController(object):
 
 
     @defer.inlineCallbacks
-    def create(self, name, config, skip_validation=False, deployment=None):
+    def create(self, name, config, skip_validation=False):
 
         if not re.match('^%s$' % Application.APP_REGEXP, name):
             raise ValueError('Invalid name of application. Should be %s' % Application.APP_REGEXP)

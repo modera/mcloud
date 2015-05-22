@@ -8,6 +8,7 @@ from treq.client import HTTPClient
 from treq._utils import default_pool, default_reactor
 
 from treq.content import collect, content, text_content, json_content
+from twisted.web.error import PageRedirect
 
 
 class UNIXAwareHttpClient(HTTPClient):
@@ -17,7 +18,7 @@ class UNIXAwareHttpClient(HTTPClient):
 
 class UNIXAwareHttpAgent(Agent):
 
-    def request(self, method, uri, headers=None, bodyProducer=None):
+    def request(self, method, uri, headers=None, bodyProducer=None, follow_redirects=2):
         """
         Issue a request to the server indicated by the given C{uri}.
 
@@ -27,7 +28,6 @@ class UNIXAwareHttpAgent(Agent):
 
         @see: L{twisted.web.iweb.IAgent.request}
         """
-
         if uri.startswith('unix://'):
             unix_uri = re.match('^unix://(.*)//(.*)', uri)
 
@@ -47,6 +47,8 @@ class UNIXAwareHttpAgent(Agent):
                                          parsedURI.originForm)
 
         return super(UNIXAwareHttpAgent, self).request(method, uri, headers, bodyProducer)
+
+
 
 
 

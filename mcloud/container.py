@@ -3,14 +3,13 @@ import logging
 import tarfile
 from tempfile import mkdtemp
 from abc import abstractmethod
-import inject
-from mcloud.txdocker import IDockerClient
 from mcloud.util import Interface
 from twisted.internet import reactor, defer
 
-
 logger = logging.getLogger('mcloud.application')
 from twisted.python import log
+
+
 
 class IContainerBuilder(Interface):
     pass
@@ -18,13 +17,8 @@ class IContainerBuilder(Interface):
 
 class IImageBuilder(Interface):
 
-    client = inject.attr(IDockerClient)
-    """
-    @type client: DockerTwistedClient
-    """
-
     @abstractmethod
-    def build_image(self, ticket_id):
+    def build_image(self, ticket_id, service):
         pass
 
 
@@ -35,7 +29,7 @@ class PrebuiltImageBuilder(IImageBuilder):
         self.image = image
 
     @defer.inlineCallbacks
-    def build_image(self, ticket_id):
+    def build_image(self, ticket_id, service):
 
         log.msg('[%s] Building image "%s".', ticket_id, self.image)
 
@@ -44,7 +38,7 @@ class PrebuiltImageBuilder(IImageBuilder):
         if ':' in name:
             name, tag = name.split(':')
 
-        images = yield self.client.images(name=name)
+        images = yield service.client.images(name=name)
 
         if tag:
             images = [x for x in images if self.image in x['RepoTags']]
@@ -52,7 +46,7 @@ class PrebuiltImageBuilder(IImageBuilder):
         if not images:
             log.msg('[%s] Image is not there. Pulling "%s" ...', ticket_id, self.image)
 
-            yield self.client.pull(name, ticket_id, tag)
+            yield service.client.pull(name, ticket_id, tag)
 
         log.msg('[%s] Image "%s" is ready to use.', ticket_id, self.image)
         defer.returnValue(self.image)
@@ -85,9 +79,9 @@ class DockerfileImageBuilder(IImageBuilder):
         return d
 
     @defer.inlineCallbacks
-    def build_image(self, ticket_id):
+    def build_image(self, ticket_id, service):
         archive = yield self.create_archive()
-        ret = yield self.client.build_image(archive, ticket_id=ticket_id)
+        ret = yield service.client.build_image(archive, ticket_id=ticket_id)
         defer.returnValue(ret)
 
 
@@ -99,7 +93,7 @@ class InlineDockerfileImageBuilder(DockerfileImageBuilder):
 
         self.image_id = None
 
-    def build_image(self, ticket_id):
+    def build_image(self, ticket_id, service):
 
         tdir = mkdtemp()
         with open(tdir + '/Dockerfile', 'w+') as f:
@@ -107,12 +101,9 @@ class InlineDockerfileImageBuilder(DockerfileImageBuilder):
 
         self.path = tdir
 
-        return super(InlineDockerfileImageBuilder, self).build_image(ticket_id)
+        return super(InlineDockerfileImageBuilder, self).build_image(ticket_id, service)
 
 
-class ContainerBuider(IContainerBuilder):
-
-    client = inject.attr(IDockerClient)
 
 
 

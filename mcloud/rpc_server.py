@@ -70,6 +70,7 @@ def entry_point():
     parser = get_argparser()
     args = parser.parse_args()
 
+
     class _McloudConfiguration(McloudConfiguration):
         CONF_PATHS = [args.config]
 
@@ -85,9 +86,9 @@ def entry_point():
     def run_server(redis):
 
         from mcloud.events import EventBus
-        from mcloud.txdocker import IDockerClient, DockerTwistedClient
         from mcloud.remote import ApiRpcServer, Server
         from mcloud.tasks import TaskService
+
 
         log.msg('Running server')
 
@@ -102,8 +103,6 @@ def entry_point():
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
             binder.bind(EventBus, eb)
-            #binder.bind(IDockerClient, DockerTwistedClient(url='http://127.0.0.1:4243'))
-            binder.bind(IDockerClient, DockerTwistedClient())
 
             binder.bind('settings', settings)
 

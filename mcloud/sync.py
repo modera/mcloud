@@ -25,9 +25,6 @@ def get_storage(ref):
         host = match.group(4)
         volume = match.group(8)
 
-        if host == 'me':
-            host = '127.0.0.1'
-
         # if not re.match('^[0-9\.]+$', host):
         #     host = BlockingResolver().getHostByName(host)
 
@@ -56,6 +53,9 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
 
     (host, app, service, volume) = src_args
 
+    if host == 'me':
+        host = '127.0.0.1'
+
     if volume and volume.endswith('/'):
         volume = volume[:-1]
 
@@ -65,7 +65,12 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
     try:
         dst_dir = dst_args[0]
 
-        src_ref = 'rsync://%s@%s:%s/data%s/' % (data['env']['USERNAME'], host, data['port'], data['volume'])
+        if data['host'] == 'me':
+            sync_host = host
+        else:
+            sync_host = data['host']
+
+        src_ref = 'rsync://%s@%s:%s/data%s/' % (data['env']['USERNAME'], sync_host, data['port'], data['volume'])
 
         if 'path' in options and not options['path'] is None:
             src_ref = os.path.join(src_ref, options['path'])

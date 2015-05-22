@@ -431,7 +431,7 @@ class Service(object):
 
     @inlineCallbacks
     def create(self, ticket_id=None):
-        image_name = yield self.image_builder.build_image(ticket_id=ticket_id)
+        image_name = yield self.image_builder.build_image(ticket_id=ticket_id, service=self)
 
         config = yield self._generate_config(image_name)
         yield self.client.create_container(config, self.name, ticket_id=ticket_id)

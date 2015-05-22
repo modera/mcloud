@@ -17,7 +17,8 @@ from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Protocol
 from twisted.protocols import basic
-from twisted.web._newclient import ResponseDone
+from twisted.web._newclient import ResponseDone, ResponseFailed
+from twisted.web.error import PageRedirect
 from twisted.web.http import PotentialDataLoss
 
 logger = logging.getLogger('mcloud.docker')
@@ -60,15 +61,28 @@ class DockerTwistedClient(object):
 
         self.url = url + '/'
 
-    def _request(self, url, method=txhttp.get, **kwargs):
+    def _request(self, url, method=txhttp.get, follow_redirects=1, **kwargs):
 
-        url_ = '%s%s' % (self.url, url)
+        if not '://' in url:
+            url_ = '%s%s' % (self.url, url)
+        else:
+            url_ = url
+
         d = method(url_, timeout=30, **kwargs)
 
         def error(failure):
-            e = DockerConnectionFailed('Connection timeout: %s When connecting to: %s' % (failure.getErrorMessage(), url_))
-            logger.error(e)
-            raise e
+            if hasattr(failure.value, 'reasons'):
+                reason = failure.value.reasons[0]
+                redirect = reason.check(PageRedirect)
+
+                if redirect:
+                    if follow_redirects:
+                        logger.error('Http redirect: %s' % reason.value.location)
+                        return self._request(reason.value.location, method=method, follow_redirects=follow_redirects - 1, **kwargs)
+                    else:
+                        raise DockerConnectionFailed('Redirect from %s -> %s requested, but redirect limit exceed.' % (url_, reason.value.location))
+
+            raise DockerConnectionFailed('Connection error: %s When connecting to: %s' % (failure.getErrorMessage(), url_))
 
         d.addErrback(error)
         return d
@@ -231,10 +245,12 @@ class DockerTwistedClient(object):
         if result.code == 201:
             defer.returnValue(True)
 
-        if result.code == 409: # created
+        elif result.code == 409: # created
             defer.returnValue(True)
 
-        raise CommandFailed('Create command returned unexpected status: %s' % result.code)
+        else:
+            content = yield result.content()
+            raise CommandFailed('Create command returned unexpected status: %s. Result: %s' % (result.code, content))
 
     def collect_json_or_none(self, response):
 

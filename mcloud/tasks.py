@@ -3,9 +3,12 @@ import random
 import string
 import uuid
 from mcloud.container import PrebuiltImageBuilder
+
 from mcloud.service import Service
+
 from mcloud.sync import VolumeNotFound
 import os
+
 
 import re
 from autobahn.twisted.util import sleep
@@ -15,6 +18,8 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.error import ConnectionDone
 import txredisapi
 from mcloud.txdocker import IDockerClient, NotFound
+
+
 from mcloud.application import ApplicationController, AppDoesNotExist
 from mcloud.deployment import DeploymentController
 from mcloud.events import EventBus
@@ -79,7 +84,7 @@ class TaskService(object):
         pass
 
     @inlineCallbacks
-    def task_init(self, ticket_id, name, path=None, config=None, env=None):
+    def task_init(self, ticket_id, name, path=None, config=None, env=None, deployment=None):
         """
         Initialize new application
 
@@ -102,12 +107,9 @@ class TaskService(object):
             raise ValueError('config must be provided to create an application')
 
         if not path:
-            home_dir = os.path.expanduser('~/.mcloud')
-            path = os.path.join(home_dir, name)
-            if not os.path.exists(path):
-                os.makedirs(path, 0700)
+            path = '/root/.mcloud/%s' % name
 
-        yield self.app_controller.create(name, {'path': path, 'source': config, 'env': env})
+        yield self.app_controller.create(name, {'path': path, 'source': config, 'env': env, 'deployment': deployment})
 
         defer.returnValue(True)
 
@@ -217,7 +219,7 @@ class TaskService(object):
 
 
     @inlineCallbacks
-    def task_logs(self, ticket_id, name):
+    def task_logs(self, ticket_id, app, service):
         """
         Read logs.
 
@@ -228,6 +230,8 @@ class TaskService(object):
         :return:
         """
 
+        # todo: fix to remote client
+
         def on_log(log):
 
             if len(log) == 8 and log[7] != 0x0a:
@@ -236,27 +240,12 @@ class TaskService(object):
             self.task_log(ticket_id, log)
 
         try:
-            client = inject.instance(IDockerClient)
-            yield client.logs(name, on_log, tail=100)
-        except NotFound:
-            self.task_log(ticket_id, 'Container not found by name.')
+            app = yield self.app_controller.get(app)
 
+            config = yield app.load()
 
-    @inlineCallbacks
-    def task_attach(self, ticket_id, container_id, size=None):
-        """
-        Attach to container.
-
-        TaskIO is attached to container.
-
-        :param ticket_id:
-        :param container_id:
-        :param size:
-        :return:
-        """
-        try:
-            client = inject.instance(IDockerClient)
-            yield client.attach(container_id, ticket_id)
+            service = config.get_service('%s.%s' % (service, app.name))
+            yield service.client.logs(service.name, on_log, tail=100)
         except NotFound:
             self.task_log(ticket_id, 'Container not found by name.')
 
@@ -282,9 +271,7 @@ class TaskService(object):
 
             config = yield app.load()
 
-            services = config.get_services()
-
-            service = services['%s.%s' % (service_name, app_name)]
+            service = config.get_service('%s.%s' % (service_name, app_name))
 
             yield service.run(ticket_id, command, size=size)
 
@@ -355,18 +342,6 @@ class TaskService(object):
 
 
     @inlineCallbacks
-    def task_dns(self, ticket_id):
-        """
-        Show dns allocation table.
-
-        :param ticket_id:
-        :return:
-        """
-        data = yield self.redis.hgetall('domain')
-
-        defer.returnValue(data)
-
-    @inlineCallbacks
     def task_restart(self, ticket_id, name):
         """
         Restart application or services
@@ -416,9 +391,7 @@ class TaskService(object):
         def on_err(failure):
             print failure
 
-        client = inject.instance(IDockerClient)
-
-        d = client.logs(service.name, on_log)
+        d = service.client.logs(service.name, on_log)
         d.addCallback(done)
         d.addErrback(on_err)
 
@@ -429,7 +402,12 @@ class TaskService(object):
 
     @inlineCallbacks
     def task_sync_stop(self, ticket_id, app_name, sync_ticket_id):
-        s = Service()
+
+        app = yield self.app_controller.get(app_name)
+
+        client = yield app.get_client()
+
+        s = Service(client=client)
         s.app_name = app_name
         s.name = '%s_%s_%s' % (app_name, '_rsync_', sync_ticket_id)
 
@@ -450,8 +428,9 @@ class TaskService(object):
         app = yield self.app_controller.get(app_name)
 
         config = yield app.load()
+        client = yield app.get_client()
 
-        s = Service()
+        s = Service(client=client)
         s.app_name = app_name
         s.name = '%s_%s_%s' % (app_name, '_rsync_', ticket_id)
         s.image_builder = PrebuiltImageBuilder(image='modera/rsync')
@@ -494,9 +473,17 @@ class TaskService(object):
 
         yield s.start(ticket_id)
 
+        deployment = yield app.get_deployment()
+
+        if deployment.local:
+            sync_host = 'me'
+        else:
+            sync_host = deployment.host
+
         defer.returnValue({
             'env': s.env,
             'container': s.name,
+            'host': sync_host,
             'port': s.public_ports()['873'][0]['HostPort'],
             'volume': volume_name,
             'ticket_id': ticket_id
@@ -895,6 +882,28 @@ class TaskService(object):
 
         ret = yield defer.gatherResults(deployment_list, consumeErrors=True)
         defer.returnValue(ret)
+
+
+    @inlineCallbacks
+    def task_deployment_info(self, ticket_id, name=None):
+        if name:
+            deployment = yield self.deployment_controller.get(name=name)
+        else:
+            deployment = yield self.deployment_controller.get_default()
+
+        data = yield deployment.load_data()
+
+        defer.returnValue(data)
+
+
+    @inlineCallbacks
+    def task_app_deployment_info(self, ticket_id, name=None):
+        app = yield self.app_controller.get(name=name)
+        deployment = yield app.get_deployment()
+
+        data = yield deployment.load_data()
+
+        defer.returnValue(data)
 
     @inlineCallbacks
     def task_deployment_create(self, ticket_id, **kwargs):
