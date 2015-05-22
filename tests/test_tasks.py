@@ -31,7 +31,7 @@ def test_init_app_task():
     with inject_services(configure):
 
         ac.should_receive('get').and_raise(AppDoesNotExist)
-        ac.should_receive('create').with_args('foo', {'path': 'some/path', 'source': 'foo', 'env': 'prod'}).and_return(defer.succeed(flexmock()))
+        ac.should_receive('create').with_args('foo', {'path': 'some/path', 'deployment': None, 'source': 'foo', 'env': 'prod'}).and_return(defer.succeed(flexmock()))
         ac.should_receive('list').and_return(defer.succeed('result-of-list-operation'))
 
         ts = TaskService()

@@ -1,5 +1,6 @@
-from itertools import chain as generator
 from flexmock import flexmock
+from mcloud.service import Service
+
 import os
 from mcloud.container import PrebuiltImageBuilder, DockerfileImageBuilder
 from mcloud.test_utils import mock_docker
@@ -19,9 +20,11 @@ def test_image_builder_prebuilt():
         dm.should_receive('images').with_args(name='foo/bar').once().and_return(defer.succeed([]))
         dm.should_receive('pull').with_args(name='foo/bar', ticket_id=123123, tag=None).once().and_return(defer.succeed(['foo', 'bar', 'baz']))
 
+        s = Service(client=dm)
+
         builder = PrebuiltImageBuilder('foo/bar')
 
-        result = yield builder.build_image(ticket_id=123123)
+        result = yield builder.build_image(ticket_id=123123, service=s)
         assert result == 'foo/bar'
 
 @pytest.inlineCallbacks
@@ -46,9 +49,11 @@ def test_image_builder_prebuilt_already_built():
           }
         ]))
 
+        s = Service(client=dm)
+
         builder = PrebuiltImageBuilder('foo/bar')
 
-        result = yield builder.build_image(ticket_id=123123)
+        result = yield builder.build_image(ticket_id=123123, service=s)
         assert result == 'foo/bar'
 
 
@@ -71,11 +76,14 @@ def test_image_builder_build():
 
         flexmock(builder)
 
+        from mcloud.service import Service
+        s = Service(client=client)
+
         builder.should_receive('create_archive').once().and_return(defer.succeed('foo'))
 
         client.should_receive('build_image').with_args('foo', ticket_id=123123).and_return(defer.succeed('baz'))
 
-        result = yield builder.build_image(ticket_id=123123)
+        result = yield builder.build_image(ticket_id=123123, service=s)
 
         assert result == 'baz'
 

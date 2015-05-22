@@ -120,7 +120,7 @@ def test_create():
     flexmock(s)
 
     s.image_builder = flexmock()
-    s.image_builder.should_receive('build_image').with_args(ticket_id=123123).ordered().once()\
+    s.image_builder.should_receive('build_image').with_args(ticket_id=123123, service=s).ordered().once()\
         .and_return(defer.succeed('boo'))
 
     s.client = flexmock()
