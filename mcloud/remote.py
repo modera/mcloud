@@ -407,18 +407,25 @@ class Client(object):
         key_path = os.path.expanduser('~/.mcloud/%s.key' % self.host)
         crt_path = os.path.expanduser('~/.mcloud/%s.crt' % self.host)
 
-        if not self.no_ssl and self.host != '127.0.0.1':
+        class NoKeyError(Exception):
+            pass
 
-            if not os.path.exists(key_path):
-                raise ValueError('Key for server "%s" not found in file "%s"' % (self.host, key_path))
+        try:
+            if not self.no_ssl and self.host != '127.0.0.1':
 
-            if not os.path.exists(crt_path):
-                raise ValueError('Key for server "%s" not found in file "%s"' % (self.host, crt_path))
+                if not os.path.exists(key_path):
+                    raise NoKeyError('Key for server "%s" not found in file "%s"' % (self.host, key_path))
 
-            from mcloud.ssl import CtxFactory
+                if not os.path.exists(crt_path):
+                    raise NoKeyError('Key for server "%s" not found in file "%s"' % (self.host, crt_path))
 
-            reactor.connectSSL(self.host, self.port, factory, CtxFactory(key_path, crt_path))
-        else:
+                from mcloud.ssl import CtxFactory
+
+                reactor.connectSSL(self.host, self.port, factory, CtxFactory(key_path, crt_path))
+            else:
+                reactor.connectTCP(self.host, self.port, factory)
+        except NoKeyError:
+            print 'No key found - fallback to no-ssl'
             reactor.connectTCP(self.host, self.port, factory)
 
         return self.onc

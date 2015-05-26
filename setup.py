@@ -95,7 +95,7 @@ setup(
     ],
 
     extras_require = {
-        'console': [
+        'client': [
             'readline',
             'bashutils',
             'texttable',
