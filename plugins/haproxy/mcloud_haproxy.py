@@ -9,7 +9,7 @@ from mcloud.deployment import DeploymentController
 from mcloud.events import EventBus
 from mcloud.plugin import IMcloudPlugin
 from mcloud.plugins import Plugin, PluginInitError
-from mcloud.service import Service
+from mcloud.service import Service, IServiceLifecycleListener
 import os
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
@@ -17,15 +17,7 @@ from twisted.python import log
 from zope.interface import implements
 
 HAPROXY_TPL = """
-global
-        log 127.0.0.1 local0
-        log 127.0.0.1 local1 notice
-        chroot /var/lib/haproxy
-        user haproxy
-        group haproxy
-
 defaults
-        log     global
         option  dontlognull
         timeout connect 5000
         timeout client 50000
@@ -82,7 +74,6 @@ frontend http_proxy
   bind 0.0.0.0:80
 
   mode    http
-  option  httplog
   option  httpclose
   option  forwardfor
 
@@ -108,7 +99,7 @@ logger = logging.getLogger('mcloud.plugin.haproxy')
 
 
 class HaproxyPlugin(Plugin):
-    implements(IMcloudPlugin)
+    implements(IMcloudPlugin, IServiceLifecycleListener)
 
     eb = inject.attr(EventBus)
     settings = inject.attr('settings')
@@ -213,7 +204,25 @@ class HaproxyPlugin(Plugin):
 
             template = Template(HAPROXY_TPL)
 
+
+            haproxy_path = os.path.expanduser('%s/haproxy/%s' % (self.settings.home_dir, deployment_name))
+            if not os.path.exists(haproxy_path):
+                os.makedirs(haproxy_path)
+
+            template_path = os.path.join(haproxy_path, 'haproxy.tpl')
+            haproxy_config_path = os.path.join(haproxy_path, 'haproxy.cfg')
+
+            if not os.path.exists(template_path):
+                with open(template_path, 'w+') as f:
+                    f.write(HAPROXY_TPL)
+
+            with open(template_path) as f:
+                template = Template(f.read())
+
             config_rendered = template.render(config)
+
+            with open(haproxy_config_path, 'w+') as f:
+                f.write(config_rendered)
 
             haproxy = Service(client=deployment.get_client())
             haproxy.name = 'mcloud_haproxy'
@@ -237,6 +246,18 @@ class HaproxyPlugin(Plugin):
             logger.info('Containers updated: dumping haproxy config.')
 
             yield haproxy.rebuild()
+
+    @inlineCallbacks
+    def on_service_start(self, service):
+        """
+        :param service:
+        :type service: mcloud.service.Service
+        :return:
+        """
+
+        if service.is_web() or service.is_ssl():
+            logger.info('Updating haproxy config')
+            yield self.rebuild_haproxy()
 
     @inlineCallbacks
     def setup(self):
