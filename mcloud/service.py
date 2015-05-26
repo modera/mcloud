@@ -1,4 +1,5 @@
 import logging
+import traceback
 from mcloud.plugin import enumerate_plugins
 import re
 import inject
@@ -222,9 +223,7 @@ class Service(object):
 
         yield self.client.create_container(config, name, ticket_id=ticket_id)
 
-        run_config = {}
-
-        run_config['VolumesFrom'] = self.name
+        run_config = {'VolumesFrom': self.name}
 
         if self.ports:
             config['PortBindings'] = self.prepare_ports()
@@ -264,6 +263,7 @@ class Service(object):
 
     @inlineCallbacks
     def start(self, ticket_id=None):
+
         id_ = yield self.client.find_container_by_name(self.name)
 
         self.task_log(ticket_id, '[%s][%s] Starting service' % (ticket_id, self.name))
@@ -338,6 +338,16 @@ class Service(object):
     def restart(self, ticket_id=None):
         yield self.stop(ticket_id)
         yield self.start(ticket_id)
+
+
+    @inlineCallbacks
+    def rebuild(self, ticket_id=None):
+        try:
+            yield self.destroy(ticket_id)
+            yield self.start(ticket_id)
+        except Exception as e:
+            print traceback.format_exc()
+
 
     @inlineCallbacks
     def stop(self, ticket_id=None):

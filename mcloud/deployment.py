@@ -161,6 +161,19 @@ class DeploymentController(object):
         defer.returnValue(None)
 
     @inlineCallbacks
+    def get_by_name_or_default(self, name=None):
+        if name:
+            deployment = yield self.get(name)
+        else:
+            deployment = yield self.get_default()
+
+        # no deployments at all
+        if not deployment:
+            deployment = Deployment(name='local')
+
+        defer.returnValue(deployment)
+
+    @inlineCallbacks
     def list(self):
         config = yield self.redis.hgetall('mcloud-deployments')
         default = yield self.redis.get('mcloud-deployment-default')

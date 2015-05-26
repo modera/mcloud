@@ -36,7 +36,7 @@ setup(
         'Topic :: System :: Installation/Setup',
         'Topic :: System :: Software Distribution',
     ],
-    packages=['mcloud_haproxy'],
+    py_modules=['mcloud_haproxy'],
     install_requires=[
         'mcloud',
         'PyYAML'

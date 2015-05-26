@@ -45,14 +45,11 @@ class Application(object):
             defer.returnValue(self.deployment)
 
         if 'deployment' in self.config and self.config['deployment']:
-            deployment_name = self.config['deployment']
-            self.deployment = yield self.deployment_controller.get(deployment_name)
+            name = self.config['deployment']
         else:
-            self.deployment = yield self.deployment_controller.get_default()
+            name = None
 
-        # no deployments at all
-        if not self.deployment:
-            self.deployment = Deployment(name='local')
+        self.deployment = yield self.deployment_controller.get_by_name_or_default(name)
 
         defer.returnValue(self.deployment)
 
@@ -164,6 +161,7 @@ class Application(object):
 
         return {
             'name': self.name,
+            'deployment': self.config['deployment'] if 'deployment' in self.config and self.config['deployment'] else None,
             'hosts': app_config.hosts,
             'volumes': app_config.get_volumes(),
             'fullname': '%s.%s' % (self.name, self.dns_search_suffix),

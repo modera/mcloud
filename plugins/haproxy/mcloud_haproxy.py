@@ -1,15 +1,17 @@
 import logging
 import datetime
+import traceback
 from autobahn.twisted.util import sleep
 import inject
 from mcloud.application import ApplicationController
-from mcloud.container import PrebuiltImageBuilder, InlineDockerfileImageBuilder
+from mcloud.container import PrebuiltImageBuilder, InlineDockerfileImageBuilder, VirtualFolderImageBuilder
+from mcloud.deployment import DeploymentController
 from mcloud.events import EventBus
 from mcloud.plugin import IMcloudPlugin
 from mcloud.plugins import Plugin, PluginInitError
 from mcloud.service import Service
 import os
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log
 from zope.interface import implements
@@ -104,30 +106,35 @@ from jinja2 import Template
 
 logger = logging.getLogger('mcloud.plugin.haproxy')
 
-class HaproxyConfig(object):
 
-    def __init__(self, path, template=None):
-        self.template = template
-        self.path = path
+class HaproxyPlugin(Plugin):
+    implements(IMcloudPlugin)
 
-    def dump(self, apps_list):
+    eb = inject.attr(EventBus)
+    settings = inject.attr('settings')
 
-        template = self.template
+    dep_controller = inject.attr(DeploymentController)
+    app_controller = inject.attr(ApplicationController)
 
-        if not template:
-            template = Template(HAPROXY_TPL)
+    @inlineCallbacks
+    def dump(self):
+        deployments = {}
 
-        proxy_apps = []
-        proxy_ssl_apps = []
+        app_list = yield self.app_controller.list()
 
-        for app in apps_list:
+        for app in app_list:
+
+            if not app['deployment'] in deployments:
+                deployments[app['deployment']] = {
+                    'apps': [],
+                    'ssl_apps': []
+                }
+
             # if not 'web_target' in app or not app['web_target']:
             #     continue
 
             plain_domains = {app['web_target']: [app['fullname']]}
             ssl_domains = {}
-
-            print app['fullname']
 
             if app['public_urls']:
                 for target in app['public_urls']:
@@ -170,7 +177,7 @@ class HaproxyConfig(object):
                     if ':' in ip:
                         ip, port = ip.split(':')
 
-                    proxy_ssl_apps.append({
+                    deployments[app['deployment']]['ssl_apps'].append({
                         'name': '%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port),
                         'domains': domains,
                         'backends': [{'name': 'backend_ssl_%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port), 'ip': ip, 'port': port}]
@@ -184,7 +191,7 @@ class HaproxyConfig(object):
                 if ':' in ip:
                     ip, port = ip.split(':')
 
-                proxy_apps.append({
+                deployments[app['deployment']]['apps'].append({
                     'name': '%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port),
                     'domains': domains,
                     'backends': [{'name': 'backend_%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port), 'ip': ip, 'port': port}]
@@ -192,77 +199,45 @@ class HaproxyConfig(object):
 
         log.msg('Writing haproxy config')
 
-        with open(self.path, 'w') as f:
-            f.write(template.render({'apps': proxy_apps, 'ssl_apps': proxy_ssl_apps}))
-
-
-class HaproxyPlugin(Plugin):
-    implements(IMcloudPlugin)
-
-    eb = inject.attr(EventBus)
-    settings = inject.attr('settings')
-    app_controller = inject.attr(ApplicationController)
-
-    # @inlineCallbacks
-    def setup(self):
-
-        haproxy_path = os.path.expanduser('%s/haproxy' % self.settings.home_dir)
-        if not os.path.exists(haproxy_path):
-            os.makedirs(haproxy_path)
-
-        template_path = os.path.join(haproxy_path, 'haproxy.tpl')
-        haproxy_config_path = os.path.join(haproxy_path, 'haproxy.cfg')
-
-        if not os.path.exists(template_path):
-            with open(template_path, 'w+') as f:
-                f.write(HAPROXY_TPL)
-
-        with open(template_path) as f:
-            self.proxy_config = HaproxyConfig(path=haproxy_config_path, template=Template(f.read()))
-
-        self.haproxy = Service()
-        self.haproxy.name = 'mcloud_haproxy'
-        self.haproxy.image_builder = InlineDockerfileImageBuilder(source="""
-
-        FROM ubuntu
-
-        RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1C61B9CD
-        RUN echo "deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main" >> /etc/apt/sources.list.d/haproxy.list
-
-        RUN apt-get update && apt-get install -y haproxy
-        RUN sed -i 's/^ENABLED=.*/ENABLED=1/' /etc/default/haproxy && \
-          rm -rf /var/lib/apt/lists/*
-
-        WORKDIR /etc/haproxy
-
-        # Define default command.
-        CMD ["haproxy", "-f", "/etc/haproxy/haproxy.cfg"]
-
-        # Expose ports.
-        EXPOSE 80
-        EXPOSE 443
-
-        """)
-        self.haproxy.ports = ['80/tcp:80', '443/tcp:443']
-        self.haproxy.volumes = [{
-            'local': haproxy_path,
-            'remote': '/etc/haproxy'
-        }]
-
-        # yield self.haproxy.create()
-        # self.app_controller.mark_internal(self.haproxy.id)
-        #
-        # yield self.containers_updated()
-
-        # subscribe to container events
-        self.eb.on('containers.updated', self.containers_updated)
-
-        logger.info('Haproxy plugin started')
+        defer.returnValue(deployments)
 
     @inlineCallbacks
-    def containers_updated(self, *args, **kwargs):
-        logger.info('Containers updated: dumping haproxy config.')
-        data = yield self.app_controller.list()
-        self.proxy_config.dump(data)
+    def rebuild_haproxy(self):
 
-        yield self.haproxy.restart()
+        # generate new haproxy config
+        deployments = yield self.dump()
+
+        for deployment_name, config in deployments.items():
+
+            deployment = yield self.dep_controller.get(deployment_name)
+
+            template = Template(HAPROXY_TPL)
+
+            config_rendered = template.render(config)
+
+            haproxy = Service(client=deployment.get_client())
+            haproxy.name = 'mcloud_haproxy'
+            haproxy.image_builder = VirtualFolderImageBuilder({
+                'Dockerfile': """
+                    FROM haproxy:1.5
+                    ADD haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
+
+                    """,
+                'haproxy.cfg': config_rendered
+
+            })
+
+
+            haproxy.ports = ['80/tcp:80', '443/tcp:443']
+            # haproxy.volumes = [{
+            #     'local': haproxy_path,
+            #     'remote': '/etc/haproxy'
+            # }]
+
+            logger.info('Containers updated: dumping haproxy config.')
+
+            yield haproxy.rebuild()
+
+    @inlineCallbacks
+    def setup(self):
+        yield self.rebuild_haproxy()

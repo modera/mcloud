@@ -85,26 +85,29 @@ class DockerfileImageBuilder(IImageBuilder):
         defer.returnValue(ret)
 
 
-class InlineDockerfileImageBuilder(DockerfileImageBuilder):
-    def __init__(self, source):
-        self.source = source
+class VirtualFolderImageBuilder(DockerfileImageBuilder):
 
-        super(InlineDockerfileImageBuilder, self).__init__(None)
+    def __init__(self, files):
+        self.files = files
+
+        super(VirtualFolderImageBuilder, self).__init__(None)
 
         self.image_id = None
 
     def build_image(self, ticket_id, service):
 
         tdir = mkdtemp()
-        with open(tdir + '/Dockerfile', 'w+') as f:
-            f.write(self.source)
+        for file_, source in self.files.items():
+            with open(tdir + '/%s' % file_, 'w+') as f:
+                f.write(source)
 
         self.path = tdir
 
-        return super(InlineDockerfileImageBuilder, self).build_image(ticket_id, service)
+        return super(VirtualFolderImageBuilder, self).build_image(ticket_id, service)
 
 
-
-
-
-
+class InlineDockerfileImageBuilder(VirtualFolderImageBuilder):
+    def __init__(self, source):
+        super(InlineDockerfileImageBuilder, self).__init__({
+            'Dockerfile': source
+        })

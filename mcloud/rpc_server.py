@@ -2,6 +2,7 @@ import logging
 import sys
 import netifaces
 from traceback import print_tb
+import traceback
 
 import inject
 from mcloud.plugin import IMcloudPlugin
@@ -142,8 +143,9 @@ def entry_point():
                 print "Exception during load of plugin: %s:" % plugin_class
                 print e.__class__.__name__
                 print e
-                print print_tb(sys.exc_traceback)
+                print(traceback.format_exc())
                 print '!-' * 40
+
                 reactor.stop()
 
             log.msg('=' * 80)
