@@ -34,6 +34,15 @@ class IServiceBuilder(Interface):
         introspect service state and make changes on config dictionary that is passed to Docker
         """
 
+
+class IServiceLifecycleListener(Interface):
+
+    def on_service_start(service):
+        """
+        Called when service is started
+        """
+
+
 class Service(object):
 
     NotInspectedYet = NotInspectedYet
@@ -328,6 +337,10 @@ class Service(object):
 
         yield self.client.start_container(id_, ticket_id=ticket_id, config=config)
 
+        # lifecycle events
+        for plugin in enumerate_plugins(IServiceLifecycleListener):
+            yield plugin.on_service_start(self)
+
         # inspect and return result
         ret = yield self.inspect()
 
@@ -342,11 +355,9 @@ class Service(object):
 
     @inlineCallbacks
     def rebuild(self, ticket_id=None):
-        try:
-            yield self.destroy(ticket_id)
-            yield self.start(ticket_id)
-        except Exception as e:
-            print traceback.format_exc()
+        yield self.stop(ticket_id)
+        yield self.destroy(ticket_id)
+        yield self.start(ticket_id)
 
 
     @inlineCallbacks
@@ -460,6 +471,7 @@ class Service(object):
     @inlineCallbacks
     def destroy(self, ticket_id=None):
         id_ = yield self.client.find_container_by_name(self.name)
+
         yield self.client.remove_container(id_, ticket_id=ticket_id)
 
         ret = yield self.inspect()
