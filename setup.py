@@ -84,7 +84,14 @@ setup(
         'cryptography>=0.7',
         'confire',
         'zope.interface',
-        'Twisted==14.0.2'
+        'Twisted==14.0.2',
+
+        # [client]
+        'readline',
+        'bashutils',
+        'texttable',
+        'pprintpp',
+        'prettytable',
     ] + python_version_specific_requires,
 
     # Allow tests to be run with `python setup.py test'.
@@ -94,21 +101,22 @@ setup(
         'flake8==2.1.0',
     ],
 
-    extras_require = {
-        'client': [
-            'readline',
-            'bashutils',
-            'texttable',
-            'pprintpp',
-            'prettytable',
-
-        ]
-    },
+    # extras_require = {
+    #     'client': [
+    #         'readline',
+    #         'bashutils',
+    #         'texttable',
+    #         'pprintpp',
+    #         'prettytable',
+    #
+    #     ]
+    # },
 
     zip_safe=False,  # don't use eggs
     entry_points={
         'console_scripts': [
-            'mcloud = mcloud.main:entry_point [client]',
+            # 'mcloud = mcloud.main:entry_point [client]',
+            'mcloud = mcloud.main:entry_point',
             'mcloud-server = mcloud.rpc_server:entry_point'
         ],
 
