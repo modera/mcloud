@@ -1,18 +1,11 @@
 from __future__ import print_function
 
-import os
-import sys
-import imp
-
-metadata = imp.load_source(
-    'metadata', os.path.join('../../mcloud', 'metadata.py'))
-
 from setuptools import setup, find_packages
 
 # See here for more options:
 # <http://pythonhosted.org/setuptools/setuptools.html>
 
-mcloud_version = '0.10.8'
+mcloud_version = '0.10.9'
 
 setup(
     name='mcloud-plugin-haproxy',

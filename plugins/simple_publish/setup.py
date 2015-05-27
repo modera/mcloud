@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 # <http://pythonhosted.org/setuptools/setuptools.html>
 setup(
     name='mcloud-plugin-simple-publish',
-    version='0.1',
+    version=mcloud_version,
     author='Alex Rudakov',
     author_email='ribozz@gmail.com',
     maintainer='Alex Rudakov',
