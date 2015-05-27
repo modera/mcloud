@@ -9,6 +9,7 @@ from mcloud.deployment import DeploymentController, IDeploymentPublishListener
 from mcloud.events import EventBus
 from mcloud.plugin import IMcloudPlugin
 from mcloud.plugins import Plugin, PluginInitError
+from mcloud.remote import ApiRpcServer
 from mcloud.service import Service, IServiceLifecycleListener
 import os
 from twisted.internet import reactor, defer
@@ -103,6 +104,8 @@ class HaproxyPlugin(Plugin):
 
     eb = inject.attr(EventBus)
     settings = inject.attr('settings')
+
+    rpc_server = inject.attr(ApiRpcServer)
 
     dep_controller = inject.attr(DeploymentController)
     app_controller = inject.attr(ApplicationController)
@@ -206,9 +209,6 @@ class HaproxyPlugin(Plugin):
 
             deployment = yield self.dep_controller.get(deployment_name)
 
-            template = Template(HAPROXY_TPL)
-
-
             haproxy_path = os.path.expanduser('%s/haproxy/%s' % (self.settings.home_dir, deployment_name))
             if not os.path.exists(haproxy_path):
                 os.makedirs(haproxy_path)
@@ -252,7 +252,7 @@ class HaproxyPlugin(Plugin):
             yield haproxy.rebuild()
 
     @inlineCallbacks
-    def on_service_start(self, service):
+    def on_service_start(self, service, ticket_id=None):
         """
         :param service:
         :type service: mcloud.service.Service
@@ -260,21 +260,29 @@ class HaproxyPlugin(Plugin):
         """
 
         if service.is_web() or service.is_ssl():
-            logger.info('Updating haproxy config')
+            if ticket_id:
+                self.rpc_server.task_progress('Updating haproxy config', ticket_id)
+
             yield self.rebuild_haproxy()
 
     @inlineCallbacks
-    def on_domain_publish(self, deployment, domain):
+    def on_domain_publish(self, deployment, domain, ticket_id=None):
         """
         Called when domain is beeing published
         """
+        if ticket_id:
+            self.rpc_server.task_progress('Updating haproxy config for deployment %s' % deployment.name, ticket_id)
+
         yield self.rebuild_haproxy(deployments=[deployment.name])
 
     @inlineCallbacks
-    def on_domain_unpublish(self, deployment, domain):
+    def on_domain_unpublish(self, deployment, domain, ticket_id=None):
         """
         Called when domain is beeing published
         """
+        if ticket_id:
+            self.rpc_server.task_progress('Updating haproxy config for deployment %s' % deployment.name, ticket_id)
+
         yield self.rebuild_haproxy(deployments=[deployment.name])
 
     @inlineCallbacks

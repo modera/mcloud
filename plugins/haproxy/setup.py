@@ -4,13 +4,16 @@ import os
 import sys
 import imp
 
+metadata = imp.load_source(
+    'metadata', os.path.join('../../mcloud', 'metadata.py'))
+
 from setuptools import setup, find_packages
 
 # See here for more options:
 # <http://pythonhosted.org/setuptools/setuptools.html>
 setup(
     name='mcloud-plugin-haproxy',
-    version='0.1',
+    version='0.1.1',
     author='Alex Rudakov',
     author_email='ribozz@gmail.com',
     maintainer='Alex Rudakov',
@@ -38,7 +41,7 @@ setup(
     ],
     py_modules=['mcloud_haproxy'],
     install_requires=[
-        'mcloud',
+        'mcloud==%s' % metadata.version,
         'PyYAML'
     ],
 

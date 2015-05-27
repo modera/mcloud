@@ -939,7 +939,7 @@ class TaskService(object):
         app = yield self.app_controller.get(app_name)
         deployment = yield app.get_deployment()
 
-        yield self.deployment_controller.publish_app(deployment, domain_name, app_name, service_name, custom_port)
+        yield self.deployment_controller.publish_app(deployment, domain_name, app_name, service_name, custom_port, ticket_id=ticket_id)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
@@ -956,7 +956,7 @@ class TaskService(object):
         app = yield self.app_controller.get(app_name)
         deployment = yield app.get_deployment()
 
-        yield self.deployment_controller.unpublish_app(deployment, domain_name)
+        yield self.deployment_controller.unpublish_app(deployment, domain_name, ticket_id=ticket_id)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)

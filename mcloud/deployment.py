@@ -13,12 +13,12 @@ from zope.interface import Interface
 
 class IDeploymentPublishListener(Interface):
 
-    def on_domain_publish(deployment, domain):
+    def on_domain_publish(deployment, domain, ticket_id=None):
         """
         Called when domain is beeing published
         """
 
-    def on_domain_unpublish(deployment, domain):
+    def on_domain_unpublish(deployment, domain, ticket_id=None):
         """
         Called when domain is beeing published
         """
@@ -207,7 +207,7 @@ class DeploymentController(object):
         yield self.redis.set('mcloud-deployment-default', name)
 
     @inlineCallbacks
-    def publish_app(self, deployment, domain, app_name, service_name, custom_port=None):
+    def publish_app(self, deployment, domain, app_name, service_name, custom_port=None, ticket_id=None):
         if not isinstance(deployment, Deployment):
             deployment = yield self.get(deployment)
 
@@ -220,12 +220,12 @@ class DeploymentController(object):
         yield self._persist_dployment(deployment)
 
         for plugin in enumerate_plugins(IDeploymentPublishListener):
-            yield plugin.on_domain_publish(deployment, domain)
+            yield plugin.on_domain_publish(deployment, domain, ticket_id=ticket_id)
 
 
 
     @inlineCallbacks
-    def unpublish_app(self, deployment, domain):
+    def unpublish_app(self, deployment, domain, ticket_id=None):
 
         if not isinstance(deployment, Deployment):
             deployment = yield self.get(deployment)
@@ -236,7 +236,7 @@ class DeploymentController(object):
         yield self._persist_dployment(deployment)
 
         for plugin in enumerate_plugins(IDeploymentPublishListener):
-            yield plugin.on_domain_unpublish(deployment, domain)
+            yield plugin.on_domain_unpublish(deployment, domain, ticket_id=ticket_id)
 
     def _persist_dployment(self, deployment):
         return self.redis.hset('mcloud-deployments', deployment.name, json.dumps(deployment.config))

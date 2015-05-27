@@ -37,7 +37,7 @@ class IServiceBuilder(Interface):
 
 class IServiceLifecycleListener(Interface):
 
-    def on_service_start(service):
+    def on_service_start(service, ticket_id=None):
         """
         Called when service is started
         """
@@ -339,7 +339,7 @@ class Service(object):
 
         # lifecycle events
         for plugin in enumerate_plugins(IServiceLifecycleListener):
-            yield plugin.on_service_start(self)
+            yield plugin.on_service_start(self, ticket_id=ticket_id)
 
         # inspect and return result
         ret = yield self.inspect()
