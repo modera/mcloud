@@ -11,9 +11,12 @@ from setuptools import setup, find_packages
 
 # See here for more options:
 # <http://pythonhosted.org/setuptools/setuptools.html>
+
+mcloud_version = '0.10.7'
+
 setup(
     name='mcloud-plugin-haproxy',
-    version=metadata.version,
+    version=mcloud_version,
     author='Alex Rudakov',
     author_email='ribozz@gmail.com',
     maintainer='Alex Rudakov',
@@ -41,7 +44,7 @@ setup(
     ],
     py_modules=['mcloud_haproxy'],
     install_requires=[
-        'mcloud==%s' % metadata.version,
+        'mcloud==%s' % mcloud_version,
         'PyYAML'
     ],
 
