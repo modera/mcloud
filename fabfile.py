@@ -8,3 +8,6 @@ def publish(type='patch'):
 
     with lcd('plugins/haproxy'):
         local('python setup.py sdist register upload')
+
+    local('git push')
+    local('git push --tags')

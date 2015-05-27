@@ -13,7 +13,7 @@ from setuptools import setup, find_packages
 # <http://pythonhosted.org/setuptools/setuptools.html>
 setup(
     name='mcloud-plugin-haproxy',
-    version='0.1.1',
+    version=metadata.version,
     author='Alex Rudakov',
     author_email='ribozz@gmail.com',
     maintainer='Alex Rudakov',
