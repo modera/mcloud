@@ -318,8 +318,10 @@ class ApplicationController(object):
         for name, config_raw in deps.items():
             try:
                 dep_dta = json.loads(config_raw)
+
                 if 'exports' in dep_dta:
-                    for dep in dep_dta['exports']:
+                    for domain_name, dep in dep_dta['exports'].items():
+
                         if 'public_app' in dep and dep['public_app']:
                             if not dep['public_app'] in pub_apps:
                                 pub_apps[dep['public_app']] = []
@@ -328,7 +330,7 @@ class ApplicationController(object):
                                 dep['custom_port'] = None
 
                             pub_apps[dep['public_app']].append({
-                                'url': dep['name'],
+                                'url': domain_name,
                                 'port': dep['custom_port'],
                                 'service': dep['public_service'] if 'public_service' in dep else None
                             })

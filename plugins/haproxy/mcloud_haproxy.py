@@ -5,7 +5,7 @@ from autobahn.twisted.util import sleep
 import inject
 from mcloud.application import ApplicationController
 from mcloud.container import PrebuiltImageBuilder, InlineDockerfileImageBuilder, VirtualFolderImageBuilder
-from mcloud.deployment import DeploymentController
+from mcloud.deployment import DeploymentController, IDeploymentPublishListener
 from mcloud.events import EventBus
 from mcloud.plugin import IMcloudPlugin
 from mcloud.plugins import Plugin, PluginInitError
@@ -99,7 +99,7 @@ logger = logging.getLogger('mcloud.plugin.haproxy')
 
 
 class HaproxyPlugin(Plugin):
-    implements(IMcloudPlugin, IServiceLifecycleListener)
+    implements(IMcloudPlugin, IServiceLifecycleListener, IDeploymentPublishListener)
 
     eb = inject.attr(EventBus)
     settings = inject.attr('settings')
@@ -193,12 +193,16 @@ class HaproxyPlugin(Plugin):
         defer.returnValue(deployments)
 
     @inlineCallbacks
-    def rebuild_haproxy(self):
+    def rebuild_haproxy(self, deployments=None):
 
         # generate new haproxy config
-        deployments = yield self.dump()
+        all_deployments = yield self.dump()
 
-        for deployment_name, config in deployments.items():
+        for deployment_name, config in all_deployments.items():
+
+            # rebuild only needed deployments
+            if deployments and not deployment_name in deployments:
+                continue
 
             deployment = yield self.dep_controller.get(deployment_name)
 
@@ -258,6 +262,20 @@ class HaproxyPlugin(Plugin):
         if service.is_web() or service.is_ssl():
             logger.info('Updating haproxy config')
             yield self.rebuild_haproxy()
+
+    @inlineCallbacks
+    def on_domain_publish(self, deployment, domain):
+        """
+        Called when domain is beeing published
+        """
+        yield self.rebuild_haproxy(deployments=[deployment.name])
+
+    @inlineCallbacks
+    def on_domain_unpublish(self, deployment, domain):
+        """
+        Called when domain is beeing published
+        """
+        yield self.rebuild_haproxy(deployments=[deployment.name])
 
     @inlineCallbacks
     def setup(self):

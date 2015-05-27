@@ -915,14 +915,13 @@ class ApiRpcClient(object):
         yield self.deployments()
 
     @cli('Publish an application', arguments=(
-        arg('deployment', help='Deployment name'),
-        arg('domain', help='Domain to publish'),
         arg('ref', help='Application name'),
+        arg('domain', help='Domain to publish'),
         arg('--port', help='Custom target port'),
         arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
     ))
     @inlineCallbacks
-    def publish(self, deployment, domain, ref, ssl=False, port=None, **kwargs):
+    def publish(self, ref, domain, ssl=False, port=None, **kwargs):
         app_name, service = self.parse_app_ref(ref, kwargs, require_app=True)
 
         app = yield self.get_app(app_name)
@@ -930,18 +929,23 @@ class ApiRpcClient(object):
         if not app:
             print 'App not found. Can\'t publish'
         else:
-            yield self._remote_exec('publish', name=deployment, domain_name=self.format_domain(domain, ssl),
+            data = yield self._remote_exec('publish', domain_name=self.format_domain(domain, ssl),
                                     app_name=app_name, service_name=service, custom_port=port)
 
+            self.print_app_list(data)
+
     @cli('Unpublish an application', arguments=(
-        arg('deployment', help='Deployment name'),
+        arg('ref', help='Application name'),
         arg('domain', help='Domain to unpublish'),
         arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
     ))
     @inlineCallbacks
-    def unpublish(self, deployment, domain, ssl=False, **kwargs):
-        data = yield self._remote_exec('unpublish', name=deployment, domain_name=self.format_domain(domain, ssl))
-        print 'result: %s' % pprintpp.pformat(data)
+    def unpublish(self, ref, domain, ssl=False, **kwargs):
+        app_name, service = self.parse_app_ref(ref, kwargs, require_app=True)
+
+        data = yield self._remote_exec('unpublish', app_name=app_name, domain_name=self.format_domain(domain, ssl))
+        self.print_app_list(data)
+
 
     ############################################################
     # Service utilities

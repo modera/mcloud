@@ -2,10 +2,27 @@ import json
 
 import inject
 from mcloud.events import EventBus
+from mcloud.plugin import enumerate_plugins
 from mcloud.txdocker import DockerTwistedClient
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
+
+from zope.interface import Interface
+
+
+class IDeploymentPublishListener(Interface):
+
+    def on_domain_publish(deployment, domain):
+        """
+        Called when domain is beeing published
+        """
+
+    def on_domain_unpublish(deployment, domain):
+        """
+        Called when domain is beeing published
+        """
+
 
 
 class Deployment(object):
@@ -190,8 +207,9 @@ class DeploymentController(object):
         yield self.redis.set('mcloud-deployment-default', name)
 
     @inlineCallbacks
-    def publish_app(self, name, domain, app_name, service_name, custom_port=None):
-        deployment = yield self.get(name)
+    def publish_app(self, deployment, domain, app_name, service_name, custom_port=None):
+        if not isinstance(deployment, Deployment):
+            deployment = yield self.get(deployment)
 
         deployment.exports[domain] = {
             'public_app': app_name,
@@ -201,15 +219,24 @@ class DeploymentController(object):
 
         yield self._persist_dployment(deployment)
 
+        for plugin in enumerate_plugins(IDeploymentPublishListener):
+            yield plugin.on_domain_publish(deployment, domain)
+
+
 
     @inlineCallbacks
-    def unpublish_app(self, name, domain):
-        deployment = yield self.get(name)
+    def unpublish_app(self, deployment, domain):
+
+        if not isinstance(deployment, Deployment):
+            deployment = yield self.get(deployment)
 
         if domain in deployment.exports:
             del deployment.exports[domain]
 
         yield self._persist_dployment(deployment)
+
+        for plugin in enumerate_plugins(IDeploymentPublishListener):
+            yield plugin.on_domain_unpublish(deployment, domain)
 
     def _persist_dployment(self, deployment):
         return self.redis.hset('mcloud-deployments', deployment.name, json.dumps(deployment.config))
