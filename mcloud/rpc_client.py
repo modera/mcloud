@@ -593,7 +593,6 @@ class ApiRpcClient(object):
 
         if not deployment_info['local']:
             yield self._remote_exec('init', app, config=config.export(), env=env, deployment=deployment)
-            yield self.sync(path, '%s@%s' % (app, self.host), no_remove=False, force=True, full=True)
         else:
             yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export(), deployment=deployment)
 
@@ -714,6 +713,7 @@ class ApiRpcClient(object):
 
             if not app_instance:
                 yield self.init(app, os.getcwd(), env=env, deployment=deployment)
+                yield self.sync(os.getcwd(), '%s@%s' % (app, self.host), no_remove=False, force=True, full=True)
 
 
         data = yield self._remote_exec('start', self.format_app_srv(app, service))
