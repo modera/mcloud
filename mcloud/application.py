@@ -90,7 +90,7 @@ class Application(object):
 
 
             if need_details:
-                defer.returnValue(self._details(yaml_config))
+                defer.returnValue(self._details(yaml_config, deployment))
             else:
                 defer.returnValue(yaml_config)
 
@@ -101,7 +101,7 @@ class Application(object):
 
 
 
-    def _details(self, app_config):
+    def _details(self, app_config, deployment):
         is_running = True
         status = 'RUNNING'
         errors = []
@@ -161,7 +161,7 @@ class Application(object):
 
         return {
             'name': self.name,
-            'deployment': self.config['deployment'] if 'deployment' in self.config and self.config['deployment'] else None,
+            'deployment': deployment.name,
             'hosts': app_config.hosts,
             'volumes': app_config.get_volumes(),
             'fullname': '%s.%s' % (self.name, self.dns_search_suffix),

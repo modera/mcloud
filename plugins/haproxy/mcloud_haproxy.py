@@ -259,7 +259,7 @@ class HaproxyPlugin(Plugin):
         :return:
         """
 
-        if service.is_web() or service.is_ssl():
+        if not service.name != 'mcloud_haproxy' and service.is_web() or service.is_ssl():
             if ticket_id:
                 self.rpc_server.task_progress('Updating haproxy config', ticket_id)
 

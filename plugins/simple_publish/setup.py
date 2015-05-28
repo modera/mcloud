@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-mcloud_version = '0.10.8'
+mcloud_version = '0.10.10'
 
 from setuptools import setup, find_packages
 
