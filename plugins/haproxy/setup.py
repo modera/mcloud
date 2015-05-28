@@ -37,7 +37,8 @@ setup(
     ],
     py_modules=['mcloud_haproxy'],
     install_requires=[
-        'mcloud==%s' % mcloud_version,
+        'mcloud>=%s' % mcloud_version,
+        'jinja2',
         'PyYAML'
     ],
 

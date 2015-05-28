@@ -1,11 +1,11 @@
 from fabric.context_managers import lcd, settings
-from fabric.operations import local, os, run
+from fabric.operations import local, os, run, sudo
 
 from cookiecutter.main import cookiecutter
 from fabric.state import env
 from mcloud.version import version
 
-env.hosts = ['dev1.cloud.modera.org']
+env.hosts = ['root@dev1.cloud.modera.org']
 
 def publish(type='patch'):
     local('bumpversion %s' % type)
@@ -41,7 +41,7 @@ def docs():
 
 
 def deploy_dev1():
-    publish()
+    # publish()
     run('/opt/mcloud/bin/pip install mcloud -U')
     run('/opt/mcloud/bin/pip install mcloud-plugin-haproxy -U')
     run('service mcloud restart')
