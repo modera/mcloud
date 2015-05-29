@@ -1,6 +1,8 @@
 from difflib import unified_diff, Differ
 import json
+import shutil
 import sys
+from tempfile import mkdtemp
 import uuid
 import argparse
 import subprocess
@@ -1041,8 +1043,14 @@ class ApiRpcClient(object):
         elif src_type == 'local' and dst_type == 'remote':
             yield rsync_folder(self, dst_args, src_args, reverse=True, options=kwargs)
 
-        else:
-            print('%s to %s is not supported' % (src_type, dst_type))
+        elif src_type == 'remote' and dst_type == 'remote':
+            dir_name = mkdtemp()
+            dir_storage = get_storage(dir_name)
+
+            yield rsync_folder(self, src_args, dir_storage, options=kwargs)
+            yield rsync_folder(self, dst_args, dir_storage, reverse=True, options=kwargs)
+
+            shutil.rmtree(dir_name)
 
     @cli('Backup application volumes', arguments=(
         arg('source', help='source'),
