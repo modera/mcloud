@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 # See here for more options:
 # <http://pythonhosted.org/setuptools/setuptools.html>
 
-mcloud_version = '0.10.12'
+mcloud_version = '0.10.13'
 
 setup(
     name='mcloud-plugin-haproxy',
