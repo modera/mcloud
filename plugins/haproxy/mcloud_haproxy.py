@@ -266,10 +266,13 @@ class HaproxyPlugin(Plugin):
         """
         print 'Service start', service
         if service.name != 'mcloud_haproxy' and (service.is_web() or service.is_ssl()):
+
+            app = yield self.app_controller.get(service.app_name)
+
             if ticket_id:
                 self.rpc_server.task_progress('Updating haproxy config', ticket_id)
 
-            yield self.rebuild_haproxy(ticket_id=ticket_id)
+            yield self.rebuild_haproxy(deployments=[app.get_deployment()], ticket_id=ticket_id)
 
     @inlineCallbacks
     def on_domain_publish(self, deployment, domain, ticket_id=None):
