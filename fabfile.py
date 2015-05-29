@@ -8,6 +8,10 @@ from mcloud.version import version
 
 env.hosts = ['root@dev1.cloud.modera.org']
 
+def publish_plugin(name=None):
+    with lcd('plugins/%s' % name):
+        local('python setup.py sdist register upload')
+
 def publish(type='patch'):
     local('bumpversion %s' % type)
     local('python setup.py sdist register upload')
@@ -16,9 +20,12 @@ def publish(type='patch'):
         print 'Publishing %s' % plugin_name
         with lcd('plugins/%s' % plugin_name):
             local('python setup.py sdist register upload')
+            local('pip install -e .')
 
     local('git push')
     local('git push --tags')
+    local('pip install -e .')
+
 
 
 def new_plugin(name):

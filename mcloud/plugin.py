@@ -14,20 +14,14 @@ class IMcloudPlugin(Interface):
 
 
 def enumerate_plugins(interface):
-
-    print 'Resolving interface ', interface
-
     try:
         plugins = inject.instance('plugins')
     except inject.InjectorException:
-        print 'Resolver can not get access to plugins'
         return
 
     for plugin in plugins:
         try:
             adaptor = interface(plugin)
-
-            print plugin, adaptor
             if adaptor:
                 verifyObject(interface, adaptor)
                 yield adaptor
