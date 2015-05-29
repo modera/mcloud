@@ -331,14 +331,17 @@ class Service(object):
                     mounted_volumes.append(vpath)
                     config['Binds'].append('%s:%s' % (dir_, vpath))
 
-        self.task_log(ticket_id, 'Startng container with config: %s' % config)
-
         #config['Binds'] = ["/home/alex/dev/mcloud/examples/static_site1/public:/var/www"]
+
+        self.task_log(ticket_id, 'Startng container. config: %s' % config)
 
         yield self.client.start_container(id_, ticket_id=ticket_id, config=config)
 
         # lifecycle events
+
+        self.task_log(ticket_id, 'Emit startup event')
         for plugin in enumerate_plugins(IServiceLifecycleListener):
+            self.task_log(ticket_id, 'Call start listener %s' % plugin)
             yield plugin.on_service_start(self, ticket_id=ticket_id)
 
         # inspect and return result

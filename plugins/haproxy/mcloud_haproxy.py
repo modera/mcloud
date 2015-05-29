@@ -196,7 +196,7 @@ class HaproxyPlugin(Plugin):
         defer.returnValue(deployments)
 
     @inlineCallbacks
-    def rebuild_haproxy(self, deployments=None):
+    def rebuild_haproxy(self, deployments=None, ticket_id=None):
 
         # generate new haproxy config
         all_deployments = yield self.dump()
@@ -206,6 +206,9 @@ class HaproxyPlugin(Plugin):
             # rebuild only needed deployments
             if deployments and not deployment_name in deployments:
                 continue
+
+            if ticket_id:
+                self.rpc_server.task_progress('Updating haproxy config on deployment %s' % deployment_name, ticket_id)
 
             deployment = yield self.dep_controller.get(deployment_name)
 
@@ -249,6 +252,9 @@ class HaproxyPlugin(Plugin):
 
             logger.info('Containers updated: dumping haproxy config.')
 
+            if ticket_id:
+                self.rpc_server.task_progress('updated %s - OK' % deployment_name, ticket_id)
+
             yield haproxy.rebuild()
 
     @inlineCallbacks
@@ -258,12 +264,12 @@ class HaproxyPlugin(Plugin):
         :type service: mcloud.service.Service
         :return:
         """
-
-        if not service.name != 'mcloud_haproxy' and service.is_web() or service.is_ssl():
+        print 'Service start', service
+        if service.name != 'mcloud_haproxy' and (service.is_web() or service.is_ssl()):
             if ticket_id:
                 self.rpc_server.task_progress('Updating haproxy config', ticket_id)
 
-            yield self.rebuild_haproxy()
+            yield self.rebuild_haproxy(ticket_id=ticket_id)
 
     @inlineCallbacks
     def on_domain_publish(self, deployment, domain, ticket_id=None):
