@@ -1,16 +1,15 @@
 from __future__ import print_function
 
-import os
-import sys
-import imp
-
 from setuptools import setup, find_packages
 
 # See here for more options:
 # <http://pythonhosted.org/setuptools/setuptools.html>
+
+mcloud_version = '0.10.12'
+
 setup(
     name='mcloud-plugin-haproxy',
-    version='0.1',
+    version=mcloud_version,
     author='Alex Rudakov',
     author_email='ribozz@gmail.com',
     maintainer='Alex Rudakov',
@@ -38,7 +37,8 @@ setup(
     ],
     py_modules=['mcloud_haproxy'],
     install_requires=[
-        'mcloud',
+        'mcloud>=%s' % mcloud_version,
+        'jinja2',
         'PyYAML'
     ],
 

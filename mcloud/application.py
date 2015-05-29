@@ -90,7 +90,7 @@ class Application(object):
 
 
             if need_details:
-                defer.returnValue(self._details(yaml_config))
+                defer.returnValue(self._details(yaml_config, deployment))
             else:
                 defer.returnValue(yaml_config)
 
@@ -101,7 +101,7 @@ class Application(object):
 
 
 
-    def _details(self, app_config):
+    def _details(self, app_config, deployment):
         is_running = True
         status = 'RUNNING'
         errors = []
@@ -161,7 +161,7 @@ class Application(object):
 
         return {
             'name': self.name,
-            'deployment': self.config['deployment'] if 'deployment' in self.config and self.config['deployment'] else None,
+            'deployment': deployment.name,
             'hosts': app_config.hosts,
             'volumes': app_config.get_volumes(),
             'fullname': '%s.%s' % (self.name, self.dns_search_suffix),
@@ -318,8 +318,10 @@ class ApplicationController(object):
         for name, config_raw in deps.items():
             try:
                 dep_dta = json.loads(config_raw)
+
                 if 'exports' in dep_dta:
-                    for dep in dep_dta['exports']:
+                    for domain_name, dep in dep_dta['exports'].items():
+
                         if 'public_app' in dep and dep['public_app']:
                             if not dep['public_app'] in pub_apps:
                                 pub_apps[dep['public_app']] = []
@@ -328,7 +330,7 @@ class ApplicationController(object):
                                 dep['custom_port'] = None
 
                             pub_apps[dep['public_app']].append({
-                                'url': dep['name'],
+                                'url': domain_name,
                                 'port': dep['custom_port'],
                                 'service': dep['public_service'] if 'public_service' in dep else None
                             })

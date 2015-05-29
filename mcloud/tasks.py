@@ -927,7 +927,7 @@ class TaskService(object):
         defer.returnValue(deployment is None)
 
     @inlineCallbacks
-    def task_publish(self, ticket_id, deployment_name, domain_name, app_name, service_name, custom_port=None):
+    def task_publish(self, ticket_id, domain_name, app_name, service_name, custom_port=None):
         """
         Publish application URL.
 
@@ -936,13 +936,16 @@ class TaskService(object):
         :param app_name:
         :return:
         """
-        yield self.deployment_controller.publish_app(deployment_name, domain_name, app_name, service_name, custom_port)
+        app = yield self.app_controller.get(app_name)
+        deployment = yield app.get_deployment()
+
+        yield self.deployment_controller.publish_app(deployment, domain_name, app_name, service_name, custom_port, ticket_id=ticket_id)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)
 
     @inlineCallbacks
-    def task_unpublish(self, ticket_id, deployment_name):
+    def task_unpublish(self, ticket_id, domain_name, app_name):
         """
         Unpublish URL
 
@@ -950,8 +953,10 @@ class TaskService(object):
         :param deployment_name:
         :return:
         """
+        app = yield self.app_controller.get(app_name)
+        deployment = yield app.get_deployment()
 
-        yield self.deployment_controller.unpublish_app(deployment_name)
+        yield self.deployment_controller.unpublish_app(deployment, domain_name, ticket_id=ticket_id)
 
         ret = yield self.app_controller.list()
         defer.returnValue(ret)

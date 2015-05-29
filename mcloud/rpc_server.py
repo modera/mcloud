@@ -120,15 +120,15 @@ def entry_point():
         server = Server(port=settings.websocket_port)
         server.bind()
 
-        # load plugins
-        for ep in pkg_resources.iter_entry_points(group='mcloud_plugins'):
-            plugin_class = ep.load()
+        try:
+            # load plugins
+            for ep in pkg_resources.iter_entry_points(group='mcloud_plugins'):
+                plugin_class = ep.load()
 
-            log.msg('=' * 80)
-            log.msg('Loading plugin %s' % plugin_class)
-            log.msg('-' * 80)
+                log.msg('=' * 80)
+                log.msg('Loading plugin %s' % plugin_class)
+                log.msg('-' * 80)
 
-            try:
                 yield verifyClass(IMcloudPlugin, plugin_class)
 
                 plugin = plugin_class()
@@ -138,17 +138,17 @@ def entry_point():
 
                 print "Loaded %s - OK" % plugin_class
 
-            except Exception as e:
-                print '!-' * 40
-                print "Exception during load of plugin: %s:" % plugin_class
-                print e.__class__.__name__
-                print e
-                print(traceback.format_exc())
-                print '!-' * 40
+        except Exception as e:
+            print '!-' * 40
+            print e.__class__.__name__
+            print e
+            print(traceback.format_exc())
+            print '!-' * 40
 
-                reactor.stop()
+            reactor.stop()
 
             log.msg('=' * 80)
+
 
         log.msg('-' * 80)
         log.msg('All plugins loaded.')

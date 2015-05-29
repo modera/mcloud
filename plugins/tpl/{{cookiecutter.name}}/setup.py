@@ -1,20 +1,28 @@
 from __future__ import print_function
 
-mcloud_version = '0.10.10'
+import os
+import sys
+import imp
+
+metadata = imp.load_source(
+    'metadata', os.path.join('../../mcloud', 'metadata.py'))
 
 from setuptools import setup, find_packages
 
 # See here for more options:
 # <http://pythonhosted.org/setuptools/setuptools.html>
+
+mcloud_version = '{{cookiecutter.version}}'
+
 setup(
-    name='mcloud-plugin-simple-publish',
+    name='mcloud-plugin-{{cookiecutter.name}}',
     version=mcloud_version,
     author='Alex Rudakov',
     author_email='ribozz@gmail.com',
     maintainer='Alex Rudakov',
     maintainer_email='ribozz@gmail.com',
     url='mcloud.io',
-    description='Very simple mechanism to publish application using docker-proxy',
+    description='{{cookiecutter.name}} mcloud plugin',
     long_description=open('README.rst').read(),
 
     classifiers=[
@@ -34,14 +42,15 @@ setup(
         'Topic :: System :: Installation/Setup',
         'Topic :: System :: Software Distribution',
     ],
-    py_modules=['mcloud_simple_publish'],
+    py_modules=['mcloud_{{cookiecutter.name}}'],
     install_requires=[
         'mcloud==%s' % mcloud_version,
+        'PyYAML'
     ],
 
     entry_points={
         'mcloud_plugins': [
-            'simple_publish = mcloud_simple_publish:SimplePublishPlugin'
+            '{{cookiecutter.name}} = mcloud_{{cookiecutter.name}}:{{cookiecutter.name|capitalize}}Plugin'
         ]
     }
 )
