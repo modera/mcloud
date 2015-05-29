@@ -272,7 +272,8 @@ class HaproxyPlugin(Plugin):
             if ticket_id:
                 self.rpc_server.task_progress('Updating haproxy config', ticket_id)
 
-            yield self.rebuild_haproxy(deployments=[app.get_deployment()], ticket_id=ticket_id)
+            deployment = yield app.get_deployment()
+            yield self.rebuild_haproxy(deployments=[deployment.name], ticket_id=ticket_id)
 
     @inlineCallbacks
     def on_domain_publish(self, deployment, domain, ticket_id=None):
