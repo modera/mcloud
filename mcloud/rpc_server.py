@@ -39,6 +39,13 @@ class SslConfiguration(Configuration):
     cert = '/etc/mcloud/server.crt'
     ca = '/etc/mcloud/ca.crt'
 
+class RedisConfiguration(Configuration):
+    host = 'localhost'
+    port = 6379
+    password = None
+    dbid = 1
+    timeout = 3
+
 class McloudConfiguration(Configuration):
     haproxy = False
     web = True
@@ -52,6 +59,8 @@ class McloudConfiguration(Configuration):
     dns_search_suffix = 'mcloud.lh'
 
     ssl = SslConfiguration()
+
+    redis = RedisConfiguration()
 
     home_dir = '/root/.mcloud'
     btrfs = False
@@ -176,7 +185,17 @@ def entry_point():
         print('Can not connect to redis!')
         reactor.stop()
 
-    txtimeout(txredisapi.Connection(dbid=1), 3, timeout).addCallback(run_server)
+    print '*******'
+    print 'Connecting redis:'
+    print settings.redis
+    print '*******'
+
+    txtimeout(txredisapi.Connection(
+        dbid=settings.redis.dbid,
+        host=settings.redis.host,
+        port=settings.redis.port,
+        password=settings.redis.password
+    ), settings.redis.timeout, timeout).addCallback(run_server)
 
     reactor.run()
 

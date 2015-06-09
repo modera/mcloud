@@ -588,15 +588,23 @@ class ApiRpcClient(object):
 
         deployment_info = yield self._remote_exec('deployment_info', name=deployment)
 
-        if not deployment:
-            deployment = deployment_info['name']
+        if deployment_info:
+            if not deployment:
+                deployment = deployment_info['name']
 
-        print deployment_info
+            print deployment_info
 
-        if not deployment_info['local']:
-            yield self._remote_exec('init', app, config=config.export(), env=env, deployment=deployment)
+            if not deployment_info['local']:
+                yield self._remote_exec('init', app, config=config.export(), env=env, deployment=deployment)
+            else:
+                yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export(), deployment=deployment)
+
         else:
-            yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export(), deployment=deployment)
+            print('There is no deployments configured yet.\n\n'
+                  'You can create new local deployment using following command:\n'
+                  '\n  $ mcloud deployment-create local\n\n')
+
+            reactor.stop()
 
     def represent_ordereddict(self, dumper, data):
         value = []
@@ -844,7 +852,7 @@ class ApiRpcClient(object):
         arg('ip_host', help='Deployment docker host', default=None, nargs='?'),
         arg('--port', help='Deployment docker port', default=None),
         arg('--tls', default=False, action='store_true', help='Use tls protocol'),
-        arg('--remote', default=False, dest='local', action='store_false', help='Deployment is remote'),
+        arg('--remote', default=True, dest='local', action='store_false', help='Deployment is remote'),
     ))
     @inlineCallbacks
     def deployment_create(self, deployment, ip_host=None,  port=None, tls=None, local=True, **kwargs):
