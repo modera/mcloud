@@ -1,14 +1,17 @@
-
-
+from OpenSSL.crypto import FILETYPE_PEM
 import re
+from twisted.internet import ssl
+from twisted.internet._sslverify import optionsForClientTLS, PrivateCertificate, KeyPair
 from twisted.internet.endpoints import UNIXClientEndpoint
-from twisted.web.client import Agent, _URI
+from twisted.web.client import Agent, _URI, BrowserLikePolicyForHTTPS, _requireSSL
 
 from treq.client import HTTPClient
 from treq._utils import default_pool, default_reactor
 
 from treq.content import collect, content, text_content, json_content
 from twisted.web.error import PageRedirect
+from twisted.web.iweb import IPolicyForHTTPS
+from zope.interface import implementer
 
 
 class UNIXAwareHttpClient(HTTPClient):
@@ -16,7 +19,81 @@ class UNIXAwareHttpClient(HTTPClient):
         return super(UNIXAwareHttpClient, self).request(method, url, **kwargs)
 
 
+class CtxFactory(ssl.ClientContextFactory):
+
+    def __init__(self, key, crt):
+        self.key = key
+        self.crt = crt
+
+    def getContext(self):
+        from OpenSSL import SSL
+
+        self.method = SSL.SSLv23_METHOD
+        ctx = ssl.ClientContextFactory.getContext(self)
+        ctx.use_certificate_file(self.crt)
+        ctx.use_privatekey_file(self.key)
+
+        return ctx
+
+
+@implementer(IPolicyForHTTPS)
+class BrowserLikeTLSPolicyForHTTPS(object):
+    """
+    SSL connection creator for web clients.
+    """
+    def __init__(self, key, crt):
+        self._trustRoot = None
+        self.key = key
+        self.crt = crt
+
+    @_requireSSL
+    def creatorForNetloc(self, hostname, port):
+        """
+        Create a L{client connection creator
+        <twisted.internet.interfaces.IOpenSSLClientConnectionCreator>} for a
+        given network location.
+
+        @param tls: The TLS protocol to create a connection for.
+        @type tls: L{twisted.protocols.tls.TLSMemoryBIOProtocol}
+
+        @param hostname: The hostname part of the URI.
+        @type hostname: L{bytes}
+
+        @param port: The port part of the URI.
+        @type port: L{int}
+
+        @return: a connection creator with appropriate verification
+            restrictions set
+        @rtype: L{client connection creator
+            <twisted.internet.interfaces.IOpenSSLClientConnectionCreator>}
+        """
+
+
+        print self.key
+
+        cert = PrivateCertificate.fromCertificateAndKeyPair(self.crt, KeyPair.load(self.key, format=FILETYPE_PEM))
+
+
+
+        return optionsForClientTLS(hostname.decode("ascii"),
+                                   trustRoot=self._trustRoot, clientCertificate=cert)
+
 class UNIXAwareHttpAgent(Agent):
+
+    def __init__(self, reactor, connectTimeout=None, bindAddress=None,
+                 pool=None, key=None, crt=None, **kwargs):
+
+        print key, crt
+
+        contextFactory = BrowserLikeTLSPolicyForHTTPS(key, crt)
+        super(UNIXAwareHttpAgent, self).__init__(reactor, contextFactory, connectTimeout, bindAddress, pool)
+    #
+    # def _getEndpoint(self, scheme, host, port):
+    #     endpoint = super(UNIXAwareHttpAgent, self)._getEndpoint(scheme, host, port)
+    #
+    #     if isinstance()
+    #
+    #     return endpoint
 
     def request(self, method, uri, headers=None, bodyProducer=None, follow_redirects=2):
         """
@@ -85,7 +162,7 @@ def put(url, data=None, **kwargs):
 
     See :py:func:`treq.request`
     """
-    return _client(**kwargs).put(url, data=data, **kwargs)
+    return _client(key=None, crt=None,**kwargs).put(url, data=data, **kwargs)
 
 
 def patch(url, data=None, **kwargs):
@@ -151,5 +228,5 @@ def _client(*args, **kwargs):
                         kwargs.get('pool'),
                         persistent=False)
                         #kwargs.get('persistent'))
-    agent = UNIXAwareHttpAgent(reactor, pool=pool)
+    agent = UNIXAwareHttpAgent(reactor, pool=pool, **kwargs)
     return UNIXAwareHttpClient(agent)

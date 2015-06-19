@@ -1,10 +1,13 @@
+from glob import glob
 import logging
+import os
 import sys
 import netifaces
 from traceback import print_tb
 import traceback
 
 import inject
+from mcloud.deployment import DeploymentController
 from mcloud.plugin import IMcloudPlugin
 import pkg_resources
 from twisted.internet import reactor
@@ -89,6 +92,91 @@ def entry_point():
 
     if args.no_ssl:
         settings.ssl.enabled = False
+
+    @inlineCallbacks
+    def configure_docker_machine():
+        deployment_controller = inject.instance(DeploymentController)
+        """
+        @type deployment_controller: DeploymentController
+        """
+        print '-' * 40
+        print 'Configuring docker-machine deployment'
+        deployments = yield deployment_controller.list()
+
+
+        name = os.environ.get('DOCKER_MACHINE_NAME', 'local')
+        if len(deployments) > 0:
+            deployment = yield deployment_controller.get(name)
+        else:
+            deployment = None
+
+        host = os.environ.get('DOCKER_HOST', None)
+        if '*' in host:
+            import netinfo
+            host_ip = None
+            for route in netinfo.get_routes():
+                if route['dest'] == '0.0.0.0':  # default route
+                    host_ip = route['gateway']
+            if not host_ip:
+                reactor.stop()
+                print('ERROR: Can not get default route - can not connect to Docker')
+
+            host = host.replace('*', host_ip)
+
+        if os.environ.get('DOCKER_TLS_VERIFY', None) == '1':
+            tls = True
+            path = os.environ.get('DOCKER_CERT_PATH', None)
+            if not path:
+                reactor.stop()
+                print('ERROR: Can not find certificates - can not connect to Docker')
+
+            gpaths = glob(path)
+            if not gpaths:
+                reactor.stop()
+                print('ERROR: Can not find certificates - can not connect to Docker')
+
+            path = gpaths[0]
+
+            files = {
+                'ca': None,
+                'cert': None,
+                'key': None,
+            }
+            for fname in files.keys():
+                with open('%s/%s.pem' % (path, fname)) as f:
+                    files[fname] = f.read()
+        else:
+            tls = False
+            files = {}
+
+        if ':' in host:
+            split = host.split(':')
+            host, port = ':'.join(split[:-1]), split[-1]
+        else:
+            port = None
+
+        if deployment:
+            print 'Updating deployment %s' % name
+            yield deployment_controller.update(
+                name=name,
+                host=host,
+                port=port,
+                tls=tls,
+                local=True,
+                **files
+            )
+        else:
+            print 'Creating new deployment %s' % name
+            yield deployment_controller.create(
+                name=name,
+                host=host,
+                port=port,
+                tls=tls,
+                local=True,
+                **files
+            )
+            yield deployment_controller.set_default(name)
+        print '-' * 40
 
     @inlineCallbacks
     def run_server(redis):
@@ -179,7 +267,11 @@ def entry_point():
         # log.msg('Listen metrics')
         # MetricsPlugin()
 
+        if os.environ.get('MCLOUD_USE_DOCKER_MACHINE', None) == '1':
+            yield configure_docker_machine()
+
         log.msg('Started.')
+
 
     def timeout():
         print('Can not connect to redis!')
