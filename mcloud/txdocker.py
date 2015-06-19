@@ -53,11 +53,12 @@ class DockerTwistedClient(object):
     def task_stdout(self, ticket_id, data):
         self.rpc_server.task_stdout(data, ticket_id)
 
-    def __init__(self, url=None, key=None, crt=None):
+    def __init__(self, url=None, key=None, crt=None, ca=None):
         super(DockerTwistedClient, self).__init__()
 
         self.crt = crt
         self.key = key
+        self.ca = ca
 
         self.url = url + '/'
 
@@ -68,7 +69,7 @@ class DockerTwistedClient(object):
         else:
             url_ = url
 
-        d = method(url_, timeout=30, key=self.key, crt=self.crt, **kwargs)
+        d = method(url_, timeout=30, key=self.key, crt=self.crt, ca=self.ca, **kwargs)
 
         def error(failure):
             if hasattr(failure.value, 'reasons'):

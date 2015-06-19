@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 # See here for more options:
 # <http://pythonhosted.org/setuptools/setuptools.html>
 
-mcloud_version = '0.10.13'
+mcloud_version = '0.10.14'
 
 setup(
     name='mcloud-plugin-browser-auto-open',

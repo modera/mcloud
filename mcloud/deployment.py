@@ -102,9 +102,12 @@ class Deployment(object):
         if scheme == 'tcp':
             scheme = 'https' if self.tls else 'http'
             port = self.port or '2375'
-            url = '%s://%s:%s' % (scheme, self.host, port)
+            url = '%s://%s:%s' % (scheme, host, port)
 
-        self.client = DockerTwistedClient(url=url.encode(), key=self.key, crt=self.cert)
+
+            print url
+
+        self.client = DockerTwistedClient(url=url.encode(), key=self.key, crt=self.cert, ca=self.ca)
         return self.client
 
 

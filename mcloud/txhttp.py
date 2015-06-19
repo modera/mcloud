@@ -1,7 +1,7 @@
 from OpenSSL.crypto import FILETYPE_PEM
 import re
 from twisted.internet import ssl
-from twisted.internet._sslverify import optionsForClientTLS, PrivateCertificate, KeyPair
+from twisted.internet._sslverify import optionsForClientTLS, PrivateCertificate, KeyPair, Certificate, _tolerateErrors
 from twisted.internet.endpoints import UNIXClientEndpoint
 from twisted.web.client import Agent, _URI, BrowserLikePolicyForHTTPS, _requireSSL
 
@@ -41,10 +41,14 @@ class BrowserLikeTLSPolicyForHTTPS(object):
     """
     SSL connection creator for web clients.
     """
-    def __init__(self, key, crt):
+    def __init__(self, key, crt, ca):
         self._trustRoot = None
         self.key = key
         self.crt = crt
+        self.ca = ca
+
+    def _identityVerifyingInfoCallback(self, connection, where, ret):
+        pass
 
     @_requireSSL
     def creatorForNetloc(self, hostname, port):
@@ -68,24 +72,26 @@ class BrowserLikeTLSPolicyForHTTPS(object):
             <twisted.internet.interfaces.IOpenSSLClientConnectionCreator>}
         """
 
+        key_pair = KeyPair.load(self.key, format=FILETYPE_PEM)
+        cert = PrivateCertificate.fromCertificateAndKeyPair(Certificate.loadPEM(self.crt), key_pair)
 
-        print self.key
+        authority = ssl.Certificate.loadPEM(self.ca)
 
-        cert = PrivateCertificate.fromCertificateAndKeyPair(self.crt, KeyPair.load(self.key, format=FILETYPE_PEM))
+        options = optionsForClientTLS(hostname.decode("ascii"), authority, clientCertificate=cert)
 
-
-
-        return optionsForClientTLS(hostname.decode("ascii"),
-                                   trustRoot=self._trustRoot, clientCertificate=cert)
+        # bypass hostname verification
+        # options._identityVerifyingInfoCallback = self._identityVerifyingInfoCallback
+        options._ctx.set_info_callback(
+            _tolerateErrors(self._identityVerifyingInfoCallback)
+        )
+        return options
 
 class UNIXAwareHttpAgent(Agent):
 
     def __init__(self, reactor, connectTimeout=None, bindAddress=None,
-                 pool=None, key=None, crt=None, **kwargs):
+                 pool=None, key=None, crt=None, ca=None, **kwargs):
 
-        print key, crt
-
-        contextFactory = BrowserLikeTLSPolicyForHTTPS(key, crt)
+        contextFactory = BrowserLikeTLSPolicyForHTTPS(key, crt, ca)
         super(UNIXAwareHttpAgent, self).__init__(reactor, contextFactory, connectTimeout, bindAddress, pool)
     #
     # def _getEndpoint(self, scheme, host, port):
