@@ -893,6 +893,9 @@ class TaskService(object):
         else:
             deployment = yield self.deployment_controller.get_default()
 
+        if not deployment:
+            defer.returnValue(None)
+
         data = yield deployment.load_data()
 
         defer.returnValue(data)
@@ -903,6 +906,9 @@ class TaskService(object):
         app = yield self.app_controller.get(name=name)
         deployment = yield app.get_deployment()
 
+        if not deployment:
+            defer.returnValue(None)
+
         data = yield deployment.load_data()
 
         defer.returnValue(data)
@@ -910,6 +916,10 @@ class TaskService(object):
     @inlineCallbacks
     def task_deployment_create(self, ticket_id, **kwargs):
         deployment = yield self.deployment_controller.create(**kwargs)
+        deployments = yield self.deployment_controller.list()
+        if len(deployments) == 1:
+            yield self.deployment_controller.set_default(deployment.name)
+            
         defer.returnValue(not deployment is None)
 
     @inlineCallbacks

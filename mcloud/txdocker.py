@@ -53,11 +53,11 @@ class DockerTwistedClient(object):
     def task_stdout(self, ticket_id, data):
         self.rpc_server.task_stdout(data, ticket_id)
 
-    def __init__(self, url=None):
+    def __init__(self, url=None, key=None, crt=None):
         super(DockerTwistedClient, self).__init__()
 
-        if url is None:
-            url = os.environ.get('DOCKER_API_URL', 'unix://var/run/docker.sock/')
+        self.crt = crt
+        self.key = key
 
         self.url = url + '/'
 
@@ -68,7 +68,7 @@ class DockerTwistedClient(object):
         else:
             url_ = url
 
-        d = method(url_, timeout=30, **kwargs)
+        d = method(url_, timeout=30, key=self.key, crt=self.crt, **kwargs)
 
         def error(failure):
             if hasattr(failure.value, 'reasons'):

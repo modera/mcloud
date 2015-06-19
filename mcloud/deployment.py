@@ -27,7 +27,17 @@ class IDeploymentPublishListener(Interface):
 
 class Deployment(object):
 
-    def __init__(self, name=None, exports=None, host=None, local=True, port=None, tls=False, ca=None, cert=None, key=None, default=None, **kwargs):
+    def __init__(self,
+                 name=None,
+                 exports=None,
+                 host=None,
+                 local=True,
+                 port=None,
+                 tls=False,
+                 ca=None,
+                 cert=None,
+                 key=None,
+                 default=None, **kwargs):
         super(Deployment, self).__init__()
 
         # "default" is ignored
@@ -77,12 +87,24 @@ class Deployment(object):
 
         if self.local:
             url = self.host
+
+        if '://' in self.host:
+            scheme, host = self.host.split('://')
         else:
+            scheme = 'tcp'
+            host = self.host
+
+        if ':' in host:
+            host, port = host.split(':')
+        else:
+            port = self.port
+
+        if scheme == 'tcp':
             scheme = 'https' if self.tls else 'http'
             port = self.port or '2375'
             url = '%s://%s:%s' % (scheme, self.host, port)
 
-        self.client = DockerTwistedClient(url=url.encode())
+        self.client = DockerTwistedClient(url=url.encode(), key=self.key, crt=self.cert)
         return self.client
 
 
