@@ -268,7 +268,7 @@ class Server(object):
         """
         Start listening on the port specified
         """
-        factory = WebSocketServerFactory("wss://localhost:%s/ws" % self.port, debug=False)
+        factory = WebSocketServerFactory(debug=False)
         factory.noisy = False
         factory.server = self
         factory.protocol = MdcloudWebsocketServerProtocol
