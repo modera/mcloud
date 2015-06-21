@@ -1,9 +1,9 @@
 
-from fabric.context_managers import lcd, settings
-from fabric.operations import local, os, run, sudo
+from fabfile.context_managers import lcd, settings
+from fabfile.operations import local, os, run, sudo
 
 from cookiecutter.main import cookiecutter
-from fabric.state import env
+from fabfile.state import env
 from mcloud.version import version
 
 env.hosts = ['root@dev1.cloud.modera.org']

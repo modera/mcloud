@@ -249,27 +249,10 @@ def entry_point():
 
             log.msg('=' * 80)
 
-
         log.msg('-' * 80)
         log.msg('All plugins loaded.')
         log.msg('=' * 80)
 
-
-
-        # HostsPlugin()
-
-        # InternalApiPlugin()
-
-        # log.msg('Listen dns on ip %s:53' % settings.dns_ip)
-        # listen_dns(settings.dns_search_suffix, settings.dns_ip, settings.dns_port)
-
-        # if settings.web:
-        #     log.msg('Start internal web server')
-        #     reactor.listenTCP(8080, Site(mcloud_web()), interface=dns_server_ip)
-        #     listen_web(settings)
-
-        # log.msg('Listen metrics')
-        # MetricsPlugin()
 
         if os.environ.get('MCLOUD_USE_DOCKER_MACHINE', None) == '1':
             yield configure_docker_machine()

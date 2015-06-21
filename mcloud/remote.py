@@ -273,7 +273,7 @@ class Server(object):
         factory.server = self
         factory.protocol = MdcloudWebsocketServerProtocol
 
-        web_resource = File(resource_filename(__name__, 'static/'))
+        web_resource = File(resource_filename(__name__, 'static/build/client'))
         try:
 
             rootResource = WSGIRootResource(web_resource, {'ws': WebSocketResource(factory)})

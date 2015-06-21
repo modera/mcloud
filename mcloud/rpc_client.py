@@ -190,9 +190,15 @@ class ClientProcessInterruptHandler(object):
 
 
 class ApiRpcClient(object):
-    def __init__(self, host='127.0.0.1', port=7080, settings=None):
+    def __init__(self, host='127.0.0.1', settings=None):
+
+        if ':' in host:
+            host, port = host.split(':')
+        else:
+            port = 7080
+
         self.host = host
-        self.port = port
+        self.port = int(port)
         self.settings = settings
 
         self.current_client = None
@@ -210,7 +216,7 @@ class ApiRpcClient(object):
     def _remote_exec(self, task_name, *args, **kwargs):
         from mcloud.remote import Client, Task
 
-        client = Client(host=self.host, settings=self.settings)
+        client = Client(host=self.host, port=self.port, settings=self.settings)
         self.current_client = client
 
         yield txtimeout(client.connect(), 20, 'Can\'t connect to the server on host %s' % self.host)
@@ -574,7 +580,7 @@ class ApiRpcClient(object):
         arg('--config', help='Config to use', default=None),
     ))
     @inlineCallbacks
-    def init(self, ref, path, config=None, env=None, deployment=None, **kwargs):
+    def init(self, ref, path, config=None, env=None, deployment=None, sync=False, **kwargs):
 
         app, service = self.parse_app_ref(ref, kwargs, app_only=True)
 
@@ -592,10 +598,10 @@ class ApiRpcClient(object):
             if not deployment:
                 deployment = deployment_info['name']
 
-            print deployment_info
-
             if not deployment_info['local']:
                 yield self._remote_exec('init', app, config=config.export(), env=env, deployment=deployment)
+                if sync:
+                    yield self.sync(os.path.realpath(path), '%s@%s' % (app, self.host), no_remove=False, force=True, full=True)
             else:
                 yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export(), deployment=deployment)
 
@@ -722,8 +728,7 @@ class ApiRpcClient(object):
             app_instance = yield self.get_app(app)
 
             if not app_instance:
-                yield self.init(app, os.getcwd(), env=env, deployment=deployment)
-                yield self.sync(os.getcwd(), '%s@%s' % (app, self.host), no_remove=False, force=True, full=True)
+                yield self.init(app, os.getcwd(), env=env, deployment=deployment, sync=True)
 
 
         data = yield self._remote_exec('start', self.format_app_srv(app, service))
