@@ -104,9 +104,6 @@ class Deployment(object):
             port = self.port or '2375'
             url = '%s://%s:%s' % (scheme, host, port)
 
-
-            print url
-
         self.client = DockerTwistedClient(url=url.encode(), key=self.key, crt=self.cert, ca=self.ca)
         return self.client
 

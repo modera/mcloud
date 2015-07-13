@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import signal
 import traceback
@@ -88,7 +89,7 @@ def main(argv):
 
             @inlineCallbacks
             def call_command():
-                client = ApiRpcClient(host=args.host or '127.0.0.1', settings=settings)
+                client = ApiRpcClient(host=args.host or os.environ.get('MCLOUD_HOST') or '127.0.0.1', settings=settings)
                 interrupt_manager.append(ClientProcessInterruptHandler(client))
 
                 try:

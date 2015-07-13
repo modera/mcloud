@@ -647,7 +647,6 @@ class TaskService(object):
                             self.task_log(ticket_id, 'Container still up. Continue execution.')
                     else:
                         sleep_time = 0.5
-                        print event
                         if 'my_args' in event and len(event['my_args']) == 2:
                             if event['my_args'][0] == 'in':
                                 match = re.match('^([0-9]+)s$', event['my_args'][1])
