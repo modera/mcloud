@@ -123,6 +123,7 @@ setup(
         # core plugins
         'mcloud_plugins': [
             'hosts = mcloud.plugins.hosts:HostsPlugin',
+            'dns = mcloud.plugins.dns:DnsPlugin',
         ]
     },
     include_package_data = True,

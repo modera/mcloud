@@ -99,6 +99,7 @@ def entry_point():
     @inlineCallbacks
     def configure_docker_machine():
         deployment_controller = inject.instance(DeploymentController)
+        host_ip = inject.instance('host-ip')
         """
         @type deployment_controller: DeploymentController
         """
@@ -115,14 +116,6 @@ def entry_point():
 
         host = os.environ.get('DOCKER_HOST', None)
         if '*' in host:
-            import netinfo
-            host_ip = None
-            for route in netinfo.get_routes():
-                if route['dest'] == '0.0.0.0':  # default route
-                    host_ip = route['gateway']
-            if not host_ip:
-                reactor.stop()
-                print('ERROR: Can not get default route - can not connect to Docker')
 
             host = host.replace('*', host_ip)
 
@@ -181,6 +174,21 @@ def entry_point():
             yield deployment_controller.set_default(name)
         print '-' * 40
 
+    def resolve_host_ip():
+
+        if 'docker0' in netifaces.interfaces():
+            return netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
+        else:
+            import netinfo
+            host_ip = None
+            for route in netinfo.get_routes():
+                if route['dest'] == '0.0.0.0':  # default route
+                    host_ip = route['gateway']
+            if not host_ip:
+                reactor.stop()
+                print('ERROR: Can not get default route - can not connect to Docker')
+            return host_ip
+
     @inlineCallbacks
     def run_server(redis):
 
@@ -199,13 +207,15 @@ def entry_point():
 
         plugins_loaded = []
 
+
+
         def my_config(binder):
             binder.bind(txredisapi.Connection, redis)
             binder.bind(EventBus, eb)
 
             binder.bind('settings', settings)
 
-            # binder.bind('dns-server', netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr'])
+            binder.bind('host-ip', resolve_host_ip())
             binder.bind('dns-search-suffix', settings.dns_search_suffix)
             binder.bind('plugins', plugins_loaded)
 
