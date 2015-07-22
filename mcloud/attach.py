@@ -1,5 +1,6 @@
 from base64 import b64encode, b64decode
 import pty
+
 from twisted.internet import defer
 from twisted.internet.protocol import Factory, ClientFactory
 from twisted.protocols import basic
@@ -32,7 +33,6 @@ import struct
 from twisted.internet.protocol import Protocol
 
 
-
 class Terminal(object):
     """
     Terminal provides wrapper functionality to temporarily make the tty raw.
@@ -58,7 +58,6 @@ class Terminal(object):
         self.raw = raw
         self.original_attributes = None
 
-
     def __enter__(self):
         """
         Invoked when a `with` block is first entered.
@@ -66,7 +65,6 @@ class Terminal(object):
 
         self.start()
         return self
-
 
     def __exit__(self, *_):
         """
@@ -106,7 +104,6 @@ class Terminal(object):
             self.original_attributes = termios.tcgetattr(self.fd)
             tty.setraw(self.fd)
 
-
     def stop(self):
         """
         Restores the terminal attributes back to before setting raw mode.
@@ -132,8 +129,8 @@ from twisted.internet import stdio, reactor
 from twisted.protocols import basic
 from twisted.web import client
 
-class AttachStdinProtocol(Protocol):
 
+class AttachStdinProtocol(Protocol):
     def __init__(self):
         self.listener = None
         self.term = Terminal(sys.stdin, raw=True)
@@ -163,33 +160,47 @@ class AttachStdinProtocol(Protocol):
 
 
 class Attach(basic.LineReceiver):
-
     def __init__(self, finnished, container_id):
         self.finished = finnished
         self.container_id = container_id
 
     def connectionMade(self):
         """ """
-        self.transport.write('POST /containers/%s/attach?logs=1&stream=1&stdout=1&stdin=1 HTTP/1.1\r\n' % str(self.container_id))
+        print 'Attach Connected!'
+        self.transport.write(
+            'POST /v1.18/containers/%s/attach?logs=1&stream=1&stdout=1&stdin=1 HTTP/1.1\r\n' % str(self.container_id))
+        self.transport.write('Connection: Upgrade\r\n')
+        self.transport.write('Upgrade: tcp\r\n')
         self.transport.write('\r\n')
 
     def rawDataReceived(self, data):
+        print 'in', data
         self.stdout_write(b64encode(data))
 
     def lineReceived(self, line):
+        print 'inline', line
         if line.strip() == '':
+
+            print 'Raw mode started'
             self.setRawMode()
 
+            self.transport.write("\r\n")
+            self.transport.write("hoho\r\n")
+
     def stdin_on_input(self, data):
+        print 'out', data
         self.transport.write(b64decode(data))
 
     def stdout_write(self, data):
+        print data
         pass
 
     def connectionLost(self, reason):
 
         # from twisted.internet.error import ConnectionDone
         # basic.LineReceiver.connectionLost(self, reason)
+
+        print 'Attach disconnected: ', reason
 
         if reason.check(PotentialDataLoss):
             # http://twistedmatrix.com/trac/ticket/4840
@@ -200,6 +211,7 @@ class Attach(basic.LineReceiver):
 
 class AttachFactory(ClientFactory):
     """ file sender factory """
+
     def __init__(self, protocol):
         """ """
         self.protocol = protocol
@@ -212,21 +224,27 @@ class AttachFactory(ClientFactory):
 
 
 def attach_to_container(container_id, docker_uri=None):
-
     with Terminal(sys.stdin, raw=True):
-
         d = defer.Deferred()
 
         stream_proto = AttachStdinProtocol()
 
-        protocol = Attach(d, container_id, stream_proto)
+        protocol = Attach(d, container_id)
         f = AttachFactory(protocol)
-        reactor.connectUNIX('/var/run/docker.sock', f)
+
+
+        from OpenSSL.crypto import load_privatekey, load_certificate, FILETYPE_PEM
+        from ssl import CtxFactory
+        pkey = load_privatekey(FILETYPE_PEM, open('/Users/alex/.docker/machine/machines/dev/key.pem').read())
+        cert = load_certificate(FILETYPE_PEM, open('/Users/alex/.docker/machine/machines/dev/cert.pem').read())
+        reactor.connectSSL('192.168.99.100', 2376, f, CtxFactory(pkey, cert))
+
+        # reactor.connectUNIX('tcp://192.168.99.100:2376', f)
 
         stdio.StandardIO(stream_proto)
 
         reactor.run()
 
-if __name__ == "__main__":
-    attach_to_container('606d')
 
+if __name__ == "__main__":
+    attach_to_container('dc3')

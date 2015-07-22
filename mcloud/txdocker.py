@@ -3,6 +3,7 @@ import json
 import logging
 from urllib import urlencode
 import sys
+from OpenSSL.crypto import PKey, FILETYPE_PEM, load_certificate, load_privatekey
 from mcloud import txhttp
 from mcloud.attach import Attach, AttachFactory, Terminal, AttachStdinProtocol
 
@@ -14,6 +15,7 @@ from mcloud.util import Interface
 import re
 from twisted.conch import stdio
 from twisted.internet import defer, reactor
+from twisted.internet._sslverify import Certificate, KeyPair
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Protocol
 from twisted.protocols import basic
@@ -218,7 +220,26 @@ class DockerTwistedClient(object):
                 self.eb.on('task.stdin.%s' % int(ticket_id), stdin_on_input)
 
             f = AttachFactory(protocol)
-            reactor.connectUNIX('/var/run/docker.sock', f)
+
+            proto, url = self.url.split('://')
+            url = url.strip('/')
+            if ':' in url:
+                host, port = url.split(':')
+            else:
+                host = url
+                port = 2376 if proto == 'https' else 2375
+
+            if proto == 'https':
+                from mcloud.ssl import CtxFactory
+                pkey = load_privatekey(FILETYPE_PEM, self.key)
+                cert = load_certificate(FILETYPE_PEM, self.crt)
+                reactor.connectSSL(host, int(port), f, CtxFactory(pkey, cert))
+            else:
+                if proto == 'unix':
+                    reactor.connectUNIX(host, f)
+                else:
+                    reactor.connectTCP(host, port, f)
+
 
             yield d
 

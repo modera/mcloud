@@ -28,6 +28,7 @@ from mcloud import metadata
 import yaml
 from twisted.internet import reactor
 
+
 def format_epilog():
     """Program entry point.
 
@@ -106,7 +107,6 @@ class LocalCommand(object):
                 yield args.func(**vars(args))
 
 
-
 def load_commands(config):
     """
     :param config:
@@ -115,7 +115,6 @@ def load_commands(config):
     """
 
     for name, command in config.get_commands().items():
-
         cmd_instance = LocalCommand(config, command)
 
         cmd = subparsers.add_parser('*%s' % name, help=command['help'])
@@ -128,8 +127,6 @@ if os.path.exists('mcloud.yml'):
     config.load(process=False)
 
     load_commands(config)
-
-
 
 
 def cli(help_, arguments=None, by_ref=False, name=None):
@@ -165,16 +162,16 @@ def cli(help_, arguments=None, by_ref=False, name=None):
 def arg(*args, **kwargs):
     return args, kwargs
 
+
 class CommandFailedException(Exception):
     pass
 
-class ClientProcessInterruptHandler(object):
 
+class ClientProcessInterruptHandler(object):
     def __init__(self, client):
         super(ClientProcessInterruptHandler, self).__init__()
 
         self.client = client
-
 
     @inlineCallbacks
     def interrupt(self, last=None):
@@ -187,10 +184,21 @@ class ClientProcessInterruptHandler(object):
                 yield sleep(0.05)
 
 
-
-
 class ApiRpcClient(object):
-    def __init__(self, host='127.0.0.1', settings=None):
+    def __init__(self, host=None, settings=None):
+
+        if not host:
+            # manual variable
+            if 'MCLOUD_HOST' in os.environ:
+                host = os.environ['MCLOUD_HOST']
+
+            # automatic when using docker container-link
+            elif 'MCLOUD_PORT' in os.environ:
+                host = os.environ['MCLOUD_PORT']
+                if host.startswith('tcp://'):
+                    host = host[6:]
+            else:
+                host = '127.0.0.1'
 
         if ':' in host:
             host, port = host.split(':')
@@ -210,7 +218,6 @@ class ApiRpcClient(object):
         self.host = host
         yield
         self.host = back
-
 
     @inlineCallbacks
     def _remote_exec(self, task_name, *args, **kwargs):
@@ -233,7 +240,6 @@ class ApiRpcClient(object):
         yield sleep(0.1)
 
         defer.returnValue(res)
-
 
     def print_progress(self, message):
 
@@ -261,7 +267,6 @@ class ApiRpcClient(object):
             else:
                 print(message)
 
-
     @inlineCallbacks
     def _exec_remote_with_pty(self, task_name, *args):
         stream_proto = AttachStdinProtocol()
@@ -269,7 +274,7 @@ class ApiRpcClient(object):
 
         from mcloud.remote import Client, Task
 
-        client = Client(host=self.host, settings=self.settings)
+        client = Client(host=self.host, port=self.port, settings=self.settings)
         try:
             yield txtimeout(client.connect(), 20, 'Can\'t connect to the server on host %s' % self.host)
 
@@ -296,7 +301,6 @@ class ApiRpcClient(object):
 
         finally:
             stream_proto.stop()
-
 
     def print_app_details(self, app):
 
@@ -357,7 +361,6 @@ class ApiRpcClient(object):
 
         return out
 
-
     def print_app_list(self, data):
 
         x = PrettyTable(["Application name", "deployment", "status", "cpu %", "memory", "Web", "Path"], hrules=ALL)
@@ -400,13 +403,13 @@ class ApiRpcClient(object):
                         if not url_.startswith('http://'):
                             url_ = 'http://' + url_
                         if 'service' in target and target['service']:
-                            web += '\n' + '%s -> [%s:%s]' % (url_, target['service'], target['port'] if 'port' in target else '')
+                            web += '\n' + '%s -> [%s:%s]' % (
+                            url_, target['service'], target['port'] if 'port' in target else '')
                         else:
                             if web_service_:
                                 web += '\n' + '%s -> [%s]' % (url_, web_service_)
             else:
                 app_status = '!error!'
-
 
             app_deployment = app['config']['deployment']
             app_path = app['config']['path']
@@ -415,9 +418,6 @@ class ApiRpcClient(object):
                        app_path])
 
         return '\n' + str(x) + '\n'
-
-
-
 
     def format_app_srv(self, app, service):
         if service:
@@ -484,7 +484,6 @@ class ApiRpcClient(object):
         else:
             return app, service
 
-
     @inlineCallbacks
     def get_app(self, app_name):
         ret = yield self._remote_exec('list')
@@ -492,13 +491,11 @@ class ApiRpcClient(object):
             if app['name'] == app_name:
                 defer.returnValue(app)
 
-
     def on_vars_result(self, data):
         x = PrettyTable(["variable", "value"], hrules=ALL)
         for line in data.items():
             x.add_row(line)
         print x
-
 
     def get_volume_config(self, destination):
 
@@ -532,16 +529,15 @@ class ApiRpcClient(object):
     # Overview
     ############################################################
 
-
     @cli('Execute mcloud shell', arguments=(
-        arg('shell', help='Continuously run list command'),
+            arg('shell', help='Continuously run list command'),
     ))
     @inlineCallbacks
     def shell(self, **kwargs):
         pass  # handled without argparser
 
     @cli('List registered applications', arguments=(
-        arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
+            arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
     ))
     @inlineCallbacks
     def list(self, follow=False, **kwargs):
@@ -566,18 +562,17 @@ class ApiRpcClient(object):
             ret = yield self._remote_exec('list')
             _print(ret)
 
-
     ############################################################
     # Application life-cycle
     ############################################################
 
 
     @cli('Creates a new application', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
-        arg('path', help='Path', nargs='?', default='.'),
-        arg('--deployment', help='Deployment', default=None),
-        arg('--env', help='Application environment'),
-        arg('--config', help='Config to use', default=None),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('path', help='Path', nargs='?', default='.'),
+            arg('--deployment', help='Deployment', default=None),
+            arg('--env', help='Application environment'),
+            arg('--config', help='Config to use', default=None),
     ))
     @inlineCallbacks
     def init(self, ref, path, config=None, env=None, deployment=None, sync=False, **kwargs):
@@ -601,9 +596,11 @@ class ApiRpcClient(object):
             if not deployment_info['local']:
                 yield self._remote_exec('init', app, config=config.export(), env=env, deployment=deployment)
                 if sync:
-                    yield self.sync(os.path.realpath(path), '%s@%s' % (app, self.host), no_remove=False, force=True, full=True)
+                    yield self.sync(os.path.realpath(path), '%s@%s' % (app, self.host), no_remove=False, force=True,
+                                    full=True)
             else:
-                yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export(), deployment=deployment)
+                yield self._remote_exec('init', app, path=os.path.realpath(path), config=config.export(),
+                                        deployment=deployment)
 
         else:
             print('There is no deployments configured yet.\n\n'
@@ -624,11 +621,11 @@ class ApiRpcClient(object):
         return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
 
     @cli('Application configuration', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
-        arg('--set-env', help='Set application environment'),
-        arg('--config', help='Config to use', nargs='?', default=None),
-        arg('--update', default=False, action='store_true', help='Update config'),
-        arg('--diff', default=False, action='store_true', help='Show diff only, do not update'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('--set-env', help='Set application environment'),
+            arg('--config', help='Config to use', nargs='?', default=None),
+            arg('--update', default=False, action='store_true', help='Update config'),
+            arg('--diff', default=False, action='store_true', help='Show diff only, do not update'),
     ))
     @inlineCallbacks
     def config(self, ref, diff=False, config=None, update=False, set_env=None, **kwargs):
@@ -688,11 +685,10 @@ class ApiRpcClient(object):
                 else:
                     yield self._remote_exec('update', app, config=new_config.export(), env=set_env)
 
-
     ############################################################
 
     @cli('Remove containers', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
     ))
     @inlineCallbacks
     def remove(self, ref, **kwargs):
@@ -701,8 +697,8 @@ class ApiRpcClient(object):
         print 'result: %s' % pprintpp.pformat(data)
 
     @cli('Set app deployment', arguments=(
-        arg('ref', help='Application name', default=None, nargs='?'),
-        arg('deployment', help='Deployment name', default=None, nargs='?'),
+            arg('ref', help='Application name', default=None, nargs='?'),
+            arg('deployment', help='Deployment name', default=None, nargs='?'),
     ))
     @inlineCallbacks
     def set_deployment(self, ref, deployment, **kwargs):
@@ -714,10 +710,10 @@ class ApiRpcClient(object):
     ############################################################
 
     @cli('Start containers', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
-        arg('--init', help='Initialize applications if not exist yet', default=False, action='store_true'),
-        arg('--env', help='Application environment'),
-        arg('--deployment', help='Application deployment'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('--init', help='Initialize applications if not exist yet', default=False, action='store_true'),
+            arg('--env', help='Application environment'),
+            arg('--deployment', help='Application deployment'),
     ))
     @inlineCallbacks
     def start(self, ref, init=False, env=None, deployment=None, **kwargs):
@@ -730,14 +726,13 @@ class ApiRpcClient(object):
             if not app_instance:
                 yield self.init(app, os.getcwd(), env=env, deployment=deployment, sync=True)
 
-
         data = yield self._remote_exec('start', self.format_app_srv(app, service))
         print 'result: %s' % pprintpp.pformat(data)
 
     ############################################################
 
     @cli('Create containers', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
     ))
     @inlineCallbacks
     def create(self, ref, **kwargs):
@@ -749,8 +744,8 @@ class ApiRpcClient(object):
 
 
     @cli('Destroy containers', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
-        arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
     def destroy(self, ref, **kwargs):
@@ -762,7 +757,7 @@ class ApiRpcClient(object):
 
 
     @cli('Start application', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
     ))
     @inlineCallbacks
     def restart(self, ref, **kwargs):
@@ -773,8 +768,8 @@ class ApiRpcClient(object):
     ############################################################
 
     @cli('Rebuild application', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
-        arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
     def rebuild(self, ref, **kwargs):
@@ -785,7 +780,7 @@ class ApiRpcClient(object):
     ############################################################
 
     @cli('Stop application', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
     ))
     @inlineCallbacks
     def stop(self, ref, **kwargs):
@@ -796,8 +791,8 @@ class ApiRpcClient(object):
     ############################################################
 
     @cli('Show application status', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
-        arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('-f', '--follow', default=False, action='store_true', help='Continuously run list command'),
     ))
     @inlineCallbacks
     def status(self, ref, follow=False, **kwargs):
@@ -843,7 +838,8 @@ class ApiRpcClient(object):
     def deployments(self, **kwargs):
         data = yield self._remote_exec('deployments')
 
-        x = PrettyTable(["Deployment name", "Default", "host", "port", "local", "tls", "keys (ca|cert|key)"], hrules=ALL)
+        x = PrettyTable(["Deployment name", "Default", "host", "port", "local", "tls", "keys (ca|cert|key)"],
+                        hrules=ALL)
         x.align = 'l'
         for line in data:
             certs = '|'.join(['x' if line[k] else 'o' for k in ('ca', 'cert', 'key')])
@@ -851,37 +847,38 @@ class ApiRpcClient(object):
             x.add_row([line['name'], default, line['host'], line['port'], line['local'], line['tls'], certs])
         print str(x)
 
-
     @cli('Create deployment', arguments=(
-        arg('deployment', help='Deployment name'),
-        arg('ip_host', help='Deployment docker host', default=None, nargs='?'),
-        arg('--port', help='Deployment docker port', default=None),
-        arg('--tls', default=False, action='store_true', help='Use tls protocol'),
-        arg('--remote', default=True, dest='local', action='store_false', help='Deployment is remote'),
+            arg('deployment', help='Deployment name'),
+            arg('ip_host', help='Deployment docker host', default=None, nargs='?'),
+            arg('--port', help='Deployment docker port', default=None),
+            arg('--tls', default=False, action='store_true', help='Use tls protocol'),
+            arg('--remote', default=True, dest='local', action='store_false', help='Deployment is remote'),
     ))
     @inlineCallbacks
-    def deployment_create(self, deployment, ip_host=None,  port=None, tls=None, local=True, **kwargs):
-        data = yield self._remote_exec('deployment_create', name=deployment, host=ip_host, port=port, tls=tls, local=local)
+    def deployment_create(self, deployment, ip_host=None, port=None, tls=None, local=True, **kwargs):
+        data = yield self._remote_exec('deployment_create', name=deployment, host=ip_host, port=port, tls=tls,
+                                       local=local)
 
         yield self.deployments()
 
     @cli('update deployment', arguments=(
-        arg('deployment', help='Deployment name'),
-        arg('ip_host', help='Deployment docker host', default=None, nargs='?'),
-        arg('--port', help='Deployment docker port', default=None),
-        arg('--local', default=None, action='store_true', dest='local', help='Deployment is local'),
-        arg('--remote', default=None, action='store_false', dest='local', help='Deployment is remote'),
-        arg('--tls', action='store_true', dest='tls', help='Use tls protocol'),
-        arg('--no-tls', action='store_false', dest='tls', help='Don\'t use tls protocol'),
+            arg('deployment', help='Deployment name'),
+            arg('ip_host', help='Deployment docker host', default=None, nargs='?'),
+            arg('--port', help='Deployment docker port', default=None),
+            arg('--local', default=None, action='store_true', dest='local', help='Deployment is local'),
+            arg('--remote', default=None, action='store_false', dest='local', help='Deployment is remote'),
+            arg('--tls', action='store_true', dest='tls', help='Use tls protocol'),
+            arg('--no-tls', action='store_false', dest='tls', help='Don\'t use tls protocol'),
     ))
     @inlineCallbacks
-    def deployment_update(self, deployment, ip_host=None,  port=None, tls=None, local=None, **kwargs):
-        data = yield self._remote_exec('deployment_update', name=deployment, host=ip_host, port=port, tls=tls, local=local)
+    def deployment_update(self, deployment, ip_host=None, port=None, tls=None, local=None, **kwargs):
+        data = yield self._remote_exec('deployment_update', name=deployment, host=ip_host, port=port, tls=tls,
+                                       local=local)
 
         yield self.deployments()
 
     @cli('make deployment default', arguments=(
-        arg('deployment', help='Deployment name'),
+            arg('deployment', help='Deployment name'),
     ))
     @inlineCallbacks
     def deployment_set_default(self, deployment, host, **kwargs):
@@ -890,12 +887,12 @@ class ApiRpcClient(object):
         yield self.deployments()
 
     @cli('upload key file to deployment', arguments=(
-        arg('deployment', help='Deployment name'),
-        arg('--ca', default=False, action='store_true', help='Upload ca'),
-        arg('--cert', default=False, action='store_true', help='Upload cert'),
-        arg('--key', default=False, action='store_true', help='Upload key'),
-        arg('--remove', default=False, action='store_true', help='Remove key'),
-        arg('infile', type=argparse.FileType('r'), default=sys.stdin, nargs='?'),
+            arg('deployment', help='Deployment name'),
+            arg('--ca', default=False, action='store_true', help='Upload ca'),
+            arg('--cert', default=False, action='store_true', help='Upload cert'),
+            arg('--key', default=False, action='store_true', help='Upload key'),
+            arg('--remove', default=False, action='store_true', help='Remove key'),
+            arg('infile', type=argparse.FileType('r'), default=sys.stdin, nargs='?'),
     ))
     @inlineCallbacks
     def deployment_set(self, deployment, ca=False, cert=False, key=False, infile=None, remove=None, **kwargs):
@@ -920,7 +917,7 @@ class ApiRpcClient(object):
         yield self.deployments()
 
     @cli('remove deployment', arguments=(
-        arg('deployment', help='Deployment name'),
+            arg('deployment', help='Deployment name'),
     ))
     @inlineCallbacks
     def deployment_remove(self, deployment, **kwargs):
@@ -930,10 +927,10 @@ class ApiRpcClient(object):
         yield self.deployments()
 
     @cli('Publish an application', arguments=(
-        arg('ref', help='Application name'),
-        arg('domain', help='Domain to publish'),
-        arg('--port', help='Custom target port'),
-        arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
+            arg('ref', help='Application name'),
+            arg('domain', help='Domain to publish'),
+            arg('--port', help='Custom target port'),
+            arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
     ))
     @inlineCallbacks
     def publish(self, ref, domain, ssl=False, port=None, **kwargs):
@@ -945,14 +942,14 @@ class ApiRpcClient(object):
             print 'App not found. Can\'t publish'
         else:
             data = yield self._remote_exec('publish', domain_name=self.format_domain(domain, ssl),
-                                    app_name=app_name, service_name=service, custom_port=port)
+                                           app_name=app_name, service_name=service, custom_port=port)
 
             self.print_app_list(data)
 
     @cli('Unpublish an application', arguments=(
-        arg('ref', help='Application name'),
-        arg('domain', help='Domain to unpublish'),
-        arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
+            arg('ref', help='Application name'),
+            arg('domain', help='Domain to unpublish'),
+            arg('--ssl', default=False, action='store_true', help='Ssl protocol'),
     ))
     @inlineCallbacks
     def unpublish(self, ref, domain, ssl=False, **kwargs):
@@ -961,15 +958,14 @@ class ApiRpcClient(object):
         data = yield self._remote_exec('unpublish', app_name=app_name, domain_name=self.format_domain(domain, ssl))
         self.print_app_list(data)
 
-
     ############################################################
     # Service utilities
     ############################################################
 
     @cli('Run a command inside container', arguments=(
-        arg('ref', help='Application name', default=None, nargs='?'),
-        arg('command', help='Command to execute', default='/bin/bash', nargs='?'),
-        arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
+            arg('ref', help='Application name', default=None, nargs='?'),
+            arg('command', help='Command to execute', default='/bin/bash', nargs='?'),
+            arg('--no-tty', default=False, action='store_true', help='Disable tty binding'),
     ))
     def run(self, ref, command, no_tty=False, **kwargs):
         host, app, service = self.parse_app_ref(ref, kwargs, require_service=True, require_host=True)
@@ -983,7 +979,7 @@ class ApiRpcClient(object):
     ############################################################
 
     @cli('Show container logs', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
     ))
     @inlineCallbacks
     def logs(self, ref, follow=False, **kwargs):
@@ -993,7 +989,7 @@ class ApiRpcClient(object):
     ############################################################
 
     @cli('Inspect container', arguments=(
-        arg('ref', help='Application and service name', default=None, nargs='?'),
+            arg('ref', help='Application and service name', default=None, nargs='?'),
     ))
     @inlineCallbacks
     def inspect(self, ref, **kwargs):
@@ -1018,35 +1014,33 @@ class ApiRpcClient(object):
             table.add_rows(rows)
             print table.draw() + "\\n"
 
-
-
     ############################################################
     # File synchronization
     ############################################################
 
     @cli('Push appliction volume', arguments=(
-        arg('volume', help='Volume name'),
-        arg('host', help='Host name', default=None, nargs='?'),
-        arg('--app', help='Application name', default=None),
-        arg('--path', help='Subpath to synchronize', default=None),
-        arg('--no-remove', help='Disable removing files on destination', default=False, action='store_true'),
-        arg('--update', help='Compare modification time and size, skip if match.', default=False, action='store_true'),
-        arg('--watch', help='Keep watching and uploading changed files', default=False, action='store_true'),
+            arg('volume', help='Volume name'),
+            arg('host', help='Host name', default=None, nargs='?'),
+            arg('--app', help='Application name', default=None),
+            arg('--path', help='Subpath to synchronize', default=None),
+            arg('--no-remove', help='Disable removing files on destination', default=False, action='store_true'),
+            arg('--update', help='Compare modification time and size, skip if match.', default=False,
+                action='store_true'),
+            arg('--watch', help='Keep watching and uploading changed files', default=False, action='store_true'),
     ))
     @inlineCallbacks
     def push(self, volume, host, **kwargs):
         app, service = self.parse_app_ref(None, kwargs, app_only=True)
         config = yield self._remote_exec('config', app)
 
-
-
     @cli('Syncronize application volumes', arguments=(
-        arg('source', help='source'),
-        arg('destination', help='destination'),
-        arg('--path', help='Subpath to synchronize', default=None),
-        arg('--remove', help='Disable removing files on destination', default=False, action='store_true'),
-        arg('--update', help='Compare modification time and size, skip if match.', default=False, action='store_true'),
-        arg('--watch', help='Keep watching and uploading changed files', default=False, action='store_true'),
+            arg('source', help='source'),
+            arg('destination', help='destination'),
+            arg('--path', help='Subpath to synchronize', default=None),
+            arg('--remove', help='Disable removing files on destination', default=False, action='store_true'),
+            arg('--update', help='Compare modification time and size, skip if match.', default=False,
+                action='store_true'),
+            arg('--watch', help='Keep watching and uploading changed files', default=False, action='store_true'),
     ))
     @inlineCallbacks
     def sync(self, source, destination, **kwargs):
@@ -1070,9 +1064,9 @@ class ApiRpcClient(object):
             shutil.rmtree(dir_name)
 
     @cli('Backup application volumes', arguments=(
-        arg('source', help='source'),
-        arg('volume', help='Volume to backup', default=None),
-        arg('destination', help='Destination s3 bucket', default=None)
+            arg('source', help='source'),
+            arg('volume', help='Volume to backup', default=None),
+            arg('destination', help='Destination s3 bucket', default=None)
     ))
     @inlineCallbacks
     def backup(self, source, volume, destination, **kwargs):
@@ -1081,9 +1075,9 @@ class ApiRpcClient(object):
         print result
 
     @cli('Restore application volumes', arguments=(
-        arg('source', help='source'),
-        arg('volume', help='Volume to backup', default=None),
-        arg('destination', help='Destination s3 bucket', default=None)
+            arg('source', help='source'),
+            arg('volume', help='Volume to backup', default=None),
+            arg('destination', help='Destination s3 bucket', default=None)
     ))
     @inlineCallbacks
     def restore(self, source, volume, destination, **kwargs):
@@ -1091,15 +1085,14 @@ class ApiRpcClient(object):
         result = yield self._remote_exec('backup', app_name, service, volume, destination, True)
         print result
 
-
     ############################################################
     # Variables
     ############################################################
 
 
     @cli('Set variable value', arguments=(
-        arg('name', help='Variable name'),
-        arg('val', help='Value'),
+            arg('name', help='Variable name'),
+            arg('val', help='Value'),
     ))
     @inlineCallbacks
     def set(self, name, val, **kwargs):
@@ -1107,7 +1100,7 @@ class ApiRpcClient(object):
         self.on_vars_result(data)
 
     @cli('Unset variable value', arguments=(
-        arg('name', help='Variable name'),
+            arg('name', help='Variable name'),
     ))
     @inlineCallbacks
     def unset(self, name, **kwargs):
@@ -1119,7 +1112,6 @@ class ApiRpcClient(object):
     def vars(self, **kwargs):
         data = yield self._remote_exec('list_vars')
         self.on_vars_result(data)
-
 
     ############################################################
     # Utils
@@ -1140,7 +1132,7 @@ class ApiRpcClient(object):
 
         table = Texttable(max_width=120)
         table.set_cols_dtype(['t', 'a'])
-        #table.set_cols_width([20,  100])
+        # table.set_cols_width([20,  100])
 
         rows = [["Name", "Value"]]
         for name, val in data.items():
@@ -1148,7 +1140,6 @@ class ApiRpcClient(object):
 
         table.add_rows(rows)
         print table.draw() + "\\n"
-
 
     ############################################################
 
@@ -1174,7 +1165,7 @@ class ApiRpcClient(object):
     ############################################################
 
     @cli('Kills task', arguments=(
-        arg('task_id', help='Id of the task'),
+            arg('task_id', help='Id of the task'),
     ))
     @inlineCallbacks
     def kill(self, task_id=None, **kwargs):
@@ -1198,4 +1189,4 @@ class ApiRpcClient(object):
         yield sleep(0.01)
 
 
-    ############################################################
+        ############################################################

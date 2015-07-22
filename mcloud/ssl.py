@@ -1,7 +1,9 @@
 import datetime
+from OpenSSL.crypto import PKey, X509
 import inject
 
 from twisted.internet import ssl, reactor
+from twisted.internet._sslverify import Certificate, KeyPair
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
 
@@ -17,8 +19,16 @@ class CtxFactory(ssl.ClientContextFactory):
 
         self.method = SSL.SSLv23_METHOD
         ctx = ssl.ClientContextFactory.getContext(self)
-        ctx.use_certificate_file(self.crt)
-        ctx.use_privatekey_file(self.key)
+
+        if isinstance(self.crt, X509):
+            ctx.use_certificate(self.crt)
+        else:
+            ctx.use_certificate_file(self.crt)
+
+        if isinstance(self.key, PKey):
+            ctx.use_privatekey(self.key)
+        else:
+            ctx.use_privatekey_file(self.key)
 
         return ctx
 
