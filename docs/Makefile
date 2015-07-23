@@ -42,9 +42,9 @@ clean:
 	-rm -rf $(BUILDDIR)/*
 
 html:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) source/themes/cloud.modera.org/public/docs
 	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+	@echo "Build finished. The HTML pages are in source/themes/cloud.modera.org/public/docs"
 
 default:
 	$(SPHINXBUILD) -b html -D html_theme=default $(ALLSPHINXOPTS) $(BUILDDIR)/html

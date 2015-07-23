@@ -36,7 +36,7 @@ Execute the installation script::
 
 
 Verify installation
-===========================ModeraCloud======
+===========================
 
 Just start ModeraCloud shell::
 
