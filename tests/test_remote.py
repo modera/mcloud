@@ -82,7 +82,7 @@ def test_request_response():
     inject.configure(my_config)
 
 
-    #log.startLogging(sys.stdout)
+    # log.startLogging(sys.stdout)
 
     server = Server(port=9998, no_ssl=True)
     server.bind()
@@ -275,11 +275,11 @@ def test_task_terminate():
     api.tasks['baz'] = task.foo
 
     # start server -> real server on tcp port
-    server = Server(port=9997, no_ssl=True)
+    server = Server(port=9987, no_ssl=True)
     server.bind()
 
     # real client connecton here
-    client = Client(port=9997, no_ssl=True)
+    client = Client(port=9987, no_ssl=True)
     yield client.connect()
 
 

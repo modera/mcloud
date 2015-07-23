@@ -274,34 +274,31 @@ class Server(object):
         factory.protocol = MdcloudWebsocketServerProtocol
 
         web_resource = File(resource_filename(__name__, 'static/build/client'))
-        try:
 
-            rootResource = WSGIRootResource(web_resource, {'ws': WebSocketResource(factory)})
+        rootResource = WSGIRootResource(web_resource, {'ws': WebSocketResource(factory)})
 
-            if not self.no_ssl and self.settings and self.settings.ssl.enabled:
+        if not self.no_ssl and self.settings and self.settings.ssl.enabled:
+            print '*' * 60
+            print 'Running in secure mode'
+            print 'Ssl key:         %s' % self.settings.ssl.key
+            print 'Ssl certificate: %s' % self.settings.ssl.cert
+            print '*' * 60
+
+            listen_ssl(self.port, Site(rootResource), interface=self.settings.websocket_ip)
+
+        else:
+            if getattr(self.settings, 'demo_mode', False):
                 print '*' * 60
-                print 'Running in secure mode'
-                print 'Ssl key:         %s' % self.settings.ssl.key
-                print 'Ssl certificate: %s' % self.settings.ssl.cert
+                print 'DEMO MODE'
+                print 'Running on 0.0.0.0'
                 print '*' * 60
-
-                listen_ssl(self.port, Site(rootResource), interface=self.settings.websocket_ip)
-
+                reactor.listenTCP(self.port, Site(rootResource), interface='0.0.0.0')
             else:
-                if self.settings.demo_mode:
-                    print '*' * 60
-                    print 'DEMO MODE'
-                    print 'Running on 0.0.0.0'
-                    print '*' * 60
-                    reactor.listenTCP(self.port, Site(rootResource), interface='0.0.0.0')
-                else:
-                    print '*' * 60
-                    print 'INSECURE MODE'
-                    print 'Running on 127.0.0.1 only'
-                    print '*' * 60
-                    reactor.listenTCP(self.port, Site(rootResource), interface='127.0.0.1')
-        except:
-            log.err()
+                print '*' * 60
+                print 'INSECURE MODE'
+                print 'Running on 127.0.0.1 only'
+                print '*' * 60
+                reactor.listenTCP(self.port, Site(rootResource), interface='127.0.0.1')
 
 
 class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):

@@ -455,7 +455,7 @@ def test_build_inline_dockerfile():
     c.process_image_build(s, {'dockerfile': 'FROM foo\nWORKDIR boo'}, '/base/path')
 
     assert isinstance(s.image_builder, InlineDockerfileImageBuilder)
-    assert s.image_builder.source == 'FROM foo\nWORKDIR boo'
+    assert s.image_builder.files['Dockerfile'] == 'FROM foo\nWORKDIR boo'
 
 
 def test_build_image_dockerfile_no_path():

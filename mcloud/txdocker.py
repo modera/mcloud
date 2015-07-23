@@ -62,6 +62,9 @@ class DockerTwistedClient(object):
         self.key = key
         self.ca = ca
 
+        if url is None:
+            url = os.environ.get('DOCKER_API_URL', 'unix://var/run/docker.sock/')
+
         self.url = url + '/'
 
     def _request(self, url, method=txhttp.get, follow_redirects=1, **kwargs):
