@@ -1,16 +1,12 @@
 {
-  "name": "mcloud-web",
-  "version": "0.8.23",
-  "homepage": "https://github.com/modera/mcloud",
-  "authors": [
-    "Alex Rudakov <ribozz@gmail.com>"
-  ],
-  "description": "ModeraCloud web ui",
-  "license": "MIT",
-  "private": true,
+  "name": "angular-kickstart",
   "dependencies": {
-    "angular": "~1.2.26",
-    "reconnectingWebsocket": "*",
-    "term.js": "~0.0.3"
+    "normalize-css": "~3.0.3",
+    "angular": "~1.3.0",
+    "angular-ui-router": "~0.2.14",
+    "angular-semantic-ui": "~0.0.3"
+  },
+  "devDependencies": {
+    "angular-mocks": "~1.3.0"
   }
 }

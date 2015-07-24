@@ -246,6 +246,9 @@ class ApiRpcClient(object):
         try:
             data = json.loads(message)
 
+            if not isinstance(data, dict):
+                raise ValueError
+
             if 'status' in data and 'progress' in data:
                 sys.stdout.write('\r[%s] %s: %s' % (data['id'], data['status'], data['progress']))
 
@@ -260,12 +263,9 @@ class ApiRpcClient(object):
                 else:
                     print pprintpp.pformat(data)
 
-        except ValueError:
-            # print ":".join("{:02x}".format(ord(c)) for c in message)
-            if message[-1] == chr(0x0a):
-                sys.stdout.write(message)
-            else:
-                print(message)
+        except ValueError as e:
+            message = message.encode('utf-8')
+            sys.stdout.write(message)
 
     @inlineCallbacks
     def _exec_remote_with_pty(self, task_name, *args):
@@ -832,6 +832,16 @@ class ApiRpcClient(object):
     ############################################################
     # Deployment life-cycle
     ############################################################
+
+    @cli('List deployments', arguments=(
+        arg('command', help='Run docker machine commands', default=None, nargs='*'),
+    ))
+    @inlineCallbacks
+    def machine(self, command, **kwargs):
+        print '*' * 40
+        print command
+        print '*' * 40
+        yield self._remote_exec('machine', command)
 
     @cli('List deployments')
     @inlineCallbacks

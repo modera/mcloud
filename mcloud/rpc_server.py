@@ -215,7 +215,7 @@ def entry_point():
 
             binder.bind('settings', settings)
 
-            binder.bind('host-ip', resolve_host_ip())
+            # binder.bind('host-ip', resolve_host_ip())
             binder.bind('dns-search-suffix', settings.dns_search_suffix)
             binder.bind('plugins', plugins_loaded)
 

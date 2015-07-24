@@ -12,17 +12,26 @@ Welcome to *ModeraCloud* - a tool that helps you manage Docker based deployments
 Getting started
 --------------------
 
-Installation on ubuntu::
-
-  curl https://mcloud.io/install.sh | sudo sh
-
-
-Alternatively, through pip::
-
-  pip install mcloud
-
 See installation chapter for details.
 
+.. uml::
+
+    @startuml
+
+    start
+
+    if (multiprocessor?) then (yes)
+      fork
+        :Treatment 1;
+      fork again
+        :Treatment 2;
+      end fork
+    else (monoproc)
+      :Treatment 1;
+      :Treatment 2;
+    endif
+
+    @enduml
 
 Contents
 ------------------

@@ -3,7 +3,7 @@ var mcloudApp = angular.module('mcloudApp', []);
 
 
 mcloudApp.controller('McloudAppsCtrl', function ($scope, $interval) {
-    var io = new McloudIO(location.hostname);
+    var io = new McloudIO(location.hostname, location.port);
 
     $scope.selection = {
         app: 'new',

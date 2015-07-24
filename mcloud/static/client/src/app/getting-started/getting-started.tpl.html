@@ -1,0 +1,87 @@
+<div class="pure-g island3">
+  <div class="content pure-u-1">
+    <p class="island-panel">
+      <strong>Note that this is only a getting started guide, for more detailed information about the build system, the available tasks, the configuration of the build or anything else, please refer to the <a href="https://github.com/vesparny/angular-kickstart/#readme" target="_blank">documentation</a> on the GitHub project.</strong>
+    </p>
+
+    <h3>What and Why</h3>
+    <p>
+      <code>angular-kickstart</code> is an opinionated kickstart for single page application development with AngularJS. It makes your development and testing easy, keeps the structure of the project consistent and allows you to create a fully optimized
+      production release withe ease. After having developed a lot of AngularJS projects I decided to collect here what I've learnt.
+    </p>
+
+    <h3>Getting started</h3>
+    <p>
+      Install
+      <strong><a href="https://github.com/joyent/node/wiki/installation" target="_blank">node.js</a></strong>. Then
+      <strong>sass, gulp and bower</strong> if you haven't yet.
+    </p>
+
+    <pre>
+    <code>
+    $ gem install sass
+    $ npm -g install gulp bower
+    </code>
+</pre>
+
+    <p>
+      After that, install
+      <code>angular-kickstart</code> - download the <a href="https://github.com/vesparny/angular-kickstart/releases/latest">latest</a> release (or clone the master branch if want to run the development version). Unzip the project and cd into it, then
+      install bower and npm dependencies, and run the application in development mode.
+    </p>
+
+    <pre>
+    <code>
+    $ npm install
+    $ bower install
+    $ gulp serve
+    </code>
+</pre>
+
+    <p>
+      You are now ready to go, your applcation is available at <code>http://127.0.0.1:3000</code>.
+    </p>
+    <p>
+      You are now ready to start coding, every file you add, edit or delete into the
+      <code>/client</code> folder, will be handled by the build system and the browser will reload.
+    </p>
+    <p>
+      When you are ready to build a production release there is a task for that.
+    </p>
+
+    <pre>
+    <code>
+    $ gulp serve:dist
+    </code>
+</pre>
+
+    <p>
+      This task will lint your code, optimize css js and images files, run unit tests. After the task has successfully finished, you can find an optimized version of your project in the
+      <code>/build/dist</code> folder.
+    </p>
+
+    <p>
+      Other tasks are available:
+    </p>
+
+    <pre>
+    <code>
+    #for developing running unit test on every file change.
+    $ gulp serve:tdd
+
+    #for running e2e test. (you application should be running on http://127.0.0.1:3000)
+    $ gulp test:e2e
+
+    #for running unit tests one time then exit.
+    $ gulp test:unit
+    </code>
+</pre>
+    <p class="text-center">
+      <a href="https://github.com/vesparny/angular-kickstart/#readme" target="_blank" class="pure-button button-xlarge pure-button-primary">
+        Full documentation on GitHub
+      </a>
+    </p>
+
+  </div>
+</div>
+</div>

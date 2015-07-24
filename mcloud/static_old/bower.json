@@ -1,0 +1,16 @@
+{
+  "name": "mcloud-web",
+  "version": "0.8.23",
+  "homepage": "https://github.com/modera/mcloud",
+  "authors": [
+    "Alex Rudakov <ribozz@gmail.com>"
+  ],
+  "description": "ModeraCloud web ui",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "angular": "~1.2.26",
+    "reconnectingWebsocket": "*",
+    "term.js": "~0.0.3"
+  }
+}

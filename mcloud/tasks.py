@@ -1,6 +1,7 @@
 import inspect
 import random
 import string
+import subprocess
 import uuid
 from mcloud.container import PrebuiltImageBuilder
 
@@ -35,7 +36,6 @@ class TicketScopeProcess(protocol.ProcessProtocol):
         self.d = None
 
     def call_sync(self, *args, **kwargs):
-        self.log('Executing process with args: %s' % str(args))
         self.d = defer.Deferred()
         reactor.spawnProcess(self, *args, **kwargs)
 
@@ -54,10 +54,13 @@ class TicketScopeProcess(protocol.ProcessProtocol):
         self.log(data)
 
     def processExited(self, reason):
-        self.log("processExited, status %d" % (reason.value.exitCode,))
+        pass
+        # self.log("processExited, status %d\n" % (reason.value.exitCode,))
 
     def processEnded(self, reason):
-        self.log("processEnded, status %d" % (reason.value.exitCode,))
+        # pass
+        if reason.value.exitCode != 0:
+            self.log("processEnded, status %d\n" % (reason.value.exitCode,))
         self.d.callback(True)
 
 
@@ -883,6 +886,23 @@ class TaskService(object):
 
         ret = yield defer.gatherResults(deployment_list, consumeErrors=True)
         defer.returnValue(ret)
+
+
+    @inlineCallbacks
+    def task_machine(self, ticket_id, command):
+        """
+        Execute command through docker-machine
+
+        :param ticket_id:
+        :return:
+        """
+        vlist = yield self.redis.hgetall('vars')
+
+        command = ['docker-machine'] + command
+
+        yield TicketScopeProcess(ticket_id, self).call_sync(
+            '/usr/local/bin/docker-machine', command, env=vlist
+        )
 
 
     @inlineCallbacks

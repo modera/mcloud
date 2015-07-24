@@ -67,6 +67,8 @@ class DockerTwistedClient(object):
 
         self.url = url + '/'
 
+        logger.log('Connecting docker: %s' % self.url)
+
     def _request(self, url, method=txhttp.get, follow_redirects=1, **kwargs):
 
         if not '://' in url:

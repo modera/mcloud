@@ -4,6 +4,14 @@ Installation
 ============================================
 
 
+docker run -i -t --rm -v /Users:/Users -v /var/run/docker.sock:/var/run/docker.sock -v /Users/alex/dev/mcloud/mcloud:/opt/mcloud/local/lib/python2.7/site-packages/mcloud -p 7080:7080 --name mcloud mcloud/mcloud
+
+docker run -i -t --volumes-from mcloud --link mcloud --rm -w `pwd` mcloud mcloud
+
+linux:
+
+-v /var/run/docker.sock:/var/run/docker.sock
+
 ModeraCloud uses Docker as the core component to host the services. Therefore, the first question to be answered is whether you want to install and run everything:
 
 #. straight on the machine, or

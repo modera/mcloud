@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en" ng-controller="MainCtrl">
+
+<head>
+  <meta charset="utf-8" />
+  <title>angular-kickstart</title>
+  <meta name="description" content="angular-kickstart - speed up your AngularJS development and testing with a great gulpjs build system.
+">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title ng-bind="title"></title>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="keywords" content="AngularJS, angular-kickstart, gulp, bower, vesparny" />
+
+  <!-- build:css assets/css/main.css -->
+  <!-- Head -->
+
+  <link rel="stylesheet" href="src/vendor/lumx/dist/lumx.css">
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:300,400,500,700">
+
+  <link rel="stylesheet" type="text/css" href="tmp/main.css" />
+  <!-- endbuild -->
+</head>
+
+<body>
+  <!--<div>-->
+    <!--<header ui-view="header"></header>-->
+    <!--<div ui-view class="l-page island"></div>-->
+    <!--<footer ui-view="footer"></footer>-->
+  <!--</div>-->
+
+    <!-- Right direction -->
+    <div class="fab ml">
+        <button class="fab__primary btn btn--xl btn--indigo btn--fab" lx-ripple lx-tooltip="Lorem Ipsum" tooltip-position="bottom">
+            <i class="mdi mdi-android"></i>
+            <i class="mdi mdi-plus"></i>
+        </button>
+
+        <div class="fab__actions fab__actions--right">
+            <button class="btn btn--l btn--black btn--fab" lx-ripple lx-tooltip="Lorem Ipsum" tooltip-position="bottom"><i class="mdi mdi-pencil"></i></button>
+            <button class="btn btn--l btn--black btn--fab" lx-ripple lx-tooltip="Lorem Ipsum" tooltip-position="bottom"><i class="mdi mdi-package"></i></button>
+            <button class="btn btn--l btn--black btn--fab" lx-ripple lx-tooltip="Lorem Ipsum" tooltip-position="bottom"><i class="mdi mdi-delete"></i></button>
+        </div>
+    </div>
+
+<div class="radio-group mt++">
+    <div class="radio-button">
+        <input type="radio" id="radio4" name="radio2" value="4" class="radio-button__input">
+        <label for="radio4" class="radio-button__label">Radio with help 1</label>
+        <span class="radio-button__help">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed posuere faucibus efficitur.</span>
+    </div>
+
+    <div class="radio-button">
+        <input type="radio" id="radio5" name="radio2" value="4" class="radio-button__input">
+        <label for="radio5" class="radio-button__label">Radio with help 2</label>
+        <span class="radio-button__help">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed posuere faucibus efficitur.</span>
+    </div>
+
+    <div class="radio-button">
+        <input type="radio" id="radio6" name="radio2" value="5" class="radio-button__input" checked>
+        <label for="radio6" class="radio-button__label">Radio with help 3</label>
+        <span class="radio-button__help">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed posuere faucibus efficitur.</span>
+    </div>
+</div>
+
+
+  <span class="fs-display-4 display-block">Light 112sp</span>
+
+  <div class="paragraph">
+            <h4 class="main-section__subtitle">Use the AngularJS directives and services</h4>
+
+            <p>
+                When you have downloaded all the dependencies you need to add dependencies on the LumX AngularJS module:<br>
+                <code>angular.module('myModule', ['lumx']);</code>
+            </p>
+        </div>
+  
+  <script src="src/vendor/jquery/dist/jquery.js"></script>
+  <script src="src/vendor/velocity/velocity.js"></script>
+  
+  <!-- build:js assets/js/vendor.js -->
+  <script type="text/javascript" src="src/vendor/angular/angular.js"></script>
+  <script type="text/javascript" src="src/vendor/angular-ui-router/release/angular-ui-router.js"></script>
+  
+  <script src="src/vendor/moment/min/moment-with-locales.js"></script>
+  <script src="src/vendor/lumx/dist/lumx.js"></script>
+  <!-- endbuild -->
+
+  <!-- build:js assets/js/main.js -->
+  <script type="text/javascript" src="src/app/app.js"></script>
+
+  <script type="text/javascript" src="src/app/getting-started/getting-started.js"></script>
+  <script type="text/javascript" src="src/app/home/home.js"></script>
+
+  <script type="text/javascript" src="src/common/directives/version.js"></script>
+  <script type="text/javascript" src="src/common/interceptors/httpInterceptor.js"></script>
+  <script type="text/javascript" src="src/common/services/dataService.js"></script>
+  <script type="text/javascript" src="src/common/filters/uppercase.js"></script>
+
+  <script type="text/javascript" src="src/common/header.js"></script>
+  <script type="text/javascript" src="src/common/footer.js"></script>
+
+  <script type="text/javascript" src="tmp/templates.js"></script>
+  <!-- endbuild -->
+</body>
+
+</html>

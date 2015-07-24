@@ -5,9 +5,8 @@ import subprocess
 from mcloud.application import Application
 import re
 # from mcloud.application import Application
-from twisted.internet import inotify
+
 from twisted.internet.defer import inlineCallbacks, Deferred
-from twisted.internet.inotify import INotify, IN_CREATE, IN_MODIFY, IN_MOVED_TO
 from twisted.python import filepath
 
 
@@ -32,16 +31,6 @@ def get_storage(ref):
     else:
         return 'local', (ref,)
 
-class BlockingINotifyWatcher(INotify):
-
-    defered = None
-
-    def connectionLost(self, reason):
-        self.defered.callback(reason)
-
-    def block(self):
-        self.defered = Deferred()
-        return self.defered
 
 
 
@@ -128,8 +117,24 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
             if not reverse:
                 raise Exception('Can not watch remote volume.')
 
+            from twisted.internet import inotify
+            from twisted.internet.inotify import INotify, IN_CREATE, IN_MODIFY, IN_MOVED_TO
+
+
+            class BlockingINotifyWatcher(INotify):
+
+                defered = None
+
+                def connectionLost(self, reason):
+                    self.defered.callback(reason)
+
+                def block(self):
+                    self.defered = Deferred()
+                    return self.defered
+
+
             watch_dir = os.path.realpath(dst_dir)
-            print watch_dir
+
             def notify(self, filepath, mask):
                 filepath = filepath.realpath().path[len(watch_dir) + 1:]
                 if not filepath.endswith('___jb_bak___') and not filepath.endswith('___jb_old___'):
