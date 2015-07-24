@@ -2,8 +2,8 @@
 .. _from_source:
 
 
-Building from source
--------------------------
+Installing mcloud from source
+------------------------------
 
 .. note::
     Instructions are provided for Ubuntu. Adapt it to your linux distribution by replacing package names andr/or

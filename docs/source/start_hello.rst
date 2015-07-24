@@ -33,13 +33,13 @@ Contents of **index.html** ::
 Contents of **mcloud.yml** ::
 
     web:
-        image: orchardup/nginx
+        image: nginx
 
         volumes:
-            public: /var/www
+            public: /usr/share/nginx/html
 
 
-This configuration will create a deployment with one service called "web". It will use "orchardup/nginx" *Docker* image that contains *Nginx* web server that serve everything inside /var/www directory. Configuration file specifies, that **public/** directory is mapped to /var/www volume inside container. So, our public directory will be accessible from web.
+This configuration will create a deployment with one service called "web". It will use "nginx" *Docker* image that contains *Nginx* web server that serve everything inside /var/www directory. Configuration file specifies, that **public/** directory is mapped to /var/www volume inside container. So, our public directory will be accessible from web.
 
 
 2. Starting application
@@ -47,7 +47,8 @@ This configuration will create a deployment with one service called "web". It wi
 
 Now, go to deployment direcModeraCloudnd start ModeraCloud shell::
 
-    $ cd ModeraCloud    $ mcloud
+    $ cd hello
+    $ mcloud shell
 
 ModeraCloud command prompt will show up.
 

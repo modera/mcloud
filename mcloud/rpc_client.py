@@ -813,8 +813,6 @@ class ApiRpcClient(object):
             if self.last_lines > 0:
                 print '\033[1A' * self.last_lines
 
-            print ret
-
             self.last_lines = ret.count('\n') + 2
 
         if follow:
@@ -838,9 +836,6 @@ class ApiRpcClient(object):
     ))
     @inlineCallbacks
     def machine(self, command, **kwargs):
-        print '*' * 40
-        print command
-        print '*' * 40
         yield self._remote_exec('machine', command)
 
     @cli('List deployments')
