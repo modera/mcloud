@@ -226,26 +226,23 @@ class Service(object):
         config['Tty'] = True
         config['AttachStdin'] = True
         config['AttachStdout'] = True
+        config['AttachStderr'] = True
         config['OpenStdin'] = True
 
         name = '%s_pty_%s' % (self.name, ticket_id)
 
         yield self.client.create_container(config, name, ticket_id=ticket_id)
 
-        run_config = {'VolumesFrom': self.name}
-
         if self.ports:
             config['PortBindings'] = self.prepare_ports()
 
         if self.volumes and len(self.volumes):
-            run_config['Binds'] = ['%s:%s' % (x['local'], x['remote'] + (':ro' if self.is_read_only(x['remote']) else '')) for x in self.volumes]
-
-
+            config['Binds'] = ['%s:%s' % (x['local'], x['remote'] + (':ro' if self.is_read_only(x['remote']) else '')) for x in self.volumes]
 
         for plugin in enumerate_plugins(IServiceBuilder):
-            yield plugin.configure_container_on_start(self, run_config)
+            yield plugin.configure_container_on_start(self, config)
 
-        yield self.client.start_container(name, ticket_id=ticket_id, config=run_config)
+        yield self.client.start_container(name, ticket_id=ticket_id, config=config)
 
         if size:
             yield self.client.resize(name, width=size[1], height=size[0])

@@ -16,9 +16,11 @@ Contents
 .. toctree::
   :maxdepth: 2
 
+  guide
   start
   local
   remote
   manage
+  plugins
   api
   dev

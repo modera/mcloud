@@ -7,8 +7,6 @@ Mcloud has server and client parts:
 
 .. uml::
 
-    @startuml
-
     [Mcloud client] as cli
     [Mcloud server] as srv
 
@@ -19,8 +17,6 @@ Mcloud has server and client parts:
     srv .down.> [Docker2] : RemoteAPI
     srv .down.> [Docker3] : RemoteAPI
 
-
-    @enduml
 
 Prerequisites
 --------------------

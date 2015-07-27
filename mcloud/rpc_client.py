@@ -276,11 +276,12 @@ class ApiRpcClient(object):
 
         client = Client(host=self.host, port=self.port, settings=self.settings)
         try:
-            yield txtimeout(client.connect(), 20, 'Can\'t connect to the server on host %s' % self.host)
+            yield txtimeout(client.connect(), 4, 'Can\'t connect to the server on host %s' % self.host)
 
             task = Task(task_name)
             task.on_progress = self.print_progress
             task.on_stdout = stream_proto.write
+
             stream_proto.listener = task.on_stdin
 
             try:

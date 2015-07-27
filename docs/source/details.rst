@@ -5,6 +5,5 @@ Walktrough
 
 .. toctree::
   :maxdepth: 2
-  :glob:
 
-  guide/*
+  guide_install
