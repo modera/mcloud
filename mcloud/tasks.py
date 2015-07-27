@@ -78,6 +78,7 @@ class TaskService(object):
     settings = inject.attr('settings')
 
     def task_log(self, ticket_id, message):
+        message += '\n'
         self.rpc_server.task_progress(message, ticket_id)
 
     def task_help(self, ticket_id):

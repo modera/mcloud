@@ -815,6 +815,8 @@ class ApiRpcClient(object):
 
             self.last_lines = ret.count('\n') + 2
 
+            print ret
+
         if follow:
             while follow:
                 ret = yield self._remote_exec('list')
