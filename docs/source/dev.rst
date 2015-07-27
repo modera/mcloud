@@ -39,3 +39,7 @@ Another usefull trick is to execute mcloud-server manualy and install mcloud man
 Generating new version
 --------------------------
 
+Process is folllowing::
+
+    $ bumpversion minor
+    $ python setup.py sdist register upload
