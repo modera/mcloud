@@ -11,7 +11,7 @@ MacOS::
 
 Linux::
 
-    docker run -d -v /home:/home -v /var/run/docker.sock:/var/run/docker.sock-v /home/alex/dev/mcloud/mcloud:/opt/mcloud/local/lib/python2.7/site-packages/mcloud  --name mcloud mcloud/mcloud
+    docker run -d -v /home:/home -v /var/run/docker.sock:/var/run/docker.sock -v /home/alex/dev/mcloud/mcloud:/opt/mcloud/local/lib/python2.7/site-packages/mcloud  --name mcloud mcloud/mcloud
 
 
 This way you can edit mcloud source and see results.
@@ -36,4 +36,6 @@ Another usefull trick is to execute mcloud-server manualy and install mcloud man
     $ mcloud-server
 
 
-Alternativa
+Generating new version
+--------------------------
+
