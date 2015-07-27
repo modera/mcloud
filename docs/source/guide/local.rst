@@ -13,11 +13,7 @@ Here is how it will look like:
 
     cloud Internet {
 
-
     }
-
-    Internet .. 80
-    Internet .. 443
 
     package Docker {
         [Haproxy] << Load Balancer >>
@@ -33,11 +29,10 @@ Here is how it will look like:
 
         Haproxy ..left..> nginx.myapp
 
-
-
-        Haproxy -right- 80
-        Haproxy -right- 443
     }
+
+    Internet ..left..> Haproxy
+
 
 
 Plugin installation
