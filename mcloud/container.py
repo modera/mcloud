@@ -52,6 +52,10 @@ class PrebuiltImageBuilder(IImageBuilder):
         defer.returnValue(self.image)
 
 
+class CanNotAccessPath(Exception):
+    pass
+
+
 class DockerfileImageBuilder(IImageBuilder):
     def __init__(self, path):
         super(DockerfileImageBuilder, self).__init__()
@@ -69,7 +73,7 @@ class DockerfileImageBuilder(IImageBuilder):
                 t.add(self.path, arcname='.')
                 d.callback(memfile.getvalue())
             except OSError as e:
-                d.errback(Exception('Can not access %s: %s' % (self.path, str(e))))
+                d.errback(CanNotAccessPath('Can not access %s: %s' % (self.path, str(e))))
             except Exception as e:
                 d.errback(e)
             finally:

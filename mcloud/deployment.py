@@ -305,7 +305,7 @@ class DeploymentController(object):
                         host=host,
                         port=port,
                         tls=tls,
-                        local=True,
+                        local=False,
                         **files
                     )
                 else:
@@ -315,7 +315,7 @@ class DeploymentController(object):
                         host=host,
                         port=port,
                         tls=tls,
-                        local=True,
+                        local=False,
                         **files
                     )
                     # yield self.set_default(name)
