@@ -1,4 +1,5 @@
 from base64 import b64decode
+import base64
 import json
 import logging
 from urllib import urlencode
@@ -138,7 +139,33 @@ class DockerTwistedClient(object):
         yield txhttp.collect(response, on_content)
         defer.returnValue(result['image_id'])
 
+    @inlineCallbacks
+    def put_file(self, container_id, path, file_data, ticket_id=None):
 
+        config = {
+            'AttachStdin': False,
+            'Cmd': ['bash', '-c', 'echo %(data)s | base64 -d | tee %(path)s && chmod +x %(path)s' % {
+                'data': base64.encodestring(file_data).strip(),
+                'path': path
+            }]
+        }
+
+        response = yield self._post('containers/%s/exec' % bytes(container_id),
+                                    headers={'Content-Type': 'application/json'}, data=json.dumps(config), response_handler=None)
+
+        data = yield self.collect_json_or_none(response)
+
+        print data
+        print config
+
+        response = yield self._post('exec/%s/start' % bytes(data['Id']),
+                                    headers={'Content-Type': 'application/json'}, data=json.dumps({
+                 "Detach": False,
+                 "Tty": False,
+                }), response_handler=None)
+
+        resp = yield txhttp.content(response)
+        print resp
 
 
     def pull(self, name, ticket_id, tag=None):

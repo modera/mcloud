@@ -77,7 +77,6 @@ class DnsPlugin(Plugin):
             cmd.append('--host-record=%s,%s' % (url, ip))
 
 
-
         self.dnsmasq = Service()
         self.dnsmasq.name = 'mcloud_dnsmasq'
         self.dnsmasq.image_builder = InlineDockerfileImageBuilder(source="""
@@ -107,7 +106,7 @@ class DnsPlugin(Plugin):
         pass
 
 
-    # @inlineCallbacks
+    @inlineCallbacks
     def configure_container_on_start(self, service, config):
         pass
         # config.update({
@@ -116,11 +115,12 @@ class DnsPlugin(Plugin):
         # })
 
 
-    # @inlineCallbacks
+    @inlineCallbacks
     def setup(self):
+        pass
         # self.eb.on('containers.updated', self.containers_updated)
-        log.msg('Dns plugin started')
-
+        # log.msg('Dns plugin started')
+        #
         # yield self.containers_updated()
 
     @inlineCallbacks

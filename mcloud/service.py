@@ -59,6 +59,8 @@ class Service(object):
 
     def __init__(self, client=None, **kwargs):
 
+        self.api_file = None
+
         self.client = client
         """
         @type client: DockerTwistedClient
@@ -333,6 +335,18 @@ class Service(object):
         self.task_log(ticket_id, 'Startng container. config: %s' % config)
 
         yield self.client.start_container(id_, ticket_id=ticket_id, config=config)
+
+        yield self.inspect()
+
+        if self.is_running():
+            content = """
+#!/bin/sh
+
+echo -e "\n@mcloud $@\n"
+"""
+
+            print 'Load file into container: ' + '/usr/bin/@me'
+            yield self.client.put_file(id_, '/usr/bin/@me', content,  ticket_id=ticket_id)
 
         # lifecycle events
 

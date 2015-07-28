@@ -490,7 +490,7 @@ class TaskService(object):
             'env': s.env,
             'container': s.name,
             'host': sync_host,
-            'port': s.public_ports()['873'][0]['HostPort'],
+            'port': s.public_ports()['873/tcp'][0]['HostPort'],
             'volume': volume_name,
             'ticket_id': ticket_id
         })
