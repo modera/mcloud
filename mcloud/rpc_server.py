@@ -96,84 +96,6 @@ def entry_point():
     if args.no_ssl:
         settings.ssl.enabled = False
 
-    @inlineCallbacks
-    def configure_docker_machine():
-        deployment_controller = inject.instance(DeploymentController)
-        host_ip = inject.instance('host-ip')
-        """
-        @type deployment_controller: DeploymentController
-        """
-        print '-' * 40
-        print 'Configuring docker-machine deployment'
-        deployments = yield deployment_controller.list()
-
-
-        name = os.environ.get('DOCKER_MACHINE_NAME', 'local')
-        if len(deployments) > 0:
-            deployment = yield deployment_controller.get(name)
-        else:
-            deployment = None
-
-        host = os.environ.get('DOCKER_HOST', None)
-        if '*' in host:
-
-            host = host.replace('*', host_ip)
-
-        if os.environ.get('DOCKER_TLS_VERIFY', None) == '1':
-            tls = True
-            path = os.environ.get('DOCKER_CERT_PATH', None)
-            if not path:
-                reactor.stop()
-                print('ERROR: Can not find certificates - can not connect to Docker')
-
-            gpaths = glob(path)
-            if not gpaths:
-                reactor.stop()
-                print('ERROR: Can not find certificates - can not connect to Docker')
-
-            path = gpaths[0]
-
-            files = {
-                'ca': None,
-                'cert': None,
-                'key': None,
-            }
-            for fname in files.keys():
-                with open('%s/%s.pem' % (path, fname)) as f:
-                    files[fname] = f.read()
-        else:
-            tls = False
-            files = {}
-
-        if ':' in host:
-            split = host.split(':')
-            host, port = ':'.join(split[:-1]), split[-1]
-        else:
-            port = None
-
-        if deployment:
-            print 'Updating deployment %s' % name
-            yield deployment_controller.update(
-                name=name,
-                host=host,
-                port=port,
-                tls=tls,
-                local=True,
-                **files
-            )
-        else:
-            print 'Creating new deployment %s' % name
-            yield deployment_controller.create(
-                name=name,
-                host=host,
-                port=port,
-                tls=tls,
-                local=True,
-                **files
-            )
-            yield deployment_controller.set_default(name)
-        print '-' * 40
-
     def resolve_host_ip():
 
         if 'docker0' in netifaces.interfaces():
@@ -215,7 +137,7 @@ def entry_point():
 
             binder.bind('settings', settings)
 
-            # binder.bind('host-ip', resolve_host_ip())
+            binder.bind('host-ip', resolve_host_ip())
             binder.bind('dns-search-suffix', settings.dns_search_suffix)
             binder.bind('plugins', plugins_loaded)
 
@@ -263,9 +185,8 @@ def entry_point():
         log.msg('All plugins loaded.')
         log.msg('=' * 80)
 
-
-        if os.environ.get('MCLOUD_USE_DOCKER_MACHINE', None) == '1':
-            yield configure_docker_machine()
+        deployment_controller = inject.instance(DeploymentController)
+        yield deployment_controller.configure_docker_machine()
 
         log.msg('Started.')
 

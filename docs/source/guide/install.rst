@@ -7,8 +7,6 @@ Mcloud has server and client parts:
 
 .. uml::
 
-    @startuml
-
     [Mcloud client] as cli
     [Mcloud server] as srv
 
@@ -19,8 +17,6 @@ Mcloud has server and client parts:
     srv .down.> [Docker2] : RemoteAPI
     srv .down.> [Docker3] : RemoteAPI
 
-
-    @enduml
 
 Prerequisites
 --------------------
@@ -43,6 +39,11 @@ Verify docker is installed and at least 1.7 version::
     Git commit (server): 786b29d
     OS/Arch (server): linux/amd64
 
+.. note::
+
+    Recommended way to install docker on MacOS is `docker-machine <https://docs.docker.com/machine/>`_. And don't forget to use
+    `nfs in case of virtualbox <https://github.com/adlogix/docker-machine-nfs>`_.
+
 Mcloud Server
 -----------------
 
@@ -59,6 +60,12 @@ Linux::
 
     docker run -d -v /home:/home -v /var/run/docker.sock:/var/run/docker.sock --name mcloud mcloud/mcloud
 
+.. note::
+
+    Mcloud server update can be done this way::
+
+        $ docker exec -it mcloud mcloud-plugins install -U mcloud
+
 
 Mcloud Client
 -----------------
@@ -70,7 +77,7 @@ ModeraCloud client can be run from docker as well using this command::
 
 If you don't want to type this command every time, add it as alias to your .bash_profile or .bashrc::
 
-    alias mcloud="docker run -i -t --volumes-from mcloud --link mcloud --rm -w `pwd` mcloud/mcloud mcloud"
+    alias mcloud='docker run -i -t --volumes-from mcloud --link mcloud --rm -w `pwd` mcloud/mcloud mcloud'
 
 
 Verify installation

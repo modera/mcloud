@@ -42,4 +42,10 @@ Generating new version
 Process is folllowing::
 
     $ bumpversion minor
+
+    # ... or...
+
+    $ bumpversion patch
+
+
     $ python setup.py sdist register upload

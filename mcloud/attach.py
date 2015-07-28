@@ -151,7 +151,8 @@ class AttachStdinProtocol(Protocol):
         self.term.stop()
 
     def dataReceived(self, data):
-        if len(data) == 1 and ord(data) == 29:
+        if len(data) == 1 and (ord(data) == 29 or ord(data) == 3):
+            print 'Connection closed!'
             self.transport.loseConnection()
             reactor.stop()
 
@@ -168,31 +169,24 @@ class Attach(basic.LineReceiver):
         """ """
         print 'Attach Connected!'
         self.transport.write(
-            'POST /v1.18/containers/%s/attach?logs=1&stream=1&stdout=1&stdin=1 HTTP/1.1\r\n' % str(self.container_id))
+            'POST /v1.19/containers/%s/attach?logs=0&stream=1&stdout=1&stdin=1 HTTP/1.1\r\n' % str(self.container_id))
         self.transport.write('Connection: Upgrade\r\n')
         self.transport.write('Upgrade: tcp\r\n')
         self.transport.write('\r\n')
 
     def rawDataReceived(self, data):
-        print 'in', data
         self.stdout_write(b64encode(data))
 
     def lineReceived(self, line):
-        print 'inline', line
+        # print 'Line: ', line
         if line.strip() == '':
 
-            print 'Raw mode started'
             self.setRawMode()
 
-            self.transport.write("\r\n")
-            self.transport.write("hoho\r\n")
-
     def stdin_on_input(self, data):
-        print 'out', data
         self.transport.write(b64decode(data))
 
     def stdout_write(self, data):
-        print data
         pass
 
     def connectionLost(self, reason):
@@ -247,4 +241,4 @@ def attach_to_container(container_id, docker_uri=None):
 
 
 if __name__ == "__main__":
-    attach_to_container('dc3')
+    attach_to_container('c0b')

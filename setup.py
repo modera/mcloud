@@ -76,6 +76,7 @@ setup(
         'PyYAML',
         # 'service-identity',
         'netifaces',
+        'pynetinfo',
         # 'reqeuests',
         # 'werkzeug',
         'autobahn==0.8.11',
