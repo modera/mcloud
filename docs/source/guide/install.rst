@@ -39,6 +39,11 @@ Verify docker is installed and at least 1.7 version::
     Git commit (server): 786b29d
     OS/Arch (server): linux/amd64
 
+.. note::
+
+    Recommended way to install docker on MacOS is `docker-machine <https://docs.docker.com/machine/>`_. And don't forget to use
+    `nfs in case of virtualbox <https://github.com/adlogix/docker-machine-nfs>`_.
+
 Mcloud Server
 -----------------
 

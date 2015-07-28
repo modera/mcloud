@@ -1,9 +1,12 @@
+from glob import glob
 import json
+import os
 
 import inject
 from mcloud.events import EventBus
 from mcloud.plugin import enumerate_plugins
 from mcloud.txdocker import DockerTwistedClient
+import pprintpp
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
@@ -262,3 +265,59 @@ class DeploymentController(object):
 
     def _persist_dployment(self, deployment):
         return self.redis.hset('mcloud-deployments', deployment.name, json.dumps(deployment.config))
+
+
+
+    @inlineCallbacks
+    def configure_docker_machine(self):
+        machine_path = '/.docker/machine'
+
+        print 'Syncing deployments with Docker Machine'
+
+        for path in glob('%s/machines/*' % machine_path):
+
+            with open('%s/config.json' % path) as f:
+                config = json.load(f)
+
+                name = os.path.dirname(path)
+                host = config['Driver']['IPAddress']
+                port = 3376
+                tls = True
+
+                files = {
+                    'ca': None,
+                    'cert': None,
+                    'key': None,
+                }
+                for fname in files.keys():
+                    with open('%s/%s.pem' % (path, fname)) as f:
+                        files[fname] = f.read()
+
+                try:
+                    deployment = yield self.get(name)
+                except DeploymentDoesNotExist:
+                    deployment = None
+
+                if deployment:
+                    print 'Updating deployment %s' % name
+                    yield self.update(
+                        name=name,
+                        host=host,
+                        port=port,
+                        tls=tls,
+                        local=True,
+                        **files
+                    )
+                else:
+                    print 'Creating new deployment %s' % name
+                    yield self.create(
+                        name=name,
+                        host=host,
+                        port=port,
+                        tls=tls,
+                        local=True,
+                        **files
+                    )
+                    # yield self.set_default(name)
+                print '-' * 40
+

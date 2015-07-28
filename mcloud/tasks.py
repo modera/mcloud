@@ -905,6 +905,8 @@ class TaskService(object):
             '/usr/local/bin/docker-machine', command, env=vlist
         )
 
+        yield self.deployment_controller.configure_docker_machine()
+
 
     @inlineCallbacks
     def task_deployment_info(self, ticket_id, name=None):
