@@ -281,7 +281,7 @@ class DeploymentController(object):
 
                 name = os.path.basename(path)
                 host = config['Driver']['IPAddress']
-                port = 3376
+                port = 2376
                 tls = True
 
                 files = {
