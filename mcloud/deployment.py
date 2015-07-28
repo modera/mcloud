@@ -279,7 +279,7 @@ class DeploymentController(object):
             with open('%s/config.json' % path) as f:
                 config = json.load(f)
 
-                name = os.path.dirname(path)
+                name = os.path.basename(path)
                 host = config['Driver']['IPAddress']
                 port = 3376
                 tls = True
