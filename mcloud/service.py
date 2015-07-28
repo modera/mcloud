@@ -416,8 +416,7 @@ echo -e "\n@mcloud $@\n"
     @inlineCallbacks
     def _generate_config(self, image_name, for_run=False):
         config = {
-            "Image": image_name,
-            # "RestartPolicy": "always"
+            "Image": image_name
         }
 
         image_info = None
@@ -456,15 +455,6 @@ echo -e "\n@mcloud $@\n"
 
             if self.command:
                 config['Cmd'] = self.command.split(' ')
-
-            if self.volumes and len(self.volumes):
-                config['Volumes'] = dict([
-                    (x['remote'], {}) for x in self.volumes
-                ])
-
-            if image_info and image_info['ContainerConfig']['Volumes']:
-                for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
-                    config['Volumes'][vpath] = {}
 
         for plugin in enumerate_plugins(IServiceBuilder):
             yield plugin.configure_container_on_create(self, config)

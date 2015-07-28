@@ -54,11 +54,11 @@ First we need to start mcloud server.
 
 MacOS::
 
-    docker run -d -v /Users:/Users -v /var/run/docker.sock:/var/run/docker.sock --name mcloud mcloud/mcloud
+    docker run -d --restart always -v /Users:/Users -v /var/run/docker.sock:/var/run/docker.sock --name mcloud mcloud/mcloud
 
 Linux::
 
-    docker run -d -v /home:/home -v /var/run/docker.sock:/var/run/docker.sock --name mcloud mcloud/mcloud
+    docker run -d --restart always -v /home:/home -v /var/run/docker.sock:/var/run/docker.sock --name mcloud mcloud/mcloud
 
 .. note::
 

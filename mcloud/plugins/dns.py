@@ -106,7 +106,7 @@ class DnsPlugin(Plugin):
         pass
 
 
-    @inlineCallbacks
+    # @inlineCallbacks
     def configure_container_on_start(self, service, config):
         pass
         # config.update({
@@ -115,7 +115,7 @@ class DnsPlugin(Plugin):
         # })
 
 
-    @inlineCallbacks
+    # @inlineCallbacks
     def setup(self):
         pass
         # self.eb.on('containers.updated', self.containers_updated)
