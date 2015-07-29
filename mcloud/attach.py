@@ -151,7 +151,7 @@ class AttachStdinProtocol(Protocol):
         self.term.stop()
 
     def dataReceived(self, data):
-        if len(data) == 1 and (ord(data) == 29 or ord(data) == 3):
+        if len(data) == 1 and ord(data) == 29:
             print 'Connection closed!'
             self.transport.loseConnection()
             reactor.stop()
