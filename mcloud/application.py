@@ -1,6 +1,6 @@
 import json
 
-from mcloud.deployment import DeploymentController, Deployment
+from mcloud.deployment import DeploymentController, Deployment, DeploymentDoesNotExist
 from mcloud.txdocker import DockerTwistedClient, DockerConnectionFailed
 import re
 import inject
@@ -75,14 +75,15 @@ class Application(object):
                 defer.returnValue(None)
 
             deployment = yield self.get_deployment()
+
             if not deployment:
                 self.error = {
                     'msg': 'No deployment found'
                 }
+            else:
+                client = deployment.get_client()
 
-            client = deployment.get_client()
-
-            yield yaml_config.load(client=client)
+                yield yaml_config.load(client=client)
 
 
             
@@ -94,7 +95,7 @@ class Application(object):
             else:
                 defer.returnValue(yaml_config)
 
-        except ValueError as e:
+        except (ValueError, DeploymentDoesNotExist) as e:
             config_ = {'name': self.name, 'config': self.config, 'services': [], 'running': False, 'status': 'error',
                        'message': '%s When loading config: %s' % (e.message, self.config)}
             defer.returnValue(config_)
