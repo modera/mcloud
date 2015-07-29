@@ -1,7 +1,10 @@
 
-===================
+
+
 ModeraCloud shell
-================ModeraCloudCloud shell simplify usage of remote deployments, and as well may be used
+===================
+
+ModeraCloud shell simplify usage of remote deployments, and as well may be used
 locally to shorten commands, if you mostly work with one application.
 
 Shell saves you time in following:
@@ -14,9 +17,9 @@ Shell saves you time in following:
 Start shell
 --------------
 
-Execute *mcloud* without arguments::
+::
 
-    $ mcloud
+    $ mcloud shell
 
 
 Exit shell

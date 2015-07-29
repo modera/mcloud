@@ -96,7 +96,7 @@ class Service(object):
         if not ticket_id:
             print(message)
         else:
-            self.rpc_server.task_progress(message, ticket_id)
+            self.rpc_server.task_progress(message + '\n', ticket_id)
 
     def build_docker_config(self):
         pass

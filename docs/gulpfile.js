@@ -40,6 +40,7 @@ gulp.task('default', ['serve']); //
 gulp.task('serve', ['build'], function() {
   browserSync({
     notify: false,
+    ghostMode: false,
     logPrefix: pkg.name,
     server: [
 //        'build/html',

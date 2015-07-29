@@ -17,10 +17,12 @@ Contents
   :maxdepth: 2
 
   guide
-  start
-  local
-  remote
+
+  use
+
   manage
+  reference
+
   plugins
-  api
+
   dev

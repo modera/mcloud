@@ -1,9 +1,10 @@
 
-Getting started
+
+Using mcloud
 ----------------------
 
 .. toctree::
   :maxdepth: 2
+  :glob:
 
-  start_hello
-  start_multiserver
+  use/*

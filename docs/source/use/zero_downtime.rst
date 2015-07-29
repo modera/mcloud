@@ -1,7 +1,8 @@
 
-=======================
-Zero down-time updates
-=======================
+
+=======================================
+"Zero" down-time updates with publish
+=======================================
 
 Simple version of zero down-time scenario may be achived by deploying
 two versions of applications, and publishing only one in time.

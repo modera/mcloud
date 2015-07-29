@@ -1,13 +1,11 @@
 
 
 ========================================
-Manage ModeraCloud environment
+Manage mcloud installation
 ========================================
 
 .. toctree::
     :maxdepth: 1
+    :glob:
 
-    manage_monitor
-    manage_scale
-    manage_update
-    manage_uninstall
+    manage/*

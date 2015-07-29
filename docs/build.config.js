@@ -7,7 +7,7 @@ module.exports = {
   dist: 'var/build/dist',
   base: 'client',
   source: [
-    'source/**/*'
+    'source/**/*.rst'
   ],
   site_source: [
     'source/themes/cloud.modera.org/jekyll/**/*'

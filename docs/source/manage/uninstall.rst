@@ -1,6 +1,6 @@
 
 
-Uninstalling mlcoud
+Uninstalling mcloud
 ============================================
 
 

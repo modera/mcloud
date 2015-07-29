@@ -1,6 +1,6 @@
 
 =====================================
-Using SSL with MCloud applications
+Protecting Mcloud with SSL
 =====================================
 
 

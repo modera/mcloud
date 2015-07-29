@@ -1,7 +1,36 @@
 
-=======================================
-Publishing deployed application
-=======================================
+Application publishing
+===========================
+
+Commands are about assigning the public URLs to the applications, which essentially is often the way how the newly deployed applications get "published" or "unpublished".
+
+
+Publish
+-----------
+
+Assign URL to an application::
+
+    $ mcloud publish app my_domain.com [--ssl]
+
+--ssl means https://my_domain.com
+
+.. note::
+    You should publish both SSL and non-SSL version of URL if your application handles two protocols.
+
+
+Unpublish
+-----------
+
+Remove an URL assignment from an application::
+
+    $ mcloud unpublish my_domain.com [--ssl]
+
+Application name is not needed.
+
+
+
+How it works
+----------------
 
 Publishing means exposing application under external domain name.
 
