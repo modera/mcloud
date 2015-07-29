@@ -152,9 +152,10 @@ def entry_point():
         server = Server(port=settings.websocket_port)
         server.bind()
 
-        try:
-            # load plugins
-            for ep in pkg_resources.iter_entry_points(group='mcloud_plugins'):
+        # load plugins
+        for ep in pkg_resources.iter_entry_points(group='mcloud_plugins'):
+            try:
+
                 plugin_class = ep.load()
 
                 log.msg('=' * 80)
@@ -170,16 +171,16 @@ def entry_point():
 
                 print "Loaded %s - OK" % plugin_class
 
-        except Exception as e:
-            print '!-' * 40
-            print e.__class__.__name__
-            print e
-            print(traceback.format_exc())
-            print '!-' * 40
+            except Exception as e:
+                print '!-' * 40
+                print e.__class__.__name__
+                print e
+                print(traceback.format_exc())
+                print '!-' * 40
 
-            reactor.stop()
+                # reactor.stop()
 
-            log.msg('=' * 80)
+                log.msg('=' * 80)
 
         log.msg('-' * 80)
         log.msg('All plugins loaded.')
