@@ -1,6 +1,7 @@
 import logging
 import traceback
 from mcloud.plugin import enumerate_plugins
+from pprintpp import pprint
 import re
 import inject
 from mcloud.remote import ApiRpcServer
@@ -84,8 +85,7 @@ class Service(object):
         self._inspected = False
         self.wait = False
 
-        self.cpu_usage = 0.0
-        self.memory_usage = 0
+        self._stats = None
 
         self.__dict__.update(kwargs)
         super(Service, self).__init__()
@@ -110,11 +110,40 @@ class Service(object):
             data = yield self.client.inspect(self.name)
             self._inspect_data = data
 
+            if self.is_running():
+                data = yield self.client.stats(self.id)
+                self._stats = data
+
         except DockerConnectionFailed as e:
             self.error = 'Can not connect to docker: %s. %s' % (self.client.url, e)
             self._inspect_data = None
 
         defer.returnValue(self._inspect_data)
+
+    @property
+    def stats(self):
+        if not self.is_inspected():
+            raise self.NotInspectedYet()
+
+        data = self._stats
+
+        if not data:
+            return None
+
+        return {
+            'cpu_usage': 100.0 * float(data['cpu_stats']['cpu_usage']['total_usage']) / (data['cpu_stats']['system_cpu_usage']),
+            'memory_usage': data['memory_stats']['usage'],
+            'memory_limit': data['memory_stats']['limit'],
+            'net_rx': data['network']['rx_bytes'],
+            'net_tx': data['network']['tx_bytes'],
+        }
+
+    @property
+    def id(self):
+        if not self.is_created():
+            return None
+
+        return self._inspect_data['Id']
 
     def is_running(self):
         if not self.is_inspected():

@@ -320,6 +320,13 @@ class DockerTwistedClient(object):
         return d
 
     @inlineCallbacks
+    def stats(self, id):
+        assert not id is None
+        r = yield self._get('containers/%s/stats?stream=false' % bytes(id))
+        r = yield self.collect_json_or_none(r)
+        defer.returnValue(r)
+
+    @inlineCallbacks
     def inspect(self, id):
         assert not id is None
         r = yield self._get('containers/%s/json' % bytes(id))

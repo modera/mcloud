@@ -307,7 +307,7 @@ class ApiRpcClient(object):
 
         out = '\n'
 
-        x = PrettyTable(["Service name", "status", "ip", "cpu %", "memory", "volumes", "public urls"], hrules=ALL)
+        x = PrettyTable(["Service name", "status", "ip", "cpu %", "memory", "Net I/O", "volumes", "public urls"], hrules=ALL)
 
         if app['status'] == 'error':
             print ''
@@ -348,12 +348,24 @@ class ApiRpcClient(object):
                         if 'service' in target and target['service'] == service['shortname']:
                             web.append(url_)
 
+            if service['running']:
+                cpu = (("%.2f" % float(service['stats'].get('cpu_usage', 0.0))) + '%')
+                memory = (str(service['stats'].get('memory_usage', 0) / (1024 * 1024)) + 'M')
+                net_tx = ("%.4f" % (service['stats'].get('net_tx', 0.0) / (1024.0 * 1024.0)) + 'M')
+                net_rx = ("%.4f" % (service['stats'].get('net_rx', 0.0) / (1024.0 * 1024.0)) + 'M')
+                net = '%s / %s' % (net_rx, net_tx)
+            else:
+                cpu = '-'
+                memory = '-'
+                net = '-'
+
             x.add_row([
                 service['name'],
                 service_status,
                 service['ip'],
-                ("%.2f" % float(service['cpu'])) + '%',
-                str(service['memory']) + 'M',
+                cpu,
+                memory,
+                net,
                 volumes,
                 '\n'.join(web)
             ])
@@ -364,19 +376,18 @@ class ApiRpcClient(object):
 
     def print_app_list(self, data):
 
-        x = PrettyTable(["Application name", "deployment", "status", "cpu %", "memory", "Web", "Path"], hrules=ALL)
+        x = PrettyTable(["Application name", "deployment", "status", "cpu %", "memory", "Net I/O", "Web", "Path"], hrules=ALL)
         x.align = 'l'
         for app in data:
 
-            app_cpu = 0.0
-            app_mem = 0
+            if not 'stats' in app:
+                app['stats'] = {}
+
             web = ''
 
             service_status = ''
 
             for service in app['services']:
-                app_mem += int(service['memory'])
-                app_cpu += float(service['cpu'])
 
                 if service['created']:
                     service_status += ('^' if service['running'] else 'o')
@@ -384,8 +395,13 @@ class ApiRpcClient(object):
                     service_status = 'x'
 
             app_status = service_status
-            services_cpu_list = ('%.2f' % app_cpu) + '%'
-            services_memory_list = str(app_mem) + 'M'
+
+            cpu = ('%.2f' % app['stats'].get('cpu_usage', 0.0)) + '%'
+            memory = str(app['stats'].get('memory_usage', 0) / (1024 * 1024)) + 'M'
+
+            net_tx = ("%.4f" % (app['stats'].get('net_tx', 0.0) / (1024.0 * 1024.0)) + 'M')
+            net_rx = ("%.4f" % (app['stats'].get('net_rx', 0.0) / (1024.0 * 1024.0)) + 'M')
+            net = '%s / %s' % (net_rx, net_tx)
 
             if app['status'] != 'error':
                 web_service_ = None
@@ -415,7 +431,7 @@ class ApiRpcClient(object):
             app_deployment = app['config']['deployment']
             app_path = app['config']['path']
 
-            x.add_row([app['name'], app_deployment, app_status, services_cpu_list, services_memory_list, web,
+            x.add_row([app['name'], app_deployment, app_status, cpu, memory, net, web,
                        app_path])
 
         return '\n' + str(x) + '\n'
@@ -657,7 +673,7 @@ class ApiRpcClient(object):
             if config:
                 config_file = os.path.expanduser(config)
             else:
-                config_file = os.path.join(app_config['path'], 'mcloud.yml')
+                config_file = 'mcloud.yml'
 
             new_config = YamlConfig(file=config_file, app_name=app, env=parser_env)
             new_config.load(process=False)

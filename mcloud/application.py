@@ -117,9 +117,20 @@ class Application(object):
         ssl_target = None
         ssl_service = None
 
+        full_stats = {}
+
         services = []
         for service in app_config.get_services().values():
             service.app_name = self.name
+
+            stats = service.stats
+
+            if stats:
+                for key, val in stats.items():
+                    if not key in full_stats:
+                        full_stats[key] = 0
+                    full_stats[key] += val
+
             services.append({
                 'shortname': service.shortname,
                 'name': service.name,
@@ -133,12 +144,10 @@ class Application(object):
                 'is_web': service.is_web(),
                 'running': service.is_running(),
                 'created': service.is_created(),
-                'cpu': service.cpu_usage,
-                'memory': service.memory_usage,
+                'stats': stats,
             })
 
             if service.is_running():
-
                 if service.is_web():
                     web_ip = service.ip()
                     web_port = service.get_web_port()
@@ -160,6 +169,8 @@ class Application(object):
                     status = 'error'
                     errors.append('%s: %s' % (service.name, service.error))
 
+
+
         return {
             'name': self.name,
             'deployment': deployment.name,
@@ -177,6 +188,7 @@ class Application(object):
             'public_urls': self.public_urls,
             'config': self.config,
             'services': services,
+            'stats': full_stats,
             'running': is_running,
             'status': status,
             'errors': errors,
