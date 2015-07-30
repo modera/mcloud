@@ -8,7 +8,7 @@ Run
 
 Running command in container::
 
-    $ mcloud run app.service [command]
+    $ mcloud run service.app [command]
 
 Command will create copy of container, mount same volumes and execute command.
 
@@ -31,7 +31,7 @@ Logs
 
 Show container logs::
 
-    $ mcloud logs app.service
+    $ mcloud logs service.app
 
 Show last 100 lines of container log and follow all new logs.
 Hit Ctrl+C for exit.
@@ -42,5 +42,5 @@ Inspect
 
 Shows docker inspect for a container::
 
-    $ mcloud inspect app.service
+    $ mcloud inspect service.app
 
