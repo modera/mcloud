@@ -426,7 +426,7 @@ class Client(object):
                 reactor.connectTCP(self.host, self.port, factory)
         except NoKeyError:
 
-            # print 'No key found - fallback to no-ssl'
+            print 'No key found - fallback to no-ssl'
             reactor.connectTCP(self.host, self.port, factory)
 
         return self.onc

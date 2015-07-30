@@ -749,9 +749,9 @@ class ApiRpcClient(object):
             arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
-    def destroy(self, ref, **kwargs):
+    def destroy(self, ref, scrub_data, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs)
-        data = yield self._remote_exec('destroy', self.format_app_srv(app, service))
+        data = yield self._remote_exec('destroy', self.format_app_srv(app, service), scrub_data)
         print 'result: %s' % pprintpp.pformat(data)
 
     ############################################################
@@ -773,9 +773,9 @@ class ApiRpcClient(object):
             arg('--scrub-data', default=False, action='store_true', help='Force volumes destroy'),
     ))
     @inlineCallbacks
-    def rebuild(self, ref, **kwargs):
+    def rebuild(self, ref, scrub_data, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs)
-        data = yield self._remote_exec('rebuild', self.format_app_srv(app, service))
+        data = yield self._remote_exec('rebuild', self.format_app_srv(app, service), scrub_data)
         print 'result: %s' % pprintpp.pformat(data)
 
     ############################################################

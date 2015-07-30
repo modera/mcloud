@@ -3,11 +3,13 @@ import random
 import string
 import subprocess
 import uuid
+from shutil import rmtree
 from mcloud.container import PrebuiltImageBuilder
 
 from mcloud.service import Service
 
 from mcloud.sync import VolumeNotFound
+from mcloud.util import TxTimeoutEception
 import os
 
 
@@ -200,7 +202,7 @@ class TaskService(object):
         :param name:
         :return:
         """
-        yield self.task_destroy(ticket_id, name)
+        yield self.task_destroy(ticket_id, name, scrub_data=True)
         yield self.app_controller.remove(name)
 
         # ret = yield self.app_controller.list()
@@ -363,7 +365,7 @@ class TaskService(object):
         defer.returnValue(ret)
 
     @inlineCallbacks
-    def task_rebuild(self, ticket_id, name):
+    def task_rebuild(self, ticket_id, name, scrub_data=False):
         """
         Rebuild application or service.
 
@@ -371,7 +373,7 @@ class TaskService(object):
         :param name:
         :return:
         """
-        yield self.task_destroy(ticket_id, name)
+        yield self.task_destroy(ticket_id, name, scrub_data=scrub_data)
         ret = yield self.task_start(ticket_id, name)
 
         defer.returnValue(ret)
@@ -635,7 +637,11 @@ class TaskService(object):
                     self.task_log(ticket_id, 'Waiting for container to start. %s' % (
                         'without timeout' if wait == 0 else 'with timout %ss' % wait))
 
-                    event = yield self.event_bus.wait_for_event('api.%s.*' % service.name, wait)
+                    try:
+                        event = yield self.event_bus.wait_for_event('api.%s.*' % service.name, wait)
+                    except TxTimeoutEception:
+                        event = None
+
                     timeout_happenned = event is None
 
                     if timeout_happenned:
@@ -773,7 +779,7 @@ class TaskService(object):
         defer.returnValue(ret)
 
     @inlineCallbacks
-    def task_destroy(self, ticket_id, name):
+    def task_destroy(self, ticket_id, name, scrub_data=False):
 
         """
         Remove application containers.
@@ -828,6 +834,16 @@ class TaskService(object):
             else:
                 self.task_log(ticket_id,
                               '[%s] Service %s container is not yet created.' % (ticket_id, service.name))
+
+            if scrub_data:
+                self.task_log(ticket_id, '[%s] Scrubbing container data: %s' % (ticket_id, service.name))
+                dir_ = os.path.expanduser('%s/volumes/%s' % (self.settings.home_dir, service.name))
+                if os.path.exists(dir_):
+                    rmtree(dir_)
+                    self.task_log(ticket_id, '[%s] Removed dir: %s' % (ticket_id, dir_))
+                else:
+                    self.task_log(ticket_id, '[%s] Nothing to remove' % ticket_id)
+
 
         yield defer.gatherResults(d)
 
