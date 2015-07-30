@@ -279,11 +279,13 @@ def test_generate_config_volumes():
     assert config == {
         "Hostname": 'my_service',
         "Image": 'foo',
-        "Volumes": {
-            "/bar1": {},
-            "/bar2": {},
-            "/bar3": {},
-        }
+
+        # Volumes are not passed as of Docker 1.6 version
+        # "Volumes": {
+        #     "/bar1": {},
+        #     "/bar2": {},
+        #     "/bar3": {},
+        # }
     }
 
 @pytest.inlineCallbacks
