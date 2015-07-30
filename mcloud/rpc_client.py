@@ -348,6 +348,10 @@ class ApiRpcClient(object):
                         if 'service' in target and target['service'] == service['shortname']:
                             web.append(url_)
 
+
+            if not 'stats' in service:
+                service['stats'] = {}
+
             if service['running']:
                 cpu = (("%.2f" % float(service['stats'].get('cpu_usage', 0.0))) + '%')
                 memory = (str(service['stats'].get('memory_usage', 0) / (1024 * 1024)) + 'M')
