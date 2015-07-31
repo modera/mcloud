@@ -488,6 +488,7 @@ class TaskService(object):
         else:
             sync_host = deployment.host
 
+        print s.public_ports()
         defer.returnValue({
             'env': s.env,
             'container': s.name,

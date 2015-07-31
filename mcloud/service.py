@@ -267,6 +267,8 @@ class Service(object):
         if self.ports:
             config['PortBindings'] = self.prepare_ports()
 
+
+
         if self.volumes and len(self.volumes):
             config['Binds'] = ['%s:%s' % (x['local'], x['remote'] + (':ro' if self.is_read_only(x['remote']) else '')) for x in self.volumes]
 

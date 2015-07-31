@@ -1084,7 +1084,7 @@ class ApiRpcClient(object):
 
         elif src_type == 'remote' and dst_type == 'remote':
             dir_name = mkdtemp()
-            dir_storage = get_storage(dir_name)
+            dst_type, dir_storage = get_storage(dir_name)
 
             yield rsync_folder(self, src_args, dir_storage, options=kwargs)
             yield rsync_folder(self, dst_args, dir_storage, reverse=True, options=kwargs)

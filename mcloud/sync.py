@@ -37,13 +37,25 @@ def get_storage(ref):
 @inlineCallbacks
 def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
 
+    print src_args, '||||', dst_args
     if not options:
         options = {}
 
     (host, app, service, volume) = src_args
 
     if host == 'me':
-        host = '127.0.0.1'
+        # manual variable
+        if 'MCLOUD_HOST' in os.environ:
+            host = os.environ['MCLOUD_HOST']
+
+        # automatic when using docker container-link
+        elif 'MCLOUD_PORT' in os.environ:
+            host = os.environ['MCLOUD_PORT']
+            if host.startswith('tcp://'):
+                host = host[6:]
+        else:
+            host = '127.0.0.1'
+
 
     if volume and volume.endswith('/'):
         volume = volume[:-1]
