@@ -110,10 +110,27 @@ def mcloud_shell(host_ref=None):
             if args.host:
                 host = args.host
             elif state['host'] == 'me' or not state['host']:
-                host = '127.0.0.1'
+                # manual variable
+                if 'MCLOUD_HOST' in os.environ:
+                    host = os.environ['MCLOUD_HOST']
+
+                # automatic when using docker container-link
+                elif 'MCLOUD_PORT' in os.environ:
+                    host = os.environ['MCLOUD_PORT']
+                    if host.startswith('tcp://'):
+                        host = host[6:]
+                else:
+                    host = '127.0.0.1'
+
             else:
                 host = state['host']
-            client = ApiRpcClient(host=host, settings=settings)
+
+            if ':' in host:
+                host, port = host.split(':')
+            else:
+                port = 7080
+
+            client = ApiRpcClient(host=host, port=port, settings=settings)
             interrupt_manager.append(ClientProcessInterruptHandler(client))
 
             for key, val in state.items():

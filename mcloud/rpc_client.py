@@ -185,7 +185,7 @@ class ClientProcessInterruptHandler(object):
 
 
 class ApiRpcClient(object):
-    def __init__(self, host=None, settings=None):
+    def __init__(self, host=None, port=None, settings=None):
 
         if not host:
             # manual variable
@@ -203,7 +203,7 @@ class ApiRpcClient(object):
         if ':' in host:
             host, port = host.split(':')
         else:
-            port = 7080
+            port = port or 7080
 
         self.host = host
         self.port = int(port)
