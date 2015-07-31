@@ -37,7 +37,7 @@ gulp.task('default', ['serve']); //
 
 //gulp.task('python_server', bg("./.env/bin/cratis", ["runserver", '0.0.0.0:8000']));
 
-gulp.task('serve', ['build'], function() {
+gulp.task('serve', ['build_site', 'build'], function() {
   browserSync({
     notify: false,
     ghostMode: false,
@@ -50,5 +50,5 @@ gulp.task('serve', ['build'], function() {
 
   gulp.watch(config.source, ['build', reload]);
   gulp.watch(config.site_doc_theme, ['build', reload]);
-  gulp.watch(config.site_source, ['build_site', reload]);
+  gulp.watch(config.site_source, ['build_site', 'build', reload]);
 });

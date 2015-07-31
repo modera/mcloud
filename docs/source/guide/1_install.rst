@@ -3,77 +3,6 @@
 Installing environment
 ============================================
 
-What we need to achieve is following picture:
-
-.. uml::
-
-    cloud "Web browser" as WebBrowser {
-
-    }
-
-    node "Developer machine" as DeveloperMachine {
-
-        () "127.0.0.1:80" as port_80
-        () "127.0.0.1:53" as port_53
-
-        package Docker {
-
-            [Mcloud Server] as server
-
-            [Mcloud Client] as client
-
-            client .right.> server : Use WebSocketAPI
-
-            [Haproxy] << Load Balancer >>
-
-            [nginx.myapp]
-
-            Haproxy -left-> nginx.myapp
-
-            Haproxy - port_80
-
-            server ..> Haproxy
-            server ..> nginx.myapp : configure \n& controll \ncontainers
-        }
-
-        [Dnsmasq]
-
-        Dnsmasq -left- port_53
-    }
-    WebBrowser ..left..> port_53
-    WebBrowser ..left..> port_80
-
-
-What will happen when myapp.mcloud.lh is opened:
-
-.. uml::
-
-    group Dns request
-        WebBrowser -> Dnsmasq : who is myapp.mcloud.lh ?
-        activate Dnsmasq
-        Dnsmasq -> WebBrowser : all *.mcloud.lh domains belong to 127.0.0.1
-        deactivate Dnsmasq
-    end
-
-    group Http request
-        WebBrowser -> Haproxy : GET /path/file.html HTTP/1.1 \nHost: myapp.mcloud.lh:80
-        activate Haproxy #FFBBBB
-
-        Haproxy -> Haproxy : who is myapp.mcloud.lh?
-        Haproxy -> Haproxy : it is nginx.myapp.mcloud.lh port 80
-
-        Haproxy -> nginx.myapp : GET / HTTP/1.1 \nHost: myapp.mcloud.lh:80
-        activate nginx.myapp #DarkSalmon
-
-        nginx.myapp -> Haproxy : <htm>...</html>
-        deactivate nginx.myapp
-
-        Haproxy -> WebBrowser : <htm>...</html>
-        deactivate Haproxy
-
-    end
-
-
 Docker
 --------------------
 
@@ -192,3 +121,81 @@ And quick-check that mcloud is working::
     +------------------+------------+--------+-------+--------+-----+------+
     | Application name | deployment | status | cpu % | memory | Web | Path |
     +------------------+------------+--------+-------+--------+-----+------+
+
+
+
+What we have now
+--------------------
+
+
+What we need to achieve is following picture:
+
+.. uml::
+
+    cloud "Web browser" as WebBrowser {
+
+    }
+
+    node "Developer machine" as DeveloperMachine {
+
+        () "127.0.0.1:80" as port_80
+        () "127.0.0.1:53" as port_53
+
+        package Docker {
+
+            [Mcloud Server] as server
+
+            [Mcloud Client] as client
+
+            client .right.> server : Use WebSocketAPI
+
+            [Haproxy] << Load Balancer >>
+
+            [nginx.myapp]
+
+            Haproxy -left-> nginx.myapp
+
+            Haproxy - port_80
+
+            server ..> Haproxy
+            server ..> nginx.myapp : configure \n& controll \ncontainers
+        }
+
+        [Dnsmasq]
+
+        Dnsmasq -left- port_53
+    }
+    WebBrowser ..left..> port_53
+    WebBrowser ..left..> port_80
+
+
+What will happen when myapp.mcloud.lh is opened:
+
+.. uml::
+
+    group Dns request
+        WebBrowser -> Dnsmasq : who is myapp.mcloud.lh ?
+        activate Dnsmasq
+        Dnsmasq -> WebBrowser : all *.mcloud.lh domains belong to 127.0.0.1
+        deactivate Dnsmasq
+    end
+
+    group Http request
+        WebBrowser -> Haproxy : GET /path/file.html HTTP/1.1 \nHost: myapp.mcloud.lh:80
+        activate Haproxy #FFBBBB
+
+        Haproxy -> Haproxy : who is myapp.mcloud.lh?
+        Haproxy -> Haproxy : it is nginx.myapp.mcloud.lh port 80
+
+        Haproxy -> nginx.myapp : GET / HTTP/1.1 \nHost: myapp.mcloud.lh:80
+        activate nginx.myapp #DarkSalmon
+
+        nginx.myapp -> Haproxy : <htm>...</html>
+        deactivate nginx.myapp
+
+        Haproxy -> WebBrowser : <htm>...</html>
+        deactivate Haproxy
+
+    end
+
+
