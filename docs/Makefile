@@ -16,6 +16,7 @@ I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
 
+
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html       to make standalone HTML files"
@@ -42,6 +43,7 @@ clean:
 	-rm -rf $(BUILDDIR)/*
 
 html:
+	if [ ! -L source/plugins ] ; then ln -s ../../plugins source/plugins; fi
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) source/themes/cloud.modera.org/public/docs
 	@echo
 	@echo "Build finished. The HTML pages are in source/themes/cloud.modera.org/public/docs"

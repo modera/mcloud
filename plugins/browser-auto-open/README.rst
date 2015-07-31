@@ -1,4 +1,4 @@
-ModeraCloud browser-auto-open plugin
+Browser auto-open
 ============================================
 
 not working yet. Don't use.
