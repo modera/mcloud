@@ -173,6 +173,8 @@ What will happen when myapp.mcloud.lh is opened:
 
 .. uml::
 
+    @startuml
+
     group Dns request
         WebBrowser -> Dnsmasq : who is myapp.mcloud.lh ?
         activate Dnsmasq
@@ -197,5 +199,7 @@ What will happen when myapp.mcloud.lh is opened:
         deactivate Haproxy
 
     end
+
+    @enduml
 
 
