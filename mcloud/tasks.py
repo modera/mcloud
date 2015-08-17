@@ -622,7 +622,6 @@ class TaskService(object):
                 yield service.start(ticket_id)
 
                 self.task_log(ticket_id, 'Updating container list')
-                self.event_bus.fire_event('containers-updated')
 
                 if not service.wait is False:
 
@@ -680,6 +679,8 @@ class TaskService(object):
 
                 else:
                     yield sleep(0.2)
+
+                self.event_bus.fire_event('containers-updated')
 
             else:
                 self.task_log(ticket_id,

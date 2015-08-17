@@ -66,7 +66,7 @@ class DockerTwistedClient(object):
         if url is None:
             url = os.environ.get('DOCKER_API_URL', 'unix://var/run/docker.sock/')
 
-        self.url = url + '/'
+        self.url = url + '/v1.19/'
 
         logger.info('Connecting docker: %s' % self.url)
 
