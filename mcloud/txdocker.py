@@ -47,8 +47,13 @@ class DockerConnectionFailed(Exception):
 
 class DockerTwistedClient(object):
 
+    DOCKER_API_VERSION = 'v1.19'
+
     rpc_server = inject.attr(ApiRpcServer)
     eb = inject.attr(EventBus)
+
+    def versionize(self, url):
+        return url + self.DOCKER_API_VERSION + '/'
 
     def task_log(self, ticket_id, message):
         self.rpc_server.task_progress(message, ticket_id)
@@ -66,14 +71,14 @@ class DockerTwistedClient(object):
         if url is None:
             url = os.environ.get('DOCKER_API_URL', 'unix://var/run/docker.sock/')
 
-        self.url = url + '/v1.19/'
+        self.url = url + '/'
 
         logger.info('Connecting docker: %s' % self.url)
 
     def _request(self, url, method=txhttp.get, follow_redirects=1, **kwargs):
 
         if not '://' in url:
-            url_ = '%s%s' % (self.url, url)
+            url_ = '%s%s' % (self.versionize(self.url), url)
         else:
             url_ = url
 
@@ -255,6 +260,9 @@ class DockerTwistedClient(object):
 
             proto, url = self.url.split('://')
             url = url.strip('/')
+
+            print 'url::::::::::::::::'
+            print url
             if ':' in url:
                 host, port = url.split(':')
             else:
