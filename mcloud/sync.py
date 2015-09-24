@@ -2,12 +2,13 @@ from copy import copy
 import inject
 import os
 import subprocess
-from mcloud.application import Application
 import re
-# from mcloud.application import Application
 
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.python import filepath
+
+APP_REGEXP = '[a-z0-9\-_]+'
+SERVICE_REGEXP = '[a-z0-9\-_]+'
 
 
 class VolumeNotFound(ValueError):
@@ -15,8 +16,8 @@ class VolumeNotFound(ValueError):
 
 def get_storage(ref):
     match = re.match('^((%(app_regex)s)\.)?(%(service_regex)s)@([a-z0-9A-Z\-\.]+)(:([0-9]+))?(:(.*))?$' % {
-        'app_regex': Application.APP_REGEXP,
-        'service_regex': Application.SERVICE_REGEXP,
+        'app_regex': APP_REGEXP,
+        'service_regex': SERVICE_REGEXP,
     }, ref)
     if match:
         service = match.group(2)

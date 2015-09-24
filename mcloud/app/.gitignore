@@ -1,0 +1,24 @@
+.idea
+**.pyc
+**.egg-info
+/build
+/dist
+/logs
+.env/
+celerybeat.pid
+celerybeat-schedule
+.cache/
+htmlcov/
+.coverage
+/var
+celerybeat.pid celeryev.pid
+.transifexrc
+/node_modules
+celerybeat.pid celeryev.pid
+celeryev.pid
+/lib
+cachegrind.out.profilestats
+profilestats.prof
+.mcloud/
+settings.py 
+libs/

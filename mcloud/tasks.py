@@ -383,6 +383,8 @@ class TaskService(object):
 
         def on_log(log):
 
+            self.task_log(ticket_id, '>BBBBBBBBBBBBBBBBBBBBB' * 40)
+
             if log.startswith('@mcloud ready in '):
                 parts = log.split(' ')
                 self.event_bus.fire_event('api.%s.%s' % (service.name, 'ready'), my_args=parts[2:])
@@ -392,16 +394,11 @@ class TaskService(object):
                 return
 
             self.task_log(ticket_id, log)
-
-        def done(result):
-            pass
-
-        def on_err(failure):
-            print failure
+        print 'AAAAooooo' * 40
 
         d = service.client.logs(service.name, on_log)
-        d.addCallback(done)
-        d.addErrback(on_err)
+        # d.addCallback(done)
+        # d.addErrback(on_err)
 
         self.event_bus.once('task.failure.%s' % ticket_id, d.cancel)
 
@@ -619,6 +616,16 @@ class TaskService(object):
             if not service.is_running():
                 self.task_log(ticket_id,
                               '[%s] Service %s is not running. Starting' % (ticket_id, service.name))
+
+                if not service.is_created():
+
+                    yield service.create(ticket_id)
+                log_process = self.follow_logs(service, ticket_id)
+
+                boo = yield log_process
+
+                print boo
+
                 yield service.start(ticket_id)
 
                 self.task_log(ticket_id, 'Updating container list')
@@ -631,8 +638,6 @@ class TaskService(object):
                     if wait > 3600:
                         self.task_log(ticket_id, 'WARN: wait is to high, forcibly set to 3600s to prevent memory leaks')
                         wait = 3600
-
-                    log_process = self.follow_logs(service, ticket_id)
 
                     self.task_log(ticket_id, 'Waiting for container to start. %s' % (
                         'without timeout' if wait == 0 else 'with timout %ss' % wait))
@@ -679,6 +684,9 @@ class TaskService(object):
 
                 else:
                     yield sleep(0.2)
+
+
+
 
                 self.event_bus.fire_event('containers-updated')
 

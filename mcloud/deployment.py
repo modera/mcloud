@@ -1,16 +1,14 @@
 from glob import glob
 import json
-import os
 
+from mcloud.app.models import Deployment
+import os
 import inject
 from mcloud.events import EventBus
 from mcloud.plugin import enumerate_plugins
-from mcloud.txdocker import DockerTwistedClient
-import pprintpp
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
-
 from zope.interface import Interface
 
 
@@ -25,109 +23,6 @@ class IDeploymentPublishListener(Interface):
         """
         Called when domain is beeing published
         """
-
-
-
-class Deployment(object):
-
-    def __init__(self,
-                 name=None,
-                 exports=None,
-                 host=None,
-                 local=True,
-                 port=None,
-                 tls=False,
-                 ca=None,
-                 cert=None,
-                 key=None,
-                 default=None, **kwargs):
-        super(Deployment, self).__init__()
-
-        # "default" is ignored
-
-        self.name = name
-        self.exports = exports or {}
-        self.host = host or 'unix://var/run/docker.sock/'
-        self.port = port
-        self.local = local
-        self.tls = tls
-        self.ca = ca
-        self.cert = cert
-        self.default = None
-        self.key = key
-
-        self.client = None
-
-    def update(self, exports=None, host=None, local=None,  port=None, tls=False, ca=None, cert=None, key=None):
-        if exports:
-            self.exports = exports
-
-        if host:
-            self.host = host
-
-        if local is not None:
-            self.local = local
-
-        if port is not None:
-            self.port = port
-
-        if tls is not None:
-            self.tls = tls
-
-        if ca is not None:
-            self.ca = ca or None
-
-        if cert is not None:
-            self.cert = cert or None
-
-        if key is not None:
-            self.key = key or None
-
-
-    def get_client(self):
-        if self.client:
-            return self.client
-
-        if self.local:
-            url = self.host
-
-        if '://' in self.host:
-            scheme, host = self.host.split('://')
-        else:
-            scheme = 'tcp'
-            host = self.host
-
-        if ':' in host:
-            host, port = host.split(':')
-        else:
-            port = self.port
-
-        if scheme == 'tcp':
-            scheme = 'https' if self.tls else 'http'
-            port = self.port or '2375'
-            url = '%s://%s:%s' % (scheme, host, port)
-
-        self.client = DockerTwistedClient(url=url.encode(), key=self.key, crt=self.cert, ca=self.ca)
-        return self.client
-
-
-    @property
-    def config(self):
-        return {
-            'name': self.name,
-            'default': self.default,
-            'exports': self.exports,
-            'host': self.host,
-            'port': self.port,
-            'tls': self.tls,
-            'local': self.local,
-            'ca': self.ca,
-            'key': self.key,
-            'cert': self.cert
-        }
-
-    def load_data(self, *args, **kwargs):
-        return defer.succeed(self.config)
 
 
 class DeploymentDoesNotExist(Exception):
@@ -155,10 +50,6 @@ class DeploymentController(object):
         defer.returnValue(deployment)
 
     @inlineCallbacks
-    def set_default(self, name):
-        yield self.redis.set('mcloud-deployment-default', name)
-
-    @inlineCallbacks
     def update(self, name, **kwargs):
         deployment = yield self.get(name)
 
@@ -177,27 +68,18 @@ class DeploymentController(object):
 
     @inlineCallbacks
     def get(self, name):
+        try:
+            deployment = yield Deployment.tx.get(name=name)
+            defer.returnValue(deployment)
 
-        config = yield self.redis.hget('mcloud-deployments', name)
-
-        if not config:
+        except Deployment.DoesNotExist:
             raise DeploymentDoesNotExist('Deployment with name "%s" do not exist' % name)
-        else:
-            defer.returnValue(Deployment(**json.loads(config)))
 
 
     @inlineCallbacks
     def get_default(self):
-        config = yield self.redis.hgetall('mcloud-deployments')
-        default = yield self.redis.get('mcloud-deployment-default')
-
-        deployments = [Deployment(**json.loads(config)) for name, config in config.items()]
-
-        for dpl in deployments:
-            if dpl.name == default:
-                defer.returnValue(dpl)
-
-        if len(deployments) > 0:
+        deployments = yield Deployment.tx.filter(default=True)
+        if deployments.conunt() > 0:
             defer.returnValue(deployments[0])
 
         defer.returnValue(None)
@@ -217,30 +99,32 @@ class DeploymentController(object):
 
     @inlineCallbacks
     def list(self):
-        config = yield self.redis.hgetall('mcloud-deployments')
-        default = yield self.redis.get('mcloud-deployment-default')
-
-        deployments = [Deployment(**json.loads(config)) for name, config in config.items()]
-
-        for dpl in deployments:
-            dpl.default = dpl.name == default
-
+        deployments = yield Deployment.tx.all()
         defer.returnValue(deployments)
 
     @inlineCallbacks
     def set_default(self, name):
-        yield self.redis.set('mcloud-deployment-default', name)
+        deployment = yield self.get(name)
+
+        # reset default
+        yield Deployment.tx.update(default=False)
+
+        # set default
+        deployment.default = True
+        yield deployment.save()
 
     @inlineCallbacks
     def publish_app(self, deployment, domain, app_name, service_name, custom_port=None, ticket_id=None):
+
+
         if not isinstance(deployment, Deployment):
             deployment = yield self.get(deployment)
 
-        deployment.exports[domain] = {
-            'public_app': app_name,
-            'public_service': service_name,
-            'custom_port': custom_port
-        }
+        # deployment.exports[domain] = {
+        #     'public_app': app_name,
+        #     'public_service': service_name,
+        #     'custom_port': custom_port
+        # }
 
         yield self._persist_dployment(deployment)
 
@@ -264,7 +148,7 @@ class DeploymentController(object):
             yield plugin.on_domain_unpublish(deployment, domain, ticket_id=ticket_id)
 
     def _persist_dployment(self, deployment):
-        return self.redis.hset('mcloud-deployments', deployment.name, json.dumps(deployment.config))
+        return deployment.save()
 
 
 

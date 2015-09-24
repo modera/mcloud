@@ -1,20 +1,18 @@
-from difflib import unified_diff, Differ
+from difflib import unified_diff
 import json
 import shutil
 import sys
 from tempfile import mkdtemp
 import uuid
 import argparse
-import subprocess
 from contextlib import contextmanager
+
 from bashutils.colors import color_text
 import inject
-from mcloud.application import Application
 from mcloud.attach import AttachStdinProtocol
 from mcloud.config import YamlConfig
 from mcloud.sync import get_storage, rsync_folder
 from mcloud.util import txtimeout
-
 import re
 import os
 from autobahn.twisted.util import sleep
@@ -22,12 +20,15 @@ import pprintpp
 from prettytable import PrettyTable, ALL
 from texttable import Texttable
 from twisted.internet import defer, stdio
-from twisted.internet.defer import inlineCallbacks, CancelledError, returnValue
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet.error import ConnectionRefusedError
 from mcloud import metadata
 import yaml
 from twisted.internet import reactor
 
+
+APP_REGEXP = '[a-z0-9\-_]+'
+SERVICE_REGEXP = '[a-z0-9\-_]+'
 
 def format_epilog():
     """Program entry point.
@@ -469,8 +470,8 @@ class ApiRpcClient(object):
 
             if ref != '':
                 match = re.match('^((%s)\.)?(%s)?(@(%s|%s))?$' % (
-                    Application.SERVICE_REGEXP,
-                    Application.APP_REGEXP,
+                    SERVICE_REGEXP,
+                    APP_REGEXP,
                     self.ip_regex,
                     self.host_regex
                 ), ref)
@@ -795,7 +796,7 @@ class ApiRpcClient(object):
     @inlineCallbacks
     def rebuild(self, ref, scrub_data, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs)
-        data = yield self._remote_exec('rebuild', self.format_app_srv(app, service), scrub_data)
+        data = yield self._remote_exec('rebuild', self.format_app_srv(app, service))
         print 'result: %s' % pprintpp.pformat(data)
 
     ############################################################

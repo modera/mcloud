@@ -1,19 +1,25 @@
-from glob import glob
-import logging
-from OpenSSL.crypto import FILETYPE_PEM
-from mcloud.application import ApplicationController
+from configurations import importer
 import os
+from pkg_resources import resource_filename
+
+os.environ['DJANGO_SETTINGS_MODULE'] = 'mcloud.app.settings'
+os.environ['CRATIS_APP_PATH'] = resource_filename(__name__, 'app')
+os.environ['DJANGO_CONFIGURATION'] = 'Dev'
+
+importer.install()
+
+
+
+import logging
 import sys
 import netifaces
-from traceback import print_tb
 import traceback
 
 import inject
 from mcloud.deployment import DeploymentController
 from mcloud.plugin import IMcloudPlugin
 import pkg_resources
-from twisted.internet import reactor
-from twisted.internet._sslverify import KeyPair
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
 import txredisapi
@@ -32,6 +38,7 @@ def get_argparser():
 
     parser = argparse.ArgumentParser(description='Mcloud rpc server')
     parser.add_argument('--config', default='/etc/mcloud/mcloud-server.yml', help='Config file path')
+    parser.add_argument('--import-redis', default=False, action='store_true', help='Import redis data and exit')
     parser.add_argument('--no-ssl', default=False, action='store_true', help='Disable ssl')
 
     return parser
@@ -118,7 +125,6 @@ def entry_point():
         from mcloud.remote import ApiRpcServer, Server
         from mcloud.tasks import TaskService
 
-
         log.msg('Running server')
 
         eb = EventBus(redis)
@@ -128,7 +134,6 @@ def entry_point():
         log.msg('Configuring injector.')
 
         plugins_loaded = []
-
 
 
         def my_config(binder):

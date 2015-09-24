@@ -1,0 +1,5 @@
+MySQL-python
+django<1.7
+django-cratis==0.6.2
+-e cratis-features[base,admin,admin_suit]
+

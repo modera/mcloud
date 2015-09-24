@@ -214,17 +214,23 @@ class DockerTwistedClient(object):
 
 
     def logs(self, container_id, on_log, tail=0, follow=True):
-        r = self._get('containers/%s/logs' % bytes(container_id), response_handler=None, data={
+
+        r = self._get('containers/%s/logs' % bytes(container_id),
+            headers={'Connection': 'Upgrade', 'Upgrade': 'tcp'},
+            response_handler=None, data={
+
             'follow': follow,
             'tail': tail,
             # 'timestamps': 0,
             'stdout': True,
             'stderr': True
         })
-
         def on_result(result):
+
+            print str(result.code) * 100
+
             if result.code == 200:
-                return txhttp.collect(result, on_log)
+                    return txhttp.collect(result, on_log)
             elif result.code == 404:
                 return self.collect_to_exception(NotFound, result)
             else:

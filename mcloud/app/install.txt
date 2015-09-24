@@ -1,0 +1,4 @@
+alias cratis='DJANGO_SETTINGS_MODULE=mcloud.app.settings CRATIS_APP_PATH=mcloud/app cratis'
+(mcloud)root@7f71f2bf758c:/opt/mcloud/local/lib/python2.7/site-packages#
+
+echo "CREATE DATABASE IF NOT EXISTS ticcet CHARACTER SET utf8 COLLATE utf8_general_ci;" | mysql -h mysql -u

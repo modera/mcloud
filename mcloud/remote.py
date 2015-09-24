@@ -1,26 +1,25 @@
 import json
-from autobahn.twisted.resource import WSGIRootResource, WebSocketResource
+import sys
 
+from autobahn.twisted.resource import WSGIRootResource, WebSocketResource
 from mcloud.ssl import listen_ssl
 import os
-import sys
 import inject
 from mcloud.events import EventBus
-
-from twisted.internet import reactor, defer
+from prettytable import PrettyTable, ALL
+from twisted.internet import reactor, defer, task
 from twisted.internet.defer import inlineCallbacks, AlreadyCalledError, CancelledError
-
 from autobahn.twisted.websocket import WebSocketServerFactory
 from autobahn.twisted.websocket import WebSocketClientFactory
 from twisted.python.failure import Failure
 from twisted.web.server import Site
+from twisted.web.wsgi import WSGIResource
 import txredisapi
 
 from twisted.python import log
 
 from twisted.web.static import File
 from pkg_resources import resource_filename
-
 from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketServerProtocol
 
 
@@ -265,43 +264,62 @@ class Server(object):
         self.tasks[name] = callback
 
     def bind(self):
-        """
-        Start listening on the port specified
-        """
-        factory = WebSocketServerFactory(debug=False)
-        factory.noisy = False
-        factory.server = self
-        factory.protocol = MdcloudWebsocketServerProtocol
-
-        web_resource = File(resource_filename(__name__, 'static/build/client'))
-
-        rootResource = WSGIRootResource(web_resource, {'ws': WebSocketResource(factory)})
-
-        if not self.no_ssl and self.settings and self.settings.ssl.enabled:
-            print '*' * 60
-            print 'Running in secure mode'
-            print 'Ssl key:         %s' % self.settings.ssl.key
-            print 'Ssl certificate: %s' % self.settings.ssl.cert
-            print '*' * 60
-
-            listen_ssl(self.port, Site(rootResource), interface=self.settings.websocket_ip)
-
-        else:
-
-            print '*' * 60
-            print 'Running on 0.0.0.0 without SSL'
-            print '*' * 60
-            reactor.listenTCP(self.port, Site(rootResource), interface='0.0.0.0')
+        try:
+            """
+            Start listening on the port specified
+            """
+            factory = WebSocketServerFactory(debug=False)
+            factory.noisy = False
+            factory.server = self
+            factory.protocol = MdcloudWebsocketServerProtocol
 
 
-            # if getattr(self.settings, 'demo_mode', False):
-            #
-            # else:
-            #     print '*' * 60
-            #     print 'INSECURE MODE'
-            #     print 'Running on 127.0.0.1 only'
-            #     print '*' * 60
-            #     reactor.listenTCP(self.port, Site(rootResource), interface='127.0.0.1')
+            # django application
+            from cratis.wsgi import application
+
+            application_resource = WSGIResource(reactor, reactor.getThreadPool(), application)
+
+            rootResource = WSGIRootResource(application_resource, {
+                'ws': WebSocketResource(factory),
+                'static': File(resource_filename(__name__, 'app/var/static/'))
+            })
+
+            if not self.no_ssl and self.settings and self.settings.ssl.enabled:
+                print '*' * 60
+                print 'Running in secure mode'
+                print 'Ssl key:         %s' % self.settings.ssl.key
+                print 'Ssl certificate: %s' % self.settings.ssl.cert
+                print '*' * 60
+
+                listen_ssl(self.port, Site(rootResource), interface=self.settings.websocket_ip)
+
+            else:
+
+                print '*' * 60
+                print 'Running on 0.0.0.0 without SSL'
+                print '*' * 60
+                reactor.listenTCP(self.port, Site(rootResource), interface='0.0.0.0')
+
+
+                # if getattr(self.settings, 'demo_mode', False):
+                #
+                # else:
+                #     print '*' * 60
+                #     print 'INSECURE MODE'
+                #     print 'Running on 127.0.0.1 only'
+                #     print '*' * 60
+                #     reactor.listenTCP(self.port, Site(rootResource), interface='127.0.0.1')
+        except Exception as e:
+            print
+            print
+            print
+            print e
+            print
+            print
+            print
+            reactor.stop()
+
+            sys.exit(1)
 
 
 class MdcloudWebsocketClientProtocol(WebSocketClientProtocol):
