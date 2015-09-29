@@ -4,3 +4,9 @@
 [submodule "docs/source/themes/cloud.modera.org"]
 	path = docs/source/themes/cloud.modera.org
 	url = ssh://git@stash.dev.modera.org:7999/web/cloud.modera.org.git
+[submodule "mcloud/app/cratis"]
+	path = mcloud/app/cratis
+	url = https://ribozz@github.com/django-cratis/cratis.git
+[submodule "mcloud/app/cratis-features"]
+	path = mcloud/app/cratis-features
+	url = https://ribozz@bitbucket.org/itpeople/cratis-features.git
