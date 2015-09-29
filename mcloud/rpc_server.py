@@ -162,6 +162,13 @@ def entry_point():
         server = Server(port=settings.websocket_port)
         server.bind()
 
+        from django.core.management import call_command
+
+        call_command('collectstatic', interactive=False)
+
+        call_command('syncdb')
+        call_command('migrate', verbosity=3, interactive=False)
+
         # load plugins
         for ep in pkg_resources.iter_entry_points(group='mcloud_plugins'):
             try:

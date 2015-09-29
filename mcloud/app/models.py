@@ -135,13 +135,12 @@ class Deployment(BaseModel):
 #
 
 
+
 class Application(BaseModel):
     name = models.CharField(max_length=255, verbose_name=_('Name'), default='My app', unique=True)
     path = models.CharField(max_length=255, verbose_name=_('Path'))
     deployment = models.ForeignKey(Deployment, null=True)
     env = models.CharField(max_length=10, verbose_name=_('Environment name'), null=True, blank=True, default='dev')
-
-    source = models.TextField(blank=True, null=True)
 
     source = YamlFancyField(blank=True, null=True)
 
@@ -295,3 +294,11 @@ class Application(BaseModel):
             'status': status,
             'errors': errors,
         }
+
+
+class Service(BaseModel):
+    name = models.CharField(max_length=255, verbose_name=_('Name'))
+    app = models.ForeignKey(Application)
+
+    class Meta:
+        unique_together = (("name", "app"),)
