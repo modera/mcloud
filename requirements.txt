@@ -1,0 +1,10 @@
+Django==1.9
+django-ace==1.0.2
+django-suit==0.2.15
+psycopg2==2.6.1
+Twisted==15.5.0
+git+https://github.com/ribozz/txpostgres.git
+git+https://github.com/jazzband/django-configurations.git
+git+https://github.com/fiorix/txredisapi.git
+-e mcloud/app/cratis
+-e mcloud/app/cratis-features

@@ -21,7 +21,7 @@ class EventBus(object):
             elif args:
                 data = args
 
-        if not isinstance(data, basestring):
+        if not isinstance(data, str):
             data = 'j:' + json.dumps(data)
         else:
             data = 'b:' + str(data)

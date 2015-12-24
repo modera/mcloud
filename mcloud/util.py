@@ -1,4 +1,3 @@
-from Queue import Queue, Empty
 from contextlib import contextmanager
 from abc import ABCMeta
 import inject
@@ -105,7 +104,7 @@ class LessLongTextProtocol(protocol.ProcessProtocol):
         self.on_exit = on_exit
 
     def connectionMade(self):
-        print "Connected"
+        print("Connected")
         # self.transport.write(self.long_text.encode('utf-8'))
         self.transport.write('kuku')
         self.transport.closeStdin()
@@ -119,7 +118,7 @@ class LessLongTextProtocol(protocol.ProcessProtocol):
     def outReceived(self, data):
         protocol.ProcessProtocol.outReceived(self, data)
 
-        print data
+        print(data)
 
 
     def processEnded(self, reason):

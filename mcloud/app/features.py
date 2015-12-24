@@ -5,13 +5,13 @@ import os
 
 class McloudManager(Feature):
     def configure_settings(self):
-        self.append_apps(['mcloud.app', 'django_ace', 'mcloud.app.pki'])
+        self.append_apps(['mcloud.app'])
 
         self.settings.STATICFILES_DIRS += (os.path.dirname(__file__) + '/pki/media',)
 
 
     def configure_urls(self, urls):
-
-        urls += patterns('',
-            (r'^', include('mcloud.app.pki.urls', namespace='pki')),
-        )
+        pass
+        # urls += patterns('',
+        #     (r'^', include('mcloud.app.pki.urls', namespace='pki')),
+        # )

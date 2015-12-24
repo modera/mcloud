@@ -5,9 +5,9 @@ from django.db import models
 
 from django.utils.translation import ugettext_lazy as _
 from django_ace import AceWidget
-from mcloud.config import YamlConfig
-from mcloud.django_adapter import TwistedModel
-from mcloud.txdocker import DockerTwistedClient
+# from mcloud.config import YamlConfig
+from mcloud.django.dbadapter import TwistedModel
+# from mcloud.txdocker import DockerTwistedClient
 import os
 from twisted.internet import defer
 
@@ -19,8 +19,8 @@ class YamlFancyField(models.TextField):
         return super(YamlFancyField, self).formfield(**kwargs)
 
 
-from south.modelsinspector import add_introspection_rules
-add_introspection_rules([], ["^mcloud.app"])
+# from south.modelsinspector import add_introspection_rules
+# add_introspection_rules([], ["^mcloud.app"])
 
 class BaseModel(TwistedModel):
 

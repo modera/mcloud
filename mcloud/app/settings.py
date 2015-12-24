@@ -30,9 +30,9 @@ class Dev(CratisConfig):
 
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
+            'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'mcloud',
-            'USER': 'root',
+            'USER': 'mcloud',
             'PASSWORD': '123123',
             'HOST': '127.0.0.1',
         },
