@@ -1,18 +1,12 @@
 from cratis.cli import load_env
 import os
+
+from mcloud.django.startup import init_django
 from pkg_resources import resource_filename
 
 
-os.environ['DJANGO_SETTINGS_MODULE'] = 'mcloud.app.settings'
-os.environ['CRATIS_APP_PATH'] = resource_filename(__name__, 'app')
-os.environ['DJANGO_CONFIGURATION'] = 'Dev'
 
-load_env()
-
-from configurations import importer
-
-importer.install()
-
+init_django()
 
 
 import logging

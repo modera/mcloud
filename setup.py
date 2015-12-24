@@ -30,8 +30,8 @@ python_version_specific_requires = []
 
 # as of Python >= 2.7 and >= 3.2, the argparse module is maintained within
 # the Python standard library, otherwise we install it as a separate package
-if sys.version_info < (2, 7):
-    python_version_specific_requires.append('argparse')
+if sys.version_info < (3, 5):
+    raise Exception('Python 3.5 and above required to install mcloud')
 
 
 # See here for more options:
@@ -67,7 +67,7 @@ setup(
     ],
     packages=find_packages(exclude=(TESTS_DIRECTORY,)),
     install_requires=[
-        # 'klein',
+        'klein',
         'txredisapi',
         'inject',
         'voluptuous',
@@ -76,7 +76,7 @@ setup(
         'PyYAML',
         # 'service-identity',
         'netifaces',
-        'pynetinfo',
+        # 'pynetinfo',
         # 'reqeuests',
         # 'werkzeug',
         'autobahn==0.8.11',
@@ -85,7 +85,7 @@ setup(
         # 'cryptography>=0.7',
         'confire',
         'zope.interface',
-        'Twisted==14.0.2',
+        'Twisted',
 
         # [client]
         'readline',

@@ -8,3 +8,6 @@ git+https://github.com/jazzband/django-configurations.git
 git+https://github.com/fiorix/txredisapi.git
 -e mcloud/app/cratis
 -e mcloud/app/cratis-features
+
+netifaces
+confire
