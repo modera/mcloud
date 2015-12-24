@@ -162,7 +162,7 @@ def entry_point():
         server = Server(port=settings.websocket_port)
         server.bind()
 
-        from django.core.management import call_command
+        from .django.core.management import call_command
 
         call_command('collectstatic', interactive=False)
 
@@ -186,14 +186,14 @@ def entry_point():
                 yield plugin.setup()
                 plugins_loaded.append(plugin)
 
-                print "Loaded %s - OK" % plugin_class
+                print("Loaded %s - OK" % plugin_class)
 
             except Exception as e:
-                print '!-' * 40
-                print e.__class__.__name__
-                print e
-                print(traceback.format_exc())
-                print '!-' * 40
+                print('!-' * 40)
+                print(e.__class__.__name__)
+                print(e)
+                print((traceback.format_exc()))
+                print('!-' * 40)
 
                 # reactor.stop()
 
@@ -213,10 +213,10 @@ def entry_point():
         print('Can not connect to redis!')
         reactor.stop()
 
-    print '*******'
-    print 'Connecting redis:'
-    print settings.redis
-    print '*******'
+    print('*******')
+    print('Connecting redis:')
+    print(settings.redis)
+    print('*******')
 
     txtimeout(txredisapi.Connection(
         dbid=settings.redis.dbid,

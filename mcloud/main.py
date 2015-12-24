@@ -101,10 +101,10 @@ def main(argv):
                     else:
                         label = str(label)
 
-                    print '\n  %s: %s\n' % (
+                    print('\n  %s: %s\n' % (
                         color_text(label, color='cyan'),
                         color_text(str(e), color='yellow'),
-                    )
+                    ))
 
                 interrupt_manager.manual_interrupt()
 

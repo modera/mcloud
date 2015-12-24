@@ -7,8 +7,8 @@ from twisted.internet.defer import Deferred
 from twisted.python.failure import Failure
 
 
-class Interface(object):
-    __metaclass__ = ABCMeta
+class Interface(object, metaclass=ABCMeta):
+    pass
 
 @contextmanager
 def inject_services(configurator):
@@ -20,7 +20,7 @@ def inject_services(configurator):
 def injector(bind_config):
 
     def configurator(binder):
-        for key, val in bind_config.items():
+        for key, val in list(bind_config.items()):
             binder.bind(key, val)
 
     inject.clear_and_configure(configurator)
@@ -84,7 +84,7 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        choice = raw_input().lower()
+        choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:

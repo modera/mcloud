@@ -211,7 +211,7 @@ class Service(object):
         if not self.is_running():
             return None
 
-        return self.list_volumes().keys()
+        return list(self.list_volumes().keys())
 
     def started_at(self):
         if not self.is_running():
@@ -286,7 +286,7 @@ class Service(object):
     def prepare_ports(self):
         all_ports = {}
         for port in self.ports:
-            if isinstance(port, basestring) and ':' in port:
+            if isinstance(port, str) and ':' in port:
                 local, host = port.split(':')
                 if '_' in host:
                     ip, rport = host.split('_')
@@ -344,7 +344,7 @@ class Service(object):
 
 
         if image_info['ContainerConfig']['Volumes']:
-            for vpath, vinfo in image_info['ContainerConfig']['Volumes'].items():
+            for vpath, vinfo in list(image_info['ContainerConfig']['Volumes'].items()):
 
                 if not vpath in mounted_volumes:
                     dir_ = os.path.expanduser('%s/volumes/%s/%s' % (self.settings.home_dir, self.name, re.sub('[^a-z0-9]+', '_', vpath)))
@@ -376,7 +376,7 @@ class Service(object):
 echo -e "\n@mcloud $@\n"
 """
 
-            print 'Load file into container: ' + '/usr/bin/@me'
+            print('Load file into container: ' + '/usr/bin/@me')
             yield self.client.put_file(id_, '/usr/bin/@me', content,  ticket_id=ticket_id)
 
         # lifecycle events
@@ -461,13 +461,13 @@ echo -e "\n@mcloud $@\n"
             vlist.update(self.env)
 
         if len(vlist) > 0:
-            config['Env'] = ['%s=%s' % x for x in vlist.items()]
+            config['Env'] = ['%s=%s' % x for x in list(vlist.items())]
 
 
         if self.ports:
             all_ports = {}
             for port in self.ports:
-                if isinstance(port, basestring) and ':' in port:
+                if isinstance(port, str) and ':' in port:
                     all_ports[port.split(':')[0]] = {}
                 else:
                     all_ports[port] = {}

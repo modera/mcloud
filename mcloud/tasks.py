@@ -328,7 +328,7 @@ class TaskService(object):
         """
 
         data = []
-        for service in config.get_services().values():
+        for service in list(config.get_services().values()):
             """
             @type service: Service
             """
@@ -394,7 +394,7 @@ class TaskService(object):
                 return
 
             self.task_log(ticket_id, log)
-        print 'AAAAooooo' * 40
+        print('AAAAooooo' * 40)
 
         d = service.client.logs(service.name, on_log)
         # d.addCallback(done)
@@ -485,7 +485,7 @@ class TaskService(object):
         else:
             sync_host = deployment.host
 
-        print s.public_ports()
+        print(s.public_ports())
         defer.returnValue({
             'env': s.env,
             'container': s.name,
@@ -595,7 +595,7 @@ class TaskService(object):
 
         self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
-        for service in config.get_services().values():
+        for service in list(config.get_services().values()):
             if service_name and '%s.%s' % (service_name, app_name) != service.name:
                 continue
 
@@ -604,7 +604,7 @@ class TaskService(object):
                               '[%s] Service %s is not created. Creating' % (ticket_id, service.name))
                 yield service.create(ticket_id)
 
-        for service in config.get_services().values():
+        for service in list(config.get_services().values()):
 
             if service_name and '%s.%s' % (service_name, app_name) != service.name:
                 continue
@@ -624,7 +624,7 @@ class TaskService(object):
 
                 boo = yield log_process
 
-                print boo
+                print(boo)
 
                 yield service.start(ticket_id)
 
@@ -727,7 +727,7 @@ class TaskService(object):
 
         self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
-        for service in config.get_services().values():
+        for service in list(config.get_services().values()):
             if service_name and '%s.%s' % (service_name, app_name) != service.name:
                 continue
 
@@ -769,7 +769,7 @@ class TaskService(object):
         self.task_log(ticket_id, '[%s] Got response' % (ticket_id, ))
 
         d = []
-        for service in config.get_services().values():
+        for service in list(config.get_services().values()):
 
             if service_name and '%s.%s' % (service_name, app_name) != service.name:
                 continue
@@ -822,7 +822,7 @@ class TaskService(object):
             return
 
         d = []
-        for service in config.get_services().values():
+        for service in list(config.get_services().values()):
 
             if service_name and '%s.%s' % (service_name, app_name) != service.name:
                 continue

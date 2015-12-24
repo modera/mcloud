@@ -2,7 +2,7 @@ from base64 import b64decode
 import base64
 import json
 import logging
-from urllib import urlencode
+from urllib.parse import urlencode
 import sys
 from OpenSSL.crypto import PKey, FILETYPE_PEM, load_certificate, load_privatekey
 from mcloud import txhttp
@@ -160,8 +160,8 @@ class DockerTwistedClient(object):
 
         data = yield self.collect_json_or_none(response)
 
-        print data
-        print config
+        print(data)
+        print(config)
 
         response = yield self._post('exec/%s/start' % bytes(data['Id']),
                                     headers={'Content-Type': 'application/json'}, data=json.dumps({
@@ -170,7 +170,7 @@ class DockerTwistedClient(object):
                 }), response_handler=None)
 
         resp = yield txhttp.content(response)
-        print resp
+        print(resp)
 
 
     def pull(self, name, ticket_id, tag=None):
@@ -227,7 +227,7 @@ class DockerTwistedClient(object):
         })
         def on_result(result):
 
-            print str(result.code) * 100
+            print(str(result.code) * 100)
 
             if result.code == 200:
                     return txhttp.collect(result, on_log)
@@ -267,8 +267,8 @@ class DockerTwistedClient(object):
             proto, url = self.url.split('://')
             url = url.strip('/')
 
-            print 'url::::::::::::::::'
-            print url
+            print('url::::::::::::::::')
+            print(url)
             if ':' in url:
                 host, port = url.split(':')
             else:

@@ -36,11 +36,11 @@ class CtxFactory(ssl.ClientContextFactory):
 def verifyCallback(connection, x509, errnum, errdepth, ok):
 
     if not ok:
-        print 'invalid cert from subject:', x509.get_subject()
+        print('invalid cert from subject:', x509.get_subject())
         return False
     else:
-        print 'Subject is: %s' % x509.get_subject().commonName
-        print "Certs are fine"
+        print('Subject is: %s' % x509.get_subject().commonName)
+        print("Certs are fine")
 
         # return False
     return True

@@ -6,7 +6,7 @@ from mcloud.txdocker import IDockerClient, DockerTwistedClient
 
 def fake_inject(services):
     def configurator(binder):
-        for key, item in services.items():
+        for key, item in list(services.items()):
             binder.bind(key, item)
     inject.clear_and_configure(configurator)
 

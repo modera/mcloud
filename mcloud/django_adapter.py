@@ -1,11 +1,11 @@
 
 
-from django.db import connections as django_connections
-from django.db.models import Manager
+from .django.db import connections as django_connections
+from .django.db.models import Manager
 from twisted.enterprise import adbapi
 
-from django.db.models.query import QuerySet
-from django.db.models.sql.query import Query
+from .django.db.models.query import QuerySet
+from .django.db.models.sql.query import Query
 
 
 class TwistedConnections:
@@ -40,7 +40,7 @@ class TwistedQuery(Query):
         else:
             connection = connections[connection.alias]
         # Check that the compiler will be able to execute the query
-        for alias, aggregate in self.aggregate_select.items():
+        for alias, aggregate in list(self.aggregate_select.items()):
             connection.ops.check_aggregate_support(aggregate)
 
         return connection.ops.compiler(self.compiler)(self, connection, using)
@@ -100,7 +100,7 @@ class TwistedQuerySet(QuerySet):
     def in_bulk(self, id_list, **kwargs):
         return self._super_threaded('in_bulk', id_list, **kwargs)
 
-from django.db import models
+from .django.db import models
 
 class TwistedManager(models.Manager):
     queryset_class = TwistedQuerySet

@@ -1,4 +1,4 @@
-from StringIO import StringIO
+from io import StringIO
 import logging
 import tarfile
 from tempfile import mkdtemp
@@ -101,7 +101,7 @@ class VirtualFolderImageBuilder(DockerfileImageBuilder):
     def build_image(self, ticket_id, service):
 
         tdir = mkdtemp()
-        for file_, source in self.files.items():
+        for file_, source in list(self.files.items()):
             with open(tdir + '/%s' % file_, 'w+') as f:
                 f.write(source)
 

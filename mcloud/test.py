@@ -15,7 +15,7 @@ def test():
     from mcloud.app.models import Deployment
     deployements = yield Deployment.tx.all()
 
-    print deployements
+    print(deployements)
 
 
 reactor.callLater(0, test)

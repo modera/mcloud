@@ -93,7 +93,7 @@ class LocalCommand(object):
             line = line.replace('{host}', host)
             line = line.replace('{uuid}', uuid_)
 
-            print(color_text(line, color='white', bcolor='blue'))
+            print((color_text(line, color='white', bcolor='blue')))
 
             params = line.split(' ')
             args = arg_parser.parse_args(params)
@@ -115,7 +115,7 @@ def load_commands(config):
     :return:
     """
 
-    for name, command in config.get_commands().items():
+    for name, command in list(config.get_commands().items()):
         cmd_instance = LocalCommand(config, command)
 
         cmd = subparsers.add_parser('*%s' % name, help=command['help'])
@@ -259,10 +259,10 @@ class ApiRpcClient(object):
             elif 'status' in data:
                 sys.stdout.write('\n%s' % (data['status']))
             else:
-                if isinstance(data, basestring):
+                if isinstance(data, str):
                     sys.stdout.write(data)
                 else:
-                    print pprintpp.pformat(data)
+                    print(pprintpp.pformat(data))
 
         except ValueError as e:
             message = message.encode('utf-8')
@@ -295,11 +295,11 @@ class ApiRpcClient(object):
                 defer.returnValue(res)
 
             except Exception as e:
-                print repr(e)
-                print('Failed to execute the task: %s' % e.message)
+                print(repr(e))
+                print(('Failed to execute the task: %s' % e.message))
 
         except ConnectionRefusedError:
-            print 'Can\'t connect to mcloud server'
+            print('Can\'t connect to mcloud server')
 
         finally:
             stream_proto.stop()
@@ -311,11 +311,11 @@ class ApiRpcClient(object):
         x = PrettyTable(["Service name", "status", "ip", "cpu %", "memory", "Net I/O", "volumes", "public urls"], hrules=ALL)
 
         if app['status'] == 'error':
-            print ''
-            print 'Some errors occurred when receiving application information:'
+            print('')
+            print('Some errors occurred when receiving application information:')
             for service in app['services']:
-                print '\n ' + service['name'] + ':'
-                print '  - ' + service['error']
+                print('\n ' + service['name'] + ':')
+                print('  - ' + service['error'])
 
         for service in app['services']:
 
@@ -489,7 +489,7 @@ class ApiRpcClient(object):
 
         if not app and require_app:
             app = os.path.basename(os.getcwd())
-            print('Using folder name as application name: %s\n' % app)
+            print(('Using folder name as application name: %s\n' % app))
             # raise ValueError('You should provide application name.')
 
         if service and app_only:
@@ -515,9 +515,9 @@ class ApiRpcClient(object):
 
     def on_vars_result(self, data):
         x = PrettyTable(["variable", "value"], hrules=ALL)
-        for line in data.items():
+        for line in list(data.items()):
             x.add_row(line)
-        print x
+        print(x)
 
     def get_volume_config(self, destination):
 
@@ -569,9 +569,9 @@ class ApiRpcClient(object):
             ret = self.print_app_list(data)
 
             if self.last_lines > 0:
-                print '\033[1A' * self.last_lines
+                print('\033[1A' * self.last_lines)
 
-            print ret
+            print(ret)
 
             self.last_lines = ret.count('\n') + 2
 
@@ -634,13 +634,13 @@ class ApiRpcClient(object):
     def represent_ordereddict(self, dumper, data):
         value = []
 
-        for item_key, item_value in data.items():
+        for item_key, item_value in list(data.items()):
             node_key = dumper.represent_data(item_key)
             node_value = dumper.represent_data(item_value)
 
             value.append((node_key, node_value))
 
-        return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
+        return yaml.nodes.MappingNode('tag:yaml.org,2002:map', value)
 
     @cli('Application configuration', arguments=(
             arg('ref', help='Application and service name', default=None, nargs='?'),
@@ -658,11 +658,11 @@ class ApiRpcClient(object):
         parser_env = set_env or app_config['env']
 
         if diff or (not update and not set_env):
-            old_config = YamlConfig(source=unicode(app_config['source']), app_name=app, env=parser_env)
+            old_config = YamlConfig(source=str(app_config['source']), app_name=app, env=parser_env)
             old_config.load(process=False)
             from collections import OrderedDict
 
-            yaml.add_representer(unicode, yaml.representer.SafeRepresenter.represent_unicode)
+            yaml.add_representer(str, yaml.representer.SafeRepresenter.represent_unicode)
             yaml.add_representer(OrderedDict, self.represent_ordereddict)
             olds = yaml.dump(old_config.config, default_flow_style=False)
 
@@ -684,7 +684,7 @@ class ApiRpcClient(object):
             new_config.load(process=False)
 
             if diff:
-                yaml.add_representer(unicode, yaml.representer.SafeRepresenter.represent_unicode)
+                yaml.add_representer(str, yaml.representer.SafeRepresenter.represent_unicode)
                 yaml.add_representer(OrderedDict, self.represent_ordereddict)
                 news = yaml.dump(new_config.config, default_flow_style=False)
 
@@ -696,11 +696,11 @@ class ApiRpcClient(object):
                         if line.endswith('\n'):
                             line = line[0:-1]
                         if line.startswith('+'):
-                            print color_text(line, color='green')
+                            print(color_text(line, color='green'))
                         elif line.startswith('-'):
-                            print color_text(line, color='red')
+                            print(color_text(line, color='red'))
                         else:
-                            print line
+                            print(line)
             else:
                 if set_env and not update:
                     yield self._remote_exec('update', app, env=set_env)
@@ -716,7 +716,7 @@ class ApiRpcClient(object):
     def remove(self, ref, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs, app_only=True)
         data = yield self._remote_exec('remove', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
+        print('result: %s' % pprintpp.pformat(data))
 
     @cli('Set app deployment', arguments=(
             arg('ref', help='Application name', default=None, nargs='?'),
@@ -749,7 +749,7 @@ class ApiRpcClient(object):
                 yield self.init(app, os.getcwd(), env=env, deployment=deployment, sync=True)
 
         data = yield self._remote_exec('start', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
+        print('result: %s' % pprintpp.pformat(data))
 
     ############################################################
 
@@ -760,7 +760,7 @@ class ApiRpcClient(object):
     def create(self, ref, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs)
         data = yield self._remote_exec('create', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
+        print('result: %s' % pprintpp.pformat(data))
 
     ############################################################
 
@@ -773,7 +773,7 @@ class ApiRpcClient(object):
     def destroy(self, ref, scrub_data, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs)
         data = yield self._remote_exec('destroy', self.format_app_srv(app, service), scrub_data)
-        print 'result: %s' % pprintpp.pformat(data)
+        print('result: %s' % pprintpp.pformat(data))
 
     ############################################################
 
@@ -785,7 +785,7 @@ class ApiRpcClient(object):
     def restart(self, ref, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs)
         data = yield self._remote_exec('restart', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
+        print('result: %s' % pprintpp.pformat(data))
 
     ############################################################
 
@@ -797,7 +797,7 @@ class ApiRpcClient(object):
     def rebuild(self, ref, scrub_data, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs)
         data = yield self._remote_exec('rebuild', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
+        print('result: %s' % pprintpp.pformat(data))
 
     ############################################################
 
@@ -808,7 +808,7 @@ class ApiRpcClient(object):
     def stop(self, ref, **kwargs):
         app, service = self.parse_app_ref(ref, kwargs)
         data = yield self._remote_exec('stop', self.format_app_srv(app, service))
-        print 'result: %s' % pprintpp.pformat(data)
+        print('result: %s' % pprintpp.pformat(data))
 
     ############################################################
 
@@ -833,11 +833,11 @@ class ApiRpcClient(object):
                     break
 
             if self.last_lines > 0:
-                print '\033[1A' * self.last_lines
+                print('\033[1A' * self.last_lines)
 
             self.last_lines = ret.count('\n') + 2
 
-            print ret
+            print(ret)
 
         if follow:
             while follow:
@@ -874,7 +874,7 @@ class ApiRpcClient(object):
             certs = '|'.join(['x' if line[k] else 'o' for k in ('ca', 'cert', 'key')])
             default = '*' if line['default'] else ''
             x.add_row([line['name'], default, line['host'], line['port'], line['local'], line['tls'], certs])
-        print str(x)
+        print(str(x))
 
     @cli('Create deployment', arguments=(
             arg('deployment', help='Deployment name'),
@@ -951,7 +951,7 @@ class ApiRpcClient(object):
     @inlineCallbacks
     def deployment_remove(self, deployment, **kwargs):
         data = yield self._remote_exec('deployment_remove', name=deployment)
-        print 'result: %s' % pprintpp.pformat(data)
+        print('result: %s' % pprintpp.pformat(data))
 
         yield self.deployments()
 
@@ -968,7 +968,7 @@ class ApiRpcClient(object):
         app = yield self.get_app(app_name)
 
         if not app:
-            print 'App not found. Can\'t publish'
+            print('App not found. Can\'t publish')
         else:
             data = yield self._remote_exec('publish', domain_name=self.format_domain(domain, ssl),
                                            app_name=app_name, service_name=service, custom_port=port)
@@ -1028,7 +1028,7 @@ class ApiRpcClient(object):
         data = yield self._remote_exec('inspect', app, service)
 
         if not isinstance(data, dict):
-            print data
+            print(data)
 
         else:
 
@@ -1037,11 +1037,11 @@ class ApiRpcClient(object):
             table.set_cols_width([20, 100])
 
             rows = [["Name", "Value"]]
-            for name, val in data.items():
+            for name, val in list(data.items()):
                 rows.append([name, pprintpp.pformat(val)])
 
             table.add_rows(rows)
-            print table.draw() + "\\n"
+            print(table.draw() + "\\n")
 
     ############################################################
     # File synchronization
@@ -1101,7 +1101,7 @@ class ApiRpcClient(object):
     def backup(self, source, volume, destination, **kwargs):
         app_name, service = self.parse_app_ref(source, kwargs, require_app=True, require_service=True)
         result = yield self._remote_exec('backup', app_name, service, volume, destination)
-        print result
+        print(result)
 
     @cli('Restore application volumes', arguments=(
             arg('source', help='source'),
@@ -1112,7 +1112,7 @@ class ApiRpcClient(object):
     def restore(self, source, volume, destination, **kwargs):
         app_name, service = self.parse_app_ref(source, kwargs, require_app=True, require_service=True)
         result = yield self._remote_exec('backup', app_name, service, volume, destination, True)
-        print result
+        print(result)
 
     ############################################################
     # Variables
@@ -1164,11 +1164,11 @@ class ApiRpcClient(object):
         # table.set_cols_width([20,  100])
 
         rows = [["Name", "Value"]]
-        for name, val in data.items():
+        for name, val in list(data.items()):
             rows.append([name, val])
 
         table.add_rows(rows)
-        print table.draw() + "\\n"
+        print(table.draw() + "\\n")
 
     ############################################################
 
@@ -1183,10 +1183,10 @@ class ApiRpcClient(object):
             yield client.connect()
             tasks = yield client.task_list()
 
-            print tasks
+            print(tasks)
 
         except ConnectionRefusedError:
-            print 'Can\'t connect to mcloud server'
+            print('Can\'t connect to mcloud server')
 
         yield client.shutdown()
         yield sleep(0.01)
@@ -1206,13 +1206,13 @@ class ApiRpcClient(object):
             success = yield client.terminate_task(task_id)
 
             if not success:
-                print 'Task not found by id'
+                print('Task not found by id')
 
             else:
-                print 'Task successfully treminated.'
+                print('Task successfully treminated.')
 
         except ConnectionRefusedError:
-            print 'Can\'t connect to mcloud server'
+            print('Can\'t connect to mcloud server')
 
         client.shutdown()
         yield sleep(0.01)

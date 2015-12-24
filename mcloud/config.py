@@ -41,8 +41,8 @@ class OrderedDictYAMLLoader(yaml.Loader):
     def __init__(self, *args, **kwargs):
         yaml.Loader.__init__(self, *args, **kwargs)
 
-        self.add_constructor(u'tag:yaml.org,2002:map', type(self).construct_yaml_map)
-        self.add_constructor(u'tag:yaml.org,2002:omap', type(self).construct_yaml_map)
+        self.add_constructor('tag:yaml.org,2002:map', type(self).construct_yaml_map)
+        self.add_constructor('tag:yaml.org,2002:omap', type(self).construct_yaml_map)
 
     def construct_yaml_map(self, node):
         data = OrderedDict()
@@ -62,7 +62,7 @@ class OrderedDictYAMLLoader(yaml.Loader):
             key = self.construct_object(key_node, deep=deep)
             try:
                 hash(key)
-            except TypeError, exc:
+            except TypeError as exc:
                 raise yaml.constructor.ConstructorError('while constructing a mapping',
                     node.start_mark, 'found unacceptable key (%s)' % exc, key_node.start_mark)
             value = self.construct_object(value_node, deep=deep)
@@ -119,7 +119,7 @@ class YamlConfig(IConfig):
         if name:
             return self.hosts[name]
         else:
-            return self.hosts.values()[0]
+            return list(self.hosts.values())[0]
 
     def get_commands(self):
         return self.commands or {}
@@ -169,7 +169,7 @@ class YamlConfig(IConfig):
             return config
 
         result = OrderedDict()
-        for key, val in config.items():
+        for key, val in list(config.items()):
             if key[0] == '~':
                 if key[1:] == self.env:
                     if not isinstance(val, dict):
@@ -190,7 +190,7 @@ class YamlConfig(IConfig):
 
         config = self.filter_env(config)
 
-        for service, cfg in config.items():
+        for service, cfg in list(config.items()):
             if 'extend' in cfg:
                 new_config = deepcopy(config[cfg['extend']])
                 new_config.update(cfg)
@@ -203,34 +203,34 @@ class YamlConfig(IConfig):
     def validate(self, config):
         try:
             Schema({
-                basestring: {
+                str: {
                     'wait': int,
                     'web': int,
                     'ssl': int,
-                    'dockerfile': basestring,
-                    'image': basestring,
-                    'build': basestring,
-                    'entrypoint': basestring,
-                    'workdir': basestring,
+                    'dockerfile': str,
+                    'image': str,
+                    'build': str,
+                    'entrypoint': str,
+                    'workdir': str,
 
                     'volumes': {
-                        basestring: basestring
+                        str: str
                     },
 
                     'env': {
-                        basestring: basestring
+                        str: str
                     },
 
-                    'cmd': basestring,
+                    'cmd': str,
                     },
 
                 '---': {
                     'hosts': {
-                        basestring: basestring
+                        str: str
                     },
                     'commands': {
-                        basestring: [
-                            basestring
+                        str: [
+                            str
                         ]
                     },
                     },
@@ -238,7 +238,7 @@ class YamlConfig(IConfig):
                 })(config)
 
             has_service = False
-            for key, service in config.items():
+            for key, service in list(config.items()):
                 if key == '---':
                     continue
                 if not 'image' in service and not 'build' in service and not 'dockerfile' in service:
@@ -305,7 +305,7 @@ class YamlConfig(IConfig):
                                           'without source files attached.'
                 return
 
-            for local_path, container_path in config['volumes'].items():
+            for local_path, container_path in list(config['volumes'].items()):
 
                 local_path = self.sanitize_path(local_path)
 
@@ -325,7 +325,7 @@ class YamlConfig(IConfig):
             service.env['env'] = self.env
 
         if 'env' in config and len(config['env']):
-            for name, val in config['env'].items():
+            for name, val in list(config['env'].items()):
                 service.env[name] = str(val)
     #2dhqiyN5ig
     def process_image_build(self, service, config, path):
@@ -349,7 +349,7 @@ class YamlConfig(IConfig):
 
         if 'commands' in config:
             all_commands = {}
-            for name, commands in config['commands'].items():
+            for name, commands in list(config['commands'].items()):
                 mts = re.match('^(\w+)(\s+\(([^\)]+)\))?$', name)
 
                 all_commands[mts.groups()[0]] = {
@@ -361,7 +361,7 @@ class YamlConfig(IConfig):
 
     def process(self, config, path, app_name=None, client=None):
 
-        for name, service in config.items():
+        for name, service in list(config.items()):
             if name == '---':
                 continue
 

@@ -344,7 +344,7 @@ def test_service_api():
 
     class Printer(object):
         def publish(self, *args):
-            print args
+            print(args)
 
     s.client.message_publisher = Printer()
 

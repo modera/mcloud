@@ -152,7 +152,7 @@ class AttachStdinProtocol(Protocol):
 
     def dataReceived(self, data):
         if len(data) == 1 and ord(data) == 29:
-            print 'Connection closed!'
+            print('Connection closed!')
             self.transport.loseConnection()
             reactor.stop()
 
@@ -167,7 +167,7 @@ class Attach(basic.LineReceiver):
 
     def connectionMade(self):
         """ """
-        print 'Attach Connected!'
+        print('Attach Connected!')
         self.transport.write(
             'POST /v1.19/containers/%s/attach?logs=0&stream=1&stdout=1&stdin=1 HTTP/1.1\r\n' % str(self.container_id))
         self.transport.write('Connection: Upgrade\r\n')
@@ -194,7 +194,7 @@ class Attach(basic.LineReceiver):
         # from twisted.internet.error import ConnectionDone
         # basic.LineReceiver.connectionLost(self, reason)
 
-        print 'Attach disconnected: ', reason
+        print('Attach disconnected: ', reason)
 
         if reason.check(PotentialDataLoss):
             # http://twistedmatrix.com/trac/ticket/4840
@@ -228,7 +228,7 @@ def attach_to_container(container_id, docker_uri=None):
 
 
         from OpenSSL.crypto import load_privatekey, load_certificate, FILETYPE_PEM
-        from ssl import CtxFactory
+        from .ssl import CtxFactory
         pkey = load_privatekey(FILETYPE_PEM, open('/Users/alex/.docker/machine/machines/dev/key.pem').read())
         cert = load_certificate(FILETYPE_PEM, open('/Users/alex/.docker/machine/machines/dev/cert.pem').read())
         reactor.connectSSL('192.168.99.100', 2376, f, CtxFactory(pkey, cert))

@@ -126,7 +126,7 @@ class ApplicationController(object):
         for app in apps:
             result[app.name] = {}
 
-            for service in app.services.values():
+            for service in list(app.services.values()):
                 if service.is_created():
                     result[app.name][service.shortname] = service.ip()
 

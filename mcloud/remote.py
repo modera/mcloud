@@ -49,7 +49,7 @@ class ApiRpcServer(object):
             del self.ticket_map[ticket_id]
 
     def task_failed(self, error, ticket_id):
-        print error
+        print(error)
         if ticket_id in self.ticket_map:
             if isinstance(error, CancelledError):
                 s = 'Terminated.'
@@ -90,10 +90,10 @@ class ApiRpcServer(object):
                     'name': task['name'],
                     'args': task['args'],
                     'kwargs': task['kwargs'],
-                } for task_id, task in self.tasks_running.items()]
+                } for task_id, task in list(self.tasks_running.items())]
 
     def kill_client_tasks(self, client):
-        for ticket_id, task_client in self.ticket_map.items():
+        for ticket_id, task_client in list(self.ticket_map.items()):
             if task_client == client:
                 self.task_kill(ticket_id)
 
@@ -285,19 +285,19 @@ class Server(object):
             })
 
             if not self.no_ssl and self.settings and self.settings.ssl.enabled:
-                print '*' * 60
-                print 'Running in secure mode'
-                print 'Ssl key:         %s' % self.settings.ssl.key
-                print 'Ssl certificate: %s' % self.settings.ssl.cert
-                print '*' * 60
+                print('*' * 60)
+                print('Running in secure mode')
+                print('Ssl key:         %s' % self.settings.ssl.key)
+                print('Ssl certificate: %s' % self.settings.ssl.cert)
+                print('*' * 60)
 
                 listen_ssl(self.port, Site(rootResource), interface=self.settings.websocket_ip)
 
             else:
 
-                print '*' * 60
-                print 'Running on 0.0.0.0 without SSL'
-                print '*' * 60
+                print('*' * 60)
+                print('Running on 0.0.0.0 without SSL')
+                print('*' * 60)
                 reactor.listenTCP(self.port, Site(rootResource), interface='0.0.0.0')
 
 
@@ -310,13 +310,13 @@ class Server(object):
                 #     print '*' * 60
                 #     reactor.listenTCP(self.port, Site(rootResource), interface='127.0.0.1')
         except Exception as e:
-            print
-            print
-            print
-            print e
-            print
-            print
-            print
+            print()
+            print()
+            print()
+            print(e)
+            print()
+            print()
+            print()
             reactor.stop()
 
             sys.exit(1)
@@ -444,7 +444,7 @@ class Client(object):
                 reactor.connectTCP(self.host, self.port, factory)
         except NoKeyError:
 
-            print 'No key found - fallback to no-ssl'
+            print('No key found - fallback to no-ssl')
             reactor.connectTCP(self.host, self.port, factory)
 
         return self.onc
@@ -471,7 +471,7 @@ class Client(object):
     def onClose(self, wasClean, code, reason):
 
         if not wasClean:
-            print('Connection closed: %s (code: %s)' % (reason, code))
+            print(('Connection closed: %s (code: %s)' % (reason, code)))
 
             # reactor.stop()
 

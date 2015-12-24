@@ -53,7 +53,7 @@ def test_load_data():
         d = Deployment(public_domain='foo.bar', name='baz', apps=['v1.baz', 'v2.baz'])
         config = yield d.load_data(skip_validation=True)
 
-        print config
+        print(config)
 
         assert config['name'] == 'baz'
         assert config['public_domain'] == 'foo.bar'

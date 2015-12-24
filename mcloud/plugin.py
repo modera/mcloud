@@ -26,4 +26,4 @@ def enumerate_plugins(interface):
                 verifyObject(interface, adaptor)
                 yield adaptor
         except TypeError as e:
-            print e
+            print(e)

@@ -38,7 +38,7 @@ def get_storage(ref):
 @inlineCallbacks
 def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
 
-    print src_args, '||||', dst_args
+    print(src_args, '||||', dst_args)
     if not options:
         options = {}
 
@@ -151,7 +151,7 @@ def rsync_folder(client, src_args, dst_args, reverse=False, options=None):
             def notify(self, filepath, mask):
                 filepath = filepath.realpath().path[len(watch_dir) + 1:]
                 if not filepath.endswith('___jb_bak___') and not filepath.endswith('___jb_old___'):
-                    print "%s> %s" % (', '.join(inotify.humanReadableMask(mask)), filepath)
+                    print("%s> %s" % (', '.join(inotify.humanReadableMask(mask)), filepath))
 
                     new_cmd = raw_command + [os.path.join(dst_dir, filepath), os.path.join(src_ref, filepath)]
                     process = subprocess.Popen(new_cmd, env=env)

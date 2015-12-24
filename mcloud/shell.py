@@ -12,10 +12,10 @@ from twisted.internet.defer import inlineCallbacks
 
 
 def green(text):
-    print(color_text(text, color='green'))
+    print((color_text(text, color='green')))
 
 def yellow(text):
-    print(color_text(text, color='blue', bcolor='yellow'))
+    print((color_text(text, color='blue', bcolor='yellow')))
 
 def info(text):
     print()
@@ -88,7 +88,7 @@ def mcloud_shell(host_ref=None):
 
             yield sleep(0.05)
 
-            line = raw_input(color_text(prompt, color='white', bcolor='blue') + ' ').strip()
+            line = input(color_text(prompt, color='white', bcolor='blue') + ' ').strip()
 
             if line.startswith('!'):
                 os.system(line[1:])
@@ -133,7 +133,7 @@ def mcloud_shell(host_ref=None):
             client = ApiRpcClient(host=host, port=port, settings=settings)
             interrupt_manager.append(ClientProcessInterruptHandler(client))
 
-            for key, val in state.items():
+            for key, val in list(state.items()):
                 if not hasattr(args, key) or not getattr(args, key):
                     setattr(args, key, val)
 
@@ -155,7 +155,7 @@ def mcloud_shell(host_ref=None):
             pass
 
         except Exception as e:
-            print '\n  %s\n' % color_text(e.message, color='yellow')
+            print('\n  %s\n' % color_text(e.message, color='yellow'))
 
     reactor.callFromThread(reactor.stop)
 

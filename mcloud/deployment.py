@@ -156,7 +156,7 @@ class DeploymentController(object):
     def configure_docker_machine(self):
         machine_path = '/.docker/machine'
 
-        print 'Syncing deployments with Docker Machine'
+        print('Syncing deployments with Docker Machine')
 
         for path in glob('%s/machines/*' % machine_path):
 
@@ -173,7 +173,7 @@ class DeploymentController(object):
                     'cert': None,
                     'key': None,
                 }
-                for fname in files.keys():
+                for fname in list(files.keys()):
                     with open('%s/%s.pem' % (path, fname)) as f:
                         files[fname] = f.read()
 
@@ -183,7 +183,7 @@ class DeploymentController(object):
                     deployment = None
 
                 if deployment:
-                    print 'Updating deployment %s' % name
+                    print('Updating deployment %s' % name)
                     yield self.update(
                         name=name,
                         host=host,
@@ -193,7 +193,7 @@ class DeploymentController(object):
                         **files
                     )
                 else:
-                    print 'Creating new deployment %s' % name
+                    print('Creating new deployment %s' % name)
                     yield self.create(
                         name=name,
                         host=host,
@@ -203,5 +203,5 @@ class DeploymentController(object):
                         **files
                     )
                     # yield self.set_default(name)
-                print '-' * 40
+                print('-' * 40)
 
