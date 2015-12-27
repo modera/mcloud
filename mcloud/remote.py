@@ -13,7 +13,8 @@ from autobahn.twisted.websocket import WebSocketServerFactory
 from autobahn.twisted.websocket import WebSocketClientFactory
 from twisted.python.failure import Failure
 from twisted.web.server import Site
-from twisted.web.wsgi import WSGIResource
+# from twisted.web.wsgi import WSGIResource
+from mcloud.django.wsgi import WSGIResource
 import txredisapi
 
 from twisted.python import log
@@ -280,8 +281,8 @@ class Server(object):
             application_resource = WSGIResource(reactor, reactor.getThreadPool(), application)
 
             rootResource = WSGIRootResource(application_resource, {
-                'ws': WebSocketResource(factory),
-                'static': File(resource_filename(__name__, 'app/var/static/'))
+                b'ws': WebSocketResource(factory),
+                b'static': File(resource_filename(__name__, 'app/var/static/'))
             })
 
             if not self.no_ssl and self.settings and self.settings.ssl.enabled:

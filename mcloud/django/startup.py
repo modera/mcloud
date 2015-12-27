@@ -6,7 +6,7 @@ import django
 
 def init_django():
     os.environ['DJANGO_SETTINGS_MODULE'] = 'mcloud.app.settings'
-    os.environ['CRATIS_APP_PATH'] = resource_filename(__name__, 'app')
+    os.environ['CRATIS_APP_PATH'] = resource_filename('mcloud', 'app')
     os.environ['DJANGO_CONFIGURATION'] = 'Dev'
 
     from configurations import importer

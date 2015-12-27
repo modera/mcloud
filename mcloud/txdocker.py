@@ -3,7 +3,6 @@ import base64
 import json
 import logging
 from urllib.parse import urlencode
-import sys
 from OpenSSL.crypto import PKey, FILETYPE_PEM, load_certificate, load_privatekey
 from mcloud import txhttp
 from mcloud.attach import Attach, AttachFactory, Terminal, AttachStdinProtocol
@@ -14,7 +13,6 @@ import os
 import inject
 from mcloud.util import Interface
 import re
-from twisted.conch import stdio
 from twisted.internet import defer, reactor
 from twisted.internet._sslverify import Certificate, KeyPair
 from twisted.internet.defer import inlineCallbacks

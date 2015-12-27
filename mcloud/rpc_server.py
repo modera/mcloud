@@ -1,6 +1,7 @@
 from cratis.cli import load_env
 import os
 
+from django.conf import settings
 from mcloud.django.startup import init_django
 from pkg_resources import resource_filename
 
@@ -11,7 +12,6 @@ init_django()
 
 import logging
 import sys
-import netifaces
 import traceback
 
 import inject
@@ -23,7 +23,7 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Factory
 import txredisapi
 from twisted.python import log
-from mcloud.util import txtimeout
+from mcloud.util import txtimeout, TxTimeoutEception
 from zope.interface.verify import verifyClass
 
 
@@ -37,6 +37,7 @@ def get_argparser():
 
     parser = argparse.ArgumentParser(description='Mcloud rpc server')
     parser.add_argument('--config', default='/etc/mcloud/mcloud-server.yml', help='Config file path')
+    parser.add_argument('--debug', default=False, action='store_true', help='Enable debug mode with code auto-reload')
     parser.add_argument('--import-redis', default=False, action='store_true', help='Import redis data and exit')
     parser.add_argument('--no-ssl', default=False, action='store_true', help='Disable ssl')
 
@@ -97,10 +98,10 @@ def entry_point():
     class _McloudConfiguration(McloudConfiguration):
         CONF_PATHS = [args.config]
 
-    settings = _McloudConfiguration.load()
+    app_settings = _McloudConfiguration.load()
 
     if args.no_ssl:
-        settings.ssl.enabled = False
+        app_settings.ssl.enabled = False
 
     def resolve_host_ip():
 
@@ -139,10 +140,10 @@ def entry_point():
             binder.bind(txredisapi.Connection, redis)
             binder.bind(EventBus, eb)
 
-            binder.bind('settings', settings)
+            binder.bind('settings', app_settings)
 
-            binder.bind('host-ip', resolve_host_ip())
-            binder.bind('dns-search-suffix', settings.dns_search_suffix)
+            # binder.bind('host-ip', resolve_host_ip())
+            binder.bind('dns-search-suffix', app_settings.dns_search_suffix)
             binder.bind('plugins', plugins_loaded)
 
         # Configure a shared injector.
@@ -152,15 +153,14 @@ def entry_point():
         tasks = inject.instance(TaskService)
         api.tasks = tasks.collect_tasks()
 
-        log.msg('Starting rpc listener on port %d' % settings.websocket_port)
-        server = Server(port=settings.websocket_port)
+        log.msg('Starting rpc listener on port %d' % app_settings.websocket_port)
+        server = Server(port=app_settings.websocket_port)
         server.bind()
 
-        from .django.core.management import call_command
+        from django.core.management import call_command
 
         call_command('collectstatic', interactive=False)
 
-        call_command('syncdb')
         call_command('migrate', verbosity=3, interactive=False)
 
         # load plugins
@@ -203,23 +203,34 @@ def entry_point():
         log.msg('Started.')
 
 
-    def timeout():
-        print('Can not connect to redis!')
-        reactor.stop()
+    @inlineCallbacks
+    def connect_redis():
+        print('*******')
+        print('Connecting redis:')
+        print(app_settings.redis)
+        print('*******')
 
-    print('*******')
-    print('Connecting redis:')
-    print(settings.redis)
-    print('*******')
+        try:
+            redis = yield txtimeout(txredisapi.Connection(
+                dbid=app_settings.redis.dbid,
+                host=app_settings.redis.host,
+                port=app_settings.redis.port,
+                password=app_settings.redis.password
+            ), app_settings.redis.timeout, 'Can not connect to redis!')
 
-    txtimeout(txredisapi.Connection(
-        dbid=settings.redis.dbid,
-        host=settings.redis.host,
-        port=settings.redis.port,
-        password=settings.redis.password
-    ), settings.redis.timeout, timeout).addCallback(run_server)
+            yield run_server(redis)
 
-    reactor.run()
+        except TxTimeoutEception as e:
+            print(e.message)
+            reactor.stop()
+
+    reactor.callLater(0, connect_redis)
+
+    if args.debug:
+        from django.utils import autoreload
+        autoreload.main(reactor.run, kwargs={'installSignalHandlers': False})
+    else:
+        reactor.run()
 
 
 if __name__ == '__main__':

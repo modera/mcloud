@@ -8,11 +8,12 @@ from mcloud.service import IServiceBuilder
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
 from twisted.python import log
-from zope.interface import implements
+from zope.interface import implements, implementer
 
 
+@implementer(IMcloudPlugin, IServiceBuilder)
 class HostsPlugin(Plugin):
-    implements(IMcloudPlugin, IServiceBuilder)
+
 
     eb = inject.attr(EventBus)
     app_controller = inject.attr(ApplicationController)

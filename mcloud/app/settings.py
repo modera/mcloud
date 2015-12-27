@@ -38,7 +38,7 @@ class Dev(CratisConfig):
         },
     }
 
-    DJANGO_ROOT = dirname(dirname(abspath(__file__)))
+    DJANGO_ROOT = dirname(abspath(__file__))
 
     LOCALE_PATHS = (
         os.path.join(BASE_DIR, 'locale'),
@@ -118,7 +118,6 @@ class Dev(CratisConfig):
     #     )
     # }
     # JOHNNY_MIDDLEWARE_KEY_PREFIX='jc_myproj'
-
 
 
 class Test(Dev):

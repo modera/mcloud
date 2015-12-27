@@ -7,7 +7,7 @@ class McloudManager(Feature):
     def configure_settings(self):
         self.append_apps(['mcloud.app'])
 
-        self.settings.STATICFILES_DIRS += (os.path.dirname(__file__) + '/pki/media',)
+        # self.settings.STATICFILES_DIRS += (os.path.dirname(__file__) + '/pki/media',)
 
 
     def configure_urls(self, urls):

@@ -3,7 +3,7 @@ import re
 from twisted.internet import ssl
 from twisted.internet._sslverify import optionsForClientTLS, PrivateCertificate, KeyPair, Certificate, _tolerateErrors
 from twisted.internet.endpoints import UNIXClientEndpoint
-from twisted.web.client import Agent, _URI, BrowserLikePolicyForHTTPS, _requireSSL
+from twisted.web.client import Agent, URI, BrowserLikePolicyForHTTPS, _requireSSL
 
 from treq.client import HTTPClient
 from treq._utils import default_pool, default_reactor
@@ -120,7 +120,7 @@ class UNIXAwareHttpAgent(Agent):
             filename = '/%s' % unix_uri.group(1)
             endpoint = UNIXClientEndpoint(self._reactor, filename)
 
-            parsedURI = _URI.fromBytes('unix://unix/%s' % unix_uri.group(2))
+            parsedURI = URI.fromBytes('unix://unix/%s' % unix_uri.group(2))
             parsedURI.host = unix_uri.group(1)
 
             key = (parsedURI.scheme, parsedURI.host, parsedURI.port)
