@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from flexmock import flexmock
 from mcloud import txhttp
 from mcloud.test_utils import real_docker, mock_docker
@@ -39,7 +41,7 @@ def test_get(client):
     flexmock(client)
     client.should_receive('_request').with_args(url='foo?foo=bar&boo=1',  method=txhttp.get, foo='bar').once().and_return('baz')
 
-    assert client._get('foo', foo='bar', data={'foo': 'bar', 'boo': 1}) == 'baz'
+    assert client._get('foo', foo='bar', data=OrderedDict([('foo', 'bar'), ('boo', 1)])) == 'baz'
 
 
 def test_post(client):

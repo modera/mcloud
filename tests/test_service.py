@@ -1,7 +1,9 @@
+from collections import OrderedDict
+
 import sys
 import inject
 from mcloud.events import EventBus
-from mcloud.txdocker import IDockerClient, DockerTwistedClient
+from mcloud.txdocker import IDockerClient, DockerTwistedClient, get_environ_docker
 from mcloud.util import injector
 import os
 from flexmock import flexmock
@@ -300,7 +302,7 @@ def test_generate_config_env():
 
     s = Service()
     s.name = 'my_service'
-    s.env = {'FOO': 'bar', 'BAZ': 'foo'}
+    s.env = OrderedDict([('FOO', 'bar'), ('BAZ', 'foo')])
 
     config = yield s._generate_config('foo')
     assert config == {
@@ -330,7 +332,7 @@ def test_service_api():
         EventBus: eb,
         'dns-server': 'local.dns',
         'dns-search-suffix': 'local',
-        IDockerClient: DockerTwistedClient(),
+        IDockerClient: get_environ_docker(),
         txredisapi.Connection: redis
     })
 

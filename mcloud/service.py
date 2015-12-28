@@ -370,7 +370,7 @@ class Service(object):
         yield self.inspect()
 
         if self.is_running():
-            content = """
+            content = b"""
 #!/bin/sh
 
 echo -e "\n@mcloud $@\n"

@@ -6,7 +6,7 @@ from mcloud.config import YamlConfig
 from mcloud.container import DockerfileImageBuilder, PrebuiltImageBuilder
 from mcloud.service import Service
 from mcloud.test_utils import real_docker
-from mcloud.txdocker import IDockerClient, DockerTwistedClient
+from mcloud.txdocker import IDockerClient, DockerTwistedClient, get_environ_docker
 from mcloud.util import inject_services, txtimeout
 import os
 import pytest
@@ -34,7 +34,7 @@ def test_app_load():
 
     def configure(binder):
         binder.bind(txredisapi.Connection, redis)
-        binder.bind(IDockerClient, DockerTwistedClient())
+        binder.bind(IDockerClient, get_environ_docker())
 
     with inject_services(configure):
         app = Application(config={'path': os.path.realpath(os.path.dirname(__file__) + '/_files/')}, name='myapp')

@@ -58,7 +58,7 @@ def load_docker_keys_from_path(path):
 def get_environ_docker():
     url = os.environ.get('DOCKER_HOST')
     if url.startswith('tcp://'):
-        url = 'http://%s' % url[6:]
+        url = 'https://%s' % url[6:]
 
     files = load_docker_keys_from_path(os.environ.get('DOCKER_CERT_PATH'))
 
@@ -156,7 +156,7 @@ class DockerTwistedClient(object):
             self.task_log(ticket_id, chunk)
 
             if not 'image_id' in result:
-                match = re.search(r'Successfully built ([0-9a-f]+)', chunk)
+                match = re.search('Successfully built ([0-9a-f]+)', chunk.decode())
                 if match:
                     result['image_id'] = match.group(1)
 
@@ -170,24 +170,21 @@ class DockerTwistedClient(object):
         config = {
             'AttachStdin': False,
             'Cmd': ['bash', '-c', 'echo %(data)s | base64 -d | tee %(path)s && chmod +x %(path)s' % {
-                'data': base64.encodestring(file_data).strip(),
+                'data': base64.encodebytes(file_data).strip(),
                 'path': path
             }]
         }
 
-        response = yield self._post('containers/%s/exec' % bytes(container_id),
-                                    headers={'Content-Type': 'application/json'}, data=json.dumps(config), response_handler=None)
+        response = yield self._post('containers/%s/exec' % str(container_id),
+                                    headers={'Content-Type': 'application/json'}, data=json.dumps(config).encode(), response_handler=None)
 
         data = yield self.collect_json_or_none(response)
 
-        print(data)
-        print(config)
-
-        response = yield self._post('exec/%s/start' % bytes(data['Id']),
+        response = yield self._post('exec/%s/start' % str(data['Id']),
                                     headers={'Content-Type': 'application/json'}, data=json.dumps({
                  "Detach": False,
                  "Tty": False,
-                }), response_handler=None)
+                }).encode(), response_handler=None)
 
         resp = yield txhttp.content(response)
         print(resp)
@@ -198,11 +195,11 @@ class DockerTwistedClient(object):
         logger.debug('[%s] Pulling image "%s"', ticket_id, name)
 
         def on_content(chunk):
-            logger.debug('[%s] Content chunk <%s>', ticket_id, chunk)
+            logger.debug('[%s] Content chunk <%s>', ticket_id, chunk.decode())
             self.task_log(ticket_id, chunk)
 
             try:
-                data = json.loads(chunk)
+                data = json.loads(chunk.decode())
                 if 'error' in data:
                     raise CommandFailed('Failed to pull image "%s": %s' % (name, data['error']))
 
@@ -318,7 +315,7 @@ class DockerTwistedClient(object):
         r = self._get('events', response_handler=None)
 
         def event_parser(event):
-            on_event(json.loads(event))
+            on_event(json.loads(event.decode()))
 
         r.addCallback(txhttp.collect, event_parser)
         return r
@@ -328,7 +325,7 @@ class DockerTwistedClient(object):
 
         logger.debug('[%s] Create container "%s"', ticket_id, name)
 
-        result = yield self._post('containers/create', params={'name': name}, headers={'Content-Type': 'application/json'}, data=json.dumps(config))
+        result = yield self._post('containers/create', params={'name': name}, headers={'Content-Type': 'application/json'}, data=json.dumps(config).encode())
 
         if result.code == 201:
             defer.returnValue(True)
@@ -346,7 +343,7 @@ class DockerTwistedClient(object):
             if response.code == 404:
                 return None
             else:
-                return json.loads(result)
+                return json.loads(result.decode())
 
         d = txhttp.content(response)
         d.addCallback(on_collected)
@@ -356,7 +353,7 @@ class DockerTwistedClient(object):
     @inlineCallbacks
     def stats(self, id):
         assert not id is None
-        r = yield self._get('containers/%s/stats?stream=false' % bytes(id))
+        r = yield self._get('containers/%s/stats?stream=false' % str(id))
         r = yield self.collect_json_or_none(r)
         defer.returnValue(r)
 
@@ -394,7 +391,7 @@ class DockerTwistedClient(object):
 
     @inlineCallbacks
     def remove_container(self, id, ticket_id):
-        result = yield self._delete('containers/%s' % bytes(id))
+        result = yield self._delete('containers/%s' % str(id))
         defer.returnValue(result.code == 204)
 
     @inlineCallbacks
@@ -405,22 +402,22 @@ class DockerTwistedClient(object):
         if config is None:
             config = {}
 
-        result = yield self._post('containers/%s/start' % bytes(id), headers={'Content-Type': 'application/json'}, data=json.dumps(config))
+        result = yield self._post('containers/%s/start' % str(id), headers={'Content-Type': 'application/json'}, data=json.dumps(config).encode())
         defer.returnValue(result.code == 204)
 
     @inlineCallbacks
     def stop_container(self, id, ticket_id):
-        result = yield self._post('containers/%s/stop' % bytes(id))
+        result = yield self._post('containers/%s/stop' % str(id))
         defer.returnValue(result.code == 204)
 
     @inlineCallbacks
     def pause_container(self, id, ticket_id):
-        result = yield self._post('containers/%s/pause' % bytes(id))
+        result = yield self._post('containers/%s/pause' % str(id))
         defer.returnValue(result.code == 204)
 
     @inlineCallbacks
     def pause_container(self, id, ticket_id):
-        result = yield self._post('containers/%s/unpause' % bytes(id))
+        result = yield self._post('containers/%s/unpause' % str(id))
         defer.returnValue(result.code == 204)
 
     @inlineCallbacks

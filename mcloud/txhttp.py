@@ -16,6 +16,8 @@ from zope.interface import implementer
 
 class UNIXAwareHttpClient(HTTPClient):
     def request(self, method, url, **kwargs):
+        print(method)
+        print(url)
         return super(UNIXAwareHttpClient, self).request(method, url, **kwargs)
 
 
