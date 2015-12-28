@@ -123,6 +123,16 @@ class Dev(CratisConfig):
 class Test(Dev):
     TEMPLATE_DEBUG = False
 
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'mcloud_test',
+            'USER': 'mcloud',
+            'PASSWORD': '123123',
+            'HOST': '127.0.0.1',
+        },
+    }
+
 
 class Prod(Dev):
     TEMPLATE_DEBUG = True
