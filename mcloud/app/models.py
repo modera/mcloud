@@ -1,11 +1,13 @@
 
 from __future__ import unicode_literals
 
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 
 from django.utils.translation import ugettext_lazy as _
 from django_ace import AceWidget
 # from mcloud.config import YamlConfig
+from mcloud.config import YamlConfig
 from mcloud.django.dbadapter import TwistedModel
 # from mcloud.txdocker import DockerTwistedClient
 import os
@@ -142,6 +144,8 @@ class Application(BaseModel):
     deployment = models.ForeignKey(Deployment, null=True)
     env = models.CharField(max_length=10, verbose_name=_('Environment name'), null=True, blank=True, default='dev')
 
+    config = JSONField(null=True)
+
     source = YamlFancyField(blank=True, null=True)
 
     APP_REGEXP = '[a-z0-9\-_]+'
@@ -156,7 +160,6 @@ class Application(BaseModel):
             env = 'dev'
         return env
 
-    @defer.inlineCallbacks
     def get_deployment(self):
         return self.deployment
 
@@ -186,14 +189,12 @@ class Application(BaseModel):
             self.error = {
                 'msg': 'No deployment found'
             }
+            yield yaml_config.load()
         else:
-            client = deployment.get_client()
+            yield yaml_config.load(client=deployment.get_client())
 
-            yield yaml_config.load(client=client)
-
-
-
-        yield defer.gatherResults([service.inspect() for service in yaml_config.get_services().values()])
+        if deployment:
+            yield defer.gatherResults([service.inspect() for service in yaml_config.get_services().values()])
 
 
         if need_details:

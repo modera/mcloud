@@ -1,7 +1,7 @@
 from flexmock import flexmock
 from mcloud import txhttp
 from mcloud.test_utils import real_docker, mock_docker
-from mcloud.txdocker import DockerTwistedClient, DockerConnectionFailed
+from mcloud.txdocker import DockerTwistedClient, DockerConnectionFailed, get_environ_docker
 import pytest
 from twisted.internet import defer
 
@@ -9,7 +9,7 @@ from twisted.internet import defer
 @pytest.fixture
 def client():
     with mock_docker():
-        client = DockerTwistedClient(url='unix://var/run/docker.sock/')
+        client = get_environ_docker()
         return client
 
 
@@ -20,7 +20,7 @@ def test_request(client):
     """
 
     def test(url, **kwargs):
-        assert url == 'unix://var/run/docker.sock//boooooo'
+        assert url.endswith('/v1.19/boooooo')
 
         assert 'data' in kwargs
         assert kwargs['data'] == {'foo': 'bar'}

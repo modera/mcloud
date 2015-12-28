@@ -5,7 +5,7 @@ from flexmock import flexmock
 from mcloud import txhttp
 from mcloud.container import DockerfileImageBuilder
 from mcloud.test_utils import real_docker
-from mcloud.txdocker import DockerTwistedClient
+from mcloud.txdocker import DockerTwistedClient, get_environ_docker
 import pytest
 import re
 from twisted.internet import defer
@@ -13,7 +13,7 @@ from twisted.internet import defer
 @pytest.fixture
 def client():
     with real_docker():
-        client = DockerTwistedClient()
+        client = get_environ_docker()
         return client
 
 

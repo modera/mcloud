@@ -111,8 +111,8 @@ class UNIXAwareHttpAgent(Agent):
 
         @see: L{twisted.web.iweb.IAgent.request}
         """
-        if uri.startswith('unix://'):
-            unix_uri = re.match('^unix://(.*)//(.*)', uri)
+        if uri.startswith(b'unix://'):
+            unix_uri = re.match(b'^unix://(.*)//(.*)', uri)
 
             if not unix_uri:
                 raise ValueError('Unix pipe http uri format is incorrect.')
@@ -120,7 +120,7 @@ class UNIXAwareHttpAgent(Agent):
             filename = '/%s' % unix_uri.group(1)
             endpoint = UNIXClientEndpoint(self._reactor, filename)
 
-            parsedURI = URI.fromBytes('unix://unix/%s' % unix_uri.group(2))
+            parsedURI = URI.fromBytes(b'unix://unix/%s' % unix_uri.group(2))
             parsedURI.host = unix_uri.group(1)
 
             key = (parsedURI.scheme, parsedURI.host, parsedURI.port)

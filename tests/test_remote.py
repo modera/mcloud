@@ -1,17 +1,15 @@
 import sys
-from flexmock import flexmock
+
 import inject
-from mcloud.events import EventBus
-from mcloud.txdocker import IDockerClient, DockerTwistedClient
-from mcloud.util import txtimeout
-
 import pytest
-
+import txredisapi as redis
+from flexmock import flexmock
+from mcloud.events import EventBus
 from mcloud.remote import Server, Client, ApiError, Task, ApiRpcServer
 from twisted.internet import reactor, defer
 from twisted.python import log
 
-import txredisapi as redis
+import txredisapi
 
 
 class MockServer(Server):
@@ -69,7 +67,7 @@ def sleep(secs):
 #    yield sleep(0.1)
 
 @pytest.inlineCallbacks
-def test_request_response():
+def test_request_response_1():
     #-----------------------------------
     # preparations
     #-----------------------------------
@@ -77,8 +75,14 @@ def test_request_response():
     # cleanup a bit
     inject.clear()
 
+    rc = yield redis.Connection(dbid=2)
+    eb = EventBus(rc)
+    yield eb.connect()
+
     def my_config(binder):
         binder.bind('settings', None)
+        binder.bind(txredisapi.Connection, rc)
+        binder.bind(EventBus, eb)
     inject.configure(my_config)
 
 

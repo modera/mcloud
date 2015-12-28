@@ -1,4 +1,4 @@
-from io import StringIO
+from io import BytesIO
 import logging
 import tarfile
 from tempfile import mkdtemp
@@ -67,7 +67,7 @@ class DockerfileImageBuilder(IImageBuilder):
         d = defer.Deferred()
 
         def archive():
-            memfile = StringIO()
+            memfile = BytesIO()
             try:
                 t = tarfile.open(mode='w', fileobj=memfile)
                 t.add(self.path, arcname='.')

@@ -79,7 +79,7 @@ setup(
         # 'pynetinfo',
         # 'reqeuests',
         # 'werkzeug',
-        'autobahn==0.8.11',
+        'autobahn',
         # 'pyasn1-modules',
         # 'characteristic',
         # 'cryptography>=0.7',

@@ -42,11 +42,12 @@ class ApplicationController(object):
 
         # validate first by crating application instance
         if not skip_validation:
-            ret = yield Application(config).load()
+            ret = yield Application(config=config).load()
 
-        #  set data to redis. we don't care too much about result
-        ret = yield self.redis.hset('mcloud-apps', name, json.dumps(config))
-        defer.returnValue(Application(config, name=name))
+        ret = Application(config=config, name=name)
+        ret.save()
+
+        return ret
 
     @defer.inlineCallbacks
     def update_source(self, name, source=None, skip_validation=False, env=None):
@@ -78,8 +79,8 @@ class ApplicationController(object):
 
     @defer.inlineCallbacks
     def remove(self, name):
-        Application.objects.filter(name=name).delete()
-        defer.returnValue(True)
+        yield Application.tx.filter(name=name).delete()
+        return True
 
     @defer.inlineCallbacks
     def load_app_config(self, config):
@@ -96,7 +97,7 @@ class ApplicationController(object):
             app = yield Application.tx.get(name=name)
             defer.returnValue(app)
 
-        except Application.AppDoesNotExist:
+        except Application.DoesNotExist:
             raise AppDoesNotExist('Application with name "%s" do not exist' % name)
 
 
@@ -165,10 +166,12 @@ class ApplicationController(object):
         # collect application data
         apps = yield Application.tx.all()
 
-        all_apps = []
-        for app in apps:
-            all_apps.append(app.load(need_details=need_details))
+        return apps
 
-        results = yield defer.gatherResults(all_apps, consumeErrors=True)
+        # all_apps = []
+        # for app in apps:
+        #     all_apps.append(app.load(need_details=need_details))
 
-        defer.returnValue(results)
+        # results = yield defer.gatherResults(all_apps, consumeErrors=True)
+        #
+        # defer.returnValue(results)

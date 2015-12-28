@@ -331,12 +331,18 @@ def test_build_build_volumes_several(tmpdir):
     foo2 = tmpdir.mkdir('foo2')
     foo3 = tmpdir.mkdir('foo3')
 
-    c.process_volumes_build(s, {'volumes': {
-        'foo1': 'bar1',
-        'foo2': 'bar2',
-        'foo3': 'bar3',
-    }}, str(tmpdir))
+    c.process_volumes_build(s, {'volumes': OrderedDict([
+        ('foo1', 'bar1'),
+        ('foo2', 'bar2'),
+        ('foo3', 'bar3'),
+    ])}, str(tmpdir))
 
+    print(s.volumes)
+    print([
+        {'local': str(foo1), 'remote': 'bar1'},
+        {'local': str(foo2), 'remote': 'bar2'},
+        {'local': str(foo3), 'remote': 'bar3'}
+    ])
     assert s.volumes == [
         {'local': str(foo1), 'remote': 'bar1'},
         {'local': str(foo2), 'remote': 'bar2'},

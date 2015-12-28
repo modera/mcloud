@@ -16,7 +16,7 @@ import txredisapi
 
 def test_new_app_instance():
 
-    app = Application({'path': 'foo/bar'}, name='foo')
+    app = Application(config={'path': 'foo/bar'}, name='foo')
     assert app.config['path'] == 'foo/bar'
     assert app.name == 'foo'
 
@@ -37,18 +37,22 @@ def test_app_load():
         binder.bind(IDockerClient, DockerTwistedClient())
 
     with inject_services(configure):
-        app = Application({'path': os.path.realpath(os.path.dirname(__file__) + '/_files/')}, name='myapp')
+        app = Application(config={'path': os.path.realpath(os.path.dirname(__file__) + '/_files/')}, name='myapp')
+
         config = yield app.load()
 
         assert isinstance(config, YamlConfig)
-        assert len(config.get_services()) == 1
+
         assert config.app_name == 'myapp'
+
+        assert len(config.get_services()) == 1
 
         service = config.get_services()['controller.myapp']
         assert isinstance(service, Service)
         assert isinstance(service.image_builder, DockerfileImageBuilder)
 
-        assert service.is_inspected()
+        # not inspected as deployment is not specified
+        assert not service.is_inspected()
 
 
 def test_internal_containers():
@@ -72,6 +76,7 @@ def test_app_controller():
 
     redis = yield txtimeout(txredisapi.Connection(dbid=2), 2, timeout)
     yield redis.flushdb()
+    yield Application.tx.all().delete()
 
 
     def configure(binder):
@@ -98,16 +103,13 @@ def test_app_controller():
         assert r.name == 'boo'
         assert r.config['path'] == 'other/path'
 
-        mockapp = flexmock()
-        flexmock(Application).new_instances(mockapp)
-        mockapp.should_receive('load').with_args(need_details=True).and_return(defer.succeed({'foo': 'bar'}))
+        # mockapp = flexmock()
+        # flexmock(Application).new_instances(mockapp)
+        # mockapp.should_receive('load').with_args(need_details=True).and_return(defer.succeed({'foo': 'bar'}))
 
         r = yield controller.list()
 
-        assert isinstance(r, list)
         assert len(r) == 2
-        for app in r:
-            assert app == {'foo': 'bar'}
 
         yield controller.remove('foo')
 

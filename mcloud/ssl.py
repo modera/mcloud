@@ -1,11 +1,8 @@
 import datetime
-from OpenSSL.crypto import PKey, X509
-import inject
 
+import inject
+from OpenSSL.crypto import PKey, X509
 from twisted.internet import ssl, reactor
-from twisted.internet._sslverify import Certificate, KeyPair
-from twisted.internet.defer import inlineCallbacks
-import txredisapi
 
 
 class CtxFactory(ssl.ClientContextFactory):

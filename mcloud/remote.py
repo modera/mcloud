@@ -1,23 +1,24 @@
 import json
+import os
+
 import sys
 
-from autobahn.twisted.resource import WSGIRootResource, WebSocketResource
-from mcloud.ssl import listen_ssl
-import os
 import inject
-from mcloud.events import EventBus
-from prettytable import PrettyTable, ALL
-from twisted.internet import reactor, defer, task
-from twisted.internet.defer import inlineCallbacks, AlreadyCalledError, CancelledError
-from autobahn.twisted.websocket import WebSocketServerFactory
+from autobahn.twisted.resource import WSGIRootResource, WebSocketResource
 from autobahn.twisted.websocket import WebSocketClientFactory
+from autobahn.twisted.websocket import WebSocketServerFactory
+from mcloud.events import EventBus
+from mcloud.ssl import listen_ssl
+from twisted.internet import reactor, defer
+from twisted.internet.defer import inlineCallbacks, AlreadyCalledError, CancelledError
 from twisted.python.failure import Failure
 from twisted.web.server import Site
+from twisted.python import log
+
+# a.t.m. twisted has not been merged wsgi into twisted 15.5
 # from twisted.web.wsgi import WSGIResource
 from mcloud.django.wsgi import WSGIResource
 import txredisapi
-
-from twisted.python import log
 
 from twisted.web.static import File
 from pkg_resources import resource_filename
@@ -170,17 +171,17 @@ class MdcloudWebsocketServerProtocol(WebSocketServerProtocol):
         # log.msg('Websocket server in: %s' % payload)
         # print(self.factory.server.on_message())
 
-        reactor.callLater(0, self.factory.server.on_message, self, payload, isBinary)
+        reactor.callLater(0, self.factory.server.on_message, self, payload.decode(), isBinary)
 
     def send_event(self, event_name, data=None):
         data_ = {'type': 'event', 'name': event_name, 'data': data}
         # log.msg('Sent out event: %s' % event_name)
-        return self.sendMessage(json.dumps(data_))
+        return self.sendMessage(json.dumps(data_).encode())
 
     def send_response(self, request_id, response, success=True):
         data_ = {'type': 'response', 'id': request_id, 'success': success, 'response': response}
         # log.msg('Sent out response: %s' % request_id)
-        return self.sendMessage(json.dumps(data_))
+        return self.sendMessage(json.dumps(data_).encode())
 
 
 class Server(object):
@@ -368,7 +369,7 @@ class Client(object):
 
     def send(self, data):
         log.msg('Send message: %s' % data)
-        return self.protocol.sendMessage(data)
+        return self.protocol.sendMessage(data.encode())
 
     def shutdown(self):
         if self.protocol:
@@ -379,7 +380,7 @@ class Client(object):
         log.msg('Client in: %s' % data)
 
         try:
-            data = json.loads(data)
+            data = json.loads(data.decode())
         except ValueError:
             raise Exception('Invalid json: %s' % data)
 

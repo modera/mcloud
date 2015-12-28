@@ -43,6 +43,28 @@ class DockerConnectionFailed(Exception):
     pass
 
 
+def load_docker_keys_from_path(path):
+    files = {
+        'ca': None,
+        'cert': None,
+        'key': None,
+    }
+    for fname in list(files.keys()):
+        with open('%s/%s.pem' % (path, fname)) as f:
+            files[fname] = f.read()
+    return files
+
+
+def get_environ_docker():
+    url = os.environ.get('DOCKER_HOST')
+    if url.startswith('tcp://'):
+        url = 'http://%s' % url[6:]
+
+    files = load_docker_keys_from_path(os.environ.get('DOCKER_CERT_PATH'))
+
+    return DockerTwistedClient(url=url, **files)
+
+
 class DockerTwistedClient(object):
 
     DOCKER_API_VERSION = 'v1.19'
@@ -59,10 +81,10 @@ class DockerTwistedClient(object):
     def task_stdout(self, ticket_id, data):
         self.rpc_server.task_stdout(data, ticket_id)
 
-    def __init__(self, url=None, key=None, crt=None, ca=None):
+    def __init__(self, url=None, key=None, crt=None, ca=None, cert=None):
         super(DockerTwistedClient, self).__init__()
 
-        self.crt = crt
+        self.crt = crt or cert
         self.key = key
         self.ca = ca
 
@@ -341,14 +363,14 @@ class DockerTwistedClient(object):
     @inlineCallbacks
     def inspect(self, id):
         assert not id is None
-        r = yield self._get('containers/%s/json' % bytes(id))
+        r = yield self._get('containers/%s/json' % str(id))
         r = yield self.collect_json_or_none(r)
         defer.returnValue(r)
 
     @inlineCallbacks
     def inspect_image(self, id):
         assert not id is None
-        r = yield self._get('images/%s/json' % bytes(id))
+        r = yield self._get('images/%s/json' % str(id))
         r = yield self.collect_json_or_none(r)
         defer.returnValue(r)
 

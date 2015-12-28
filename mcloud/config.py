@@ -157,7 +157,7 @@ class YamlConfig(IConfig):
 
         except ValueError as e:
             if self._file:
-                raise ConfigParseError('Failed to parse %s: %s' % (self._file, e.message))
+                raise ConfigParseError('Failed to parse %s: %s' % (self._file, e.args))
             else:
                 raise ConfigParseError('Failed to parse source: %s' % e.message)
 

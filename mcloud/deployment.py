@@ -6,6 +6,7 @@ import os
 import inject
 from mcloud.events import EventBus
 from mcloud.plugin import enumerate_plugins
+from mcloud.txdocker import load_docker_keys_from_path
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 import txredisapi
@@ -168,14 +169,7 @@ class DeploymentController(object):
                 port = 2376
                 tls = True
 
-                files = {
-                    'ca': None,
-                    'cert': None,
-                    'key': None,
-                }
-                for fname in list(files.keys()):
-                    with open('%s/%s.pem' % (path, fname)) as f:
-                        files[fname] = f.read()
+                files = load_docker_keys_from_path(path)
 
                 try:
                     deployment = yield self.get(name)
