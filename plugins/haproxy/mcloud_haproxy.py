@@ -17,6 +17,8 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.python import log
 from zope.interface import implements
 
+import re
+
 HAPROXY_TPL = """
 defaults
         option  dontlognull
@@ -65,7 +67,7 @@ frontend http_ssl_proxy
 
       option ssl-hello-chk
 
-      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }} check
+      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }} send-proxy check
 
   {% endfor %}
   {% endfor %}
@@ -89,7 +91,7 @@ frontend http_proxy
   {% for backend in app.backends %}
   backend {{ backend.name }}_cluster
       mode    http
-      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }}
+      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }} send-proxy
   {% endfor %}
   {% endfor %}
 """
@@ -146,14 +148,16 @@ class HaproxyPlugin(Plugin):
 
                     else:
                         for service in app['services']:
+
                             if not service['ip']:
                                 continue
                             if service['shortname'] == target['service']:
 
-                                print target
-
                                 if 'port' in target and target['port']:
                                     service['ip'] = service['ip'] + ':' + target['port']
+
+                                if 'send-proxy' in service and service['send-proxy']:
+                                    service['ip'] = service['ip'] + '@send-proxy'
 
 
                                 if target['url'].startswith('https://'):
@@ -165,6 +169,10 @@ class HaproxyPlugin(Plugin):
                                         plain_domains[service['ip']] = []
                                     plain_domains[service['ip']].append(target['url'])
 
+
+            def format_name(name):
+                return re.sub('[\.\-\s]+', '_', str(name))
+
             if ssl_domains:
                 for ip, domains in ssl_domains.items():
                     port = 443
@@ -172,9 +180,9 @@ class HaproxyPlugin(Plugin):
                         ip, port = ip.split(':')
 
                     deployments[app['deployment']]['ssl_apps'].append({
-                        'name': '%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port),
+                        'name': '%s_%s_%s' % (app['fullname'], format_name(ip), format_name(port)),
                         'domains': domains,
-                        'backends': [{'name': 'backend_ssl_%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port), 'ip': ip, 'port': port}]
+                        'backends': [{'name': 'backend_ssl_%s_%s_%s' % (app['fullname'], format_name(ip), format_name(port)), 'ip': ip, 'port': port}]
                     })
 
             for ip, domains in plain_domains.items():
@@ -186,9 +194,9 @@ class HaproxyPlugin(Plugin):
                     ip, port = ip.split(':')
 
                 deployments[app['deployment']]['apps'].append({
-                    'name': '%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port),
+                    'name': '%s_%s_%s' % (app['fullname'], format_name(ip), format_name(port)),
                     'domains': domains,
-                    'backends': [{'name': 'backend_%s_%s_%s' % (app['fullname'], ip.replace('.', '_'), port), 'ip': ip, 'port': port}]
+                    'backends': [{'name': 'backend_%s_%s_%s' % (app['fullname'], format_name(ip), format_name(port)), 'ip': ip, 'port': port}]
                 })
 
         log.msg('Writing haproxy config')

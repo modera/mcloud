@@ -12,7 +12,7 @@ from os.path import dirname
 from twisted.internet.defer import inlineCallbacks
 import yaml
 from .service import Service
-from voluptuous import Schema, MultipleInvalid
+from voluptuous import Schema, All, Any, MultipleInvalid, Coerce
 from voluptuous import Required
 from twisted.python import log
 
@@ -205,9 +205,10 @@ class YamlConfig(IConfig):
             Schema({
                 basestring: {
                     'wait': int,
-                    'web': int,
-                    'ssl': int,
+                    'web': All(Any(int, basestring), Coerce(str)),
+                    'ssl': All(Any(int, basestring), Coerce(str)),
                     'dockerfile': basestring,
+                    # 'send-proxy': bool,
                     'image': basestring,
                     'build': basestring,
                     'entrypoint': basestring,
