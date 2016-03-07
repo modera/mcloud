@@ -67,7 +67,7 @@ frontend http_ssl_proxy
 
       option ssl-hello-chk
 
-      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }} send-proxy check
+      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }} check
 
   {% endfor %}
   {% endfor %}
@@ -91,7 +91,7 @@ frontend http_proxy
   {% for backend in app.backends %}
   backend {{ backend.name }}_cluster
       mode    http
-      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }} send-proxy
+      server {{ backend.name }} {{ backend.ip }}:{{ backend.port }}
   {% endfor %}
   {% endfor %}
 """
